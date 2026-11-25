@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expert System</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<style>
+  .rule { display: grid; grid-template-columns: 34px minmax(0, 1fr) 190px 34px; gap: 8px; align-items: center; padding: 8px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 8px; background: var(--surface); }
+  .rule .no { font-weight: 700; color: var(--muted); text-align: center; }
+  .rule.fired { border-color: var(--accent); background: var(--accent-soft); }
+  .rule.winner { outline: 3px solid var(--accent-2); }
+  .rule .kw { font-size: .75rem; color: var(--muted); }
+  @media (max-width: 700px) { .rule { grid-template-columns: 28px minmax(0, 1fr); } .rule select, .rule .del { grid-column: 2; } }
+  .samples .btn { text-align: left; }
+  mark { background: var(--accent-2-soft); color: inherit; border-radius: 4px; padding: 0 2px; }
+  .decision { font-size: 1.6rem; font-weight: 800; margin: .2em 0; }
+  .trace li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <h1>2 · <span lang="en">Complaint routing expert system</span><span lang="bn">অভিযোগ বণ্টনের এক্সপার্ট সিস্টেম</span></h1>
+  <p class="lead">
+    <span lang="en">An officer writes the knowledge as rules: <b>IF the complaint mentions … THEN send it to …</b>. The computer only applies the rules, top to bottom. Nothing is learned from data.</span>
+    <span lang="bn">একজন কর্মকর্তা জ্ঞানকে নিয়ম হিসেবে লেখেন: <b>যদি অভিযোগে … থাকে, তবে … বিভাগে পাঠাও</b>। কম্পিউটার শুধু ওপর থেকে নিচে নিয়মগুলো প্রয়োগ করে। ডেটা থেকে কিছুই শেখে না।</span>
+  </p>
+
+  <div class="grid2">
+    <div class="card">
+      <h2><span lang="en">Knowledge base (rules)</span><span lang="bn">জ্ঞানভান্ডার (নিয়মসমূহ)</span></h2>
+      <p class="muted" style="font-size:.88rem"><span lang="en">Keywords are separated by commas. Edit them live. Rule 1 has the highest priority.</span><span lang="bn">কীওয়ার্ডগুলো কমা দিয়ে আলাদা। সরাসরি বদলান। ১ নম্বর নিয়মের অগ্রাধিকার সবচেয়ে বেশি।</span></p>
+      <div id="rules"></div>
+      <div class="row">
+        <button class="btn" id="add"><span lang="en">+ Add rule</span><span lang="bn">+ নিয়ম যোগ</span></button>
+        <button class="btn" id="reset"><span lang="en">Restore default rules</span><span lang="bn">মূল নিয়মে ফিরুন</span></button>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h2><span lang="en">Citizen complaint</span><span lang="bn">নাগরিকের অভিযোগ</span></h2>
+        <textarea id="text"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn primary" id="go"><span lang="en">Route complaint</span><span lang="bn">অভিযোগ পাঠান</span></button></div>
+        <div style="margin-top:14px">
+          <div class="muted" style="font-size:.85rem"><span lang="en">Decision</span><span lang="bn">সিদ্ধান্ত</span></div>
+          <div class="decision" id="decision">–</div>
+          <div id="explain"></div>
+        </div>
+      </div>
+      <div class="card samples">
+        <h3><span lang="en">Try these</span><span lang="bn">এগুলো চেষ্টা করুন</span></h3>
+        <div class="row" id="samples"></div>
+        <h3 style="margin-top:14px"><span lang="en">Break it: tricky complaints</span><span lang="bn">ভেঙে দেখি: জটিল অভিযোগ</span></h3>
+        <div class="row" id="tricky"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="callout break">
+      <div class="label"><span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
+      <p style="margin:0"><span lang="en">"রাস্তার বাতি" (street light) contains the word "রাস্তা" (road), so the Roads rule fires first. A smell complaint with no keyword matches nothing. Banglish spelling defeats every rule. Can you fix these by editing the rules? Does each fix break something else?</span>
+      <span lang="bn">"রাস্তার বাতি" কথাটিতে "রাস্তা" শব্দটি আছে, তাই সড়ক বিভাগের নিয়ম আগে কাজ করে। কীওয়ার্ডহীন দুর্গন্ধের অভিযোগ কোনো নিয়মে মেলে না। ইংরেজি হরফে লেখা বাংলা (Banglish) সব নিয়মকে হারিয়ে দেয়। নিয়ম বদলে এগুলো ঠিক করতে পারবেন? প্রতিটি সংশোধন কি অন্য কিছু ভেঙে দেয়?</span></p>
+    </div>
+    <div class="callout lesson">
+      <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+      <p style="margin:0"><span lang="en"><b>A human supplies the knowledge; the computer applies it.</b> Rules are transparent and easy to audit: you can always say <i>why</i> a decision was made. But they are brittle, and someone must write and maintain every rule. In Experiment 3 the machine will learn rules from examples instead.</span>
+      <span lang="bn"><b>জ্ঞান দেয় মানুষ; কম্পিউটার তা প্রয়োগ করে।</b> নিয়ম স্বচ্ছ ও সহজে নিরীক্ষণযোগ্য: সিদ্ধান্ত <i>কেন</i> হলো তা সবসময় বলা যায়। কিন্তু নিয়ম ভঙ্গুর, এবং প্রতিটি নিয়ম কাউকে লিখতে ও হালনাগাদ রাখতে হয়। ৩ নম্বর পরীক্ষায় যন্ত্র উদাহরণ থেকে নিজেই নিয়ম শিখবে।</span></p>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script src="../assets/complaints-data.js"></script>
+<script>
+LAB.header({ home: '../index.html', family: ['Classical AI · expert system', 'ক্লাসিক্যাল এআই · এক্সপার্ট সিস্টেম'] });
+var C = COMPLAINTS;
+var rules = JSON.parse(JSON.stringify(C.DEFAULT_RULES));
+var last = null;
+
+function deptName(d) { var x = C.DEPTS[d]; return x.icon + ' ' + LAB.t(x.en, x.bn); }
+
+function renderRules() {
+  var el = document.getElementById('rules');
+  el.innerHTML = rules.map(function (r, i) {
+    var opts = C.DEPT_KEYS.map(function (d) { return '<option value="' + d + '"' + (d === r.dept ? ' selected' : '') + '>' + deptName(d) + '</option>'; }).join('');
+    return '<div class="rule" data-i="' + i + '"><div class="no">' + (i + 1) + '</div>' +
+      '<div><div class="kw">' + LAB.bi('IF complaint contains any of', 'যদি অভিযোগে এর যেকোনোটি থাকে') + '</div>' +
+      '<input type="text" value="' + LAB.esc(r.words.join(', ')) + '"></div>' +
+      '<div><div class="kw">' + LAB.bi('THEN send to', 'তবে পাঠাও') + '</div><select>' + opts + '</select></div>' +
+      '<button class="btn small del" title="Delete">✕</button></div>';
+  }).join('');
+  el.querySelectorAll('.rule').forEach(function (row) {
+    var i = +row.dataset.i;
+    row.querySelector('input').oninput = function (e) { rules[i].words = e.target.value.split(','); evaluate(); };
+    row.querySelector('select').onchange = function (e) { rules[i].dept = e.target.value; evaluate(); };
+    row.querySelector('.del').onclick = function () { rules.splice(i, 1); renderRules(); evaluate(); };
+  });
+  highlight();
+}
+
+function highlight() {
+  document.querySelectorAll('.rule').forEach(function (row) {
+    var i = +row.dataset.i;
+    var f = last && last.fired.some(function (x) { return x.ruleIndex === i; });
+    row.classList.toggle('fired', !!f);
+    row.classList.toggle('winner', !!(last && last.fired.length && last.fired[0].ruleIndex === i));
+  });
+}
+
+function evaluate() {
+  var text = document.getElementById('text').value.trim();
+  if (!text) { last = null; document.getElementById('decision').textContent = '–'; document.getElementById('explain').innerHTML = ''; highlight(); return; }
+  last = C.applyRules(rules, text);
+  var dec = document.getElementById('decision'), ex = document.getElementById('explain');
+  if (!last.dept) {
+    dec.innerHTML = '❓ ' + LAB.bi('No rule matched: manual review desk', 'কোনো নিয়ম মেলেনি: হাতে-কলমে যাচাইয়ের ডেস্কে');
+    ex.innerHTML = '<p class="muted">' + LAB.bi('The system has no knowledge about this complaint. It cannot guess.', 'এই অভিযোগ সম্পর্কে সিস্টেমের কোনো জ্ঞান নেই। সে আন্দাজ করতে পারে না।') + '</p>';
+  } else {
+    dec.innerHTML = deptName(last.dept);
+    var depts = {}; last.fired.forEach(function (f) { depts[f.dept] = 1; });
+    var conflict = Object.keys(depts).length > 1;
+    var safe = LAB.esc(text);
+    last.fired.forEach(function (f) {
+      var w = LAB.esc(f.word), idx = safe.toLowerCase().indexOf(w.toLowerCase());
+      if (idx >= 0) safe = safe.slice(0, idx) + '<mark>' + safe.slice(idx, idx + w.length) + '</mark>' + safe.slice(idx + w.length);
+    });
+    ex.innerHTML = '<p style="margin:.2em 0">' + safe + '</p><ol class="trace">' + last.fired.map(function (f, k) {
+      return '<li>' + LAB.bi('Rule ', 'নিয়ম ') + (f.ruleIndex + 1) + ' ' + LAB.bi('fired because it found', 'কাজ করেছে কারণ পাওয়া গেছে') + ' "<b>' + LAB.esc(f.word) + '</b>" → ' + deptName(f.dept) +
+        (k === 0 ? ' <span class="pill ok">' + LAB.bi('used (highest priority)', 'গৃহীত (সর্বোচ্চ অগ্রাধিকার)') + '</span>' : ' <span class="pill">' + LAB.bi('ignored', 'উপেক্ষিত') + '</span>') + '</li>';
+    }).join('') + '</ol>' +
+      (conflict ? '<p class="pill warn" style="padding:6px 10px">⚠️ ' + LAB.bi('Conflict: rules point to different departments. Only rule order decides.', 'দ্বন্দ্ব: নিয়মগুলো ভিন্ন ভিন্ন বিভাগ দেখাচ্ছে। শুধু নিয়মের ক্রমই সিদ্ধান্ত নিচ্ছে।') + '</p>' : '');
+  }
+  highlight();
+}
+
+function sampleButtons(el, list) {
+  el.innerHTML = list.map(function (s, i) { return '<button class="btn small" data-i="' + i + '">' + LAB.esc(s.text) + '</button>'; }).join('');
+  el.querySelectorAll('button').forEach(function (b) { b.onclick = function () { document.getElementById('text').value = list[+b.dataset.i].text; evaluate(); }; });
+}
+sampleButtons(document.getElementById('samples'), C.SAMPLES.filter(function (s) { return !s.tricky; }));
+sampleButtons(document.getElementById('tricky'), C.SAMPLES.filter(function (s) { return s.tricky; }));
+
+document.getElementById('go').onclick = evaluate;
+document.getElementById('text').addEventListener('input', evaluate);
+document.getElementById('add').onclick = function () { rules.push({ dept: 'waste', words: [''] }); renderRules(); };
+document.getElementById('reset').onclick = function () { rules = JSON.parse(JSON.stringify(C.DEFAULT_RULES)); renderRules(); evaluate(); };
+LAB.onLang(function () { renderRules(); evaluate(); });
+document.getElementById('text').value = C.SAMPLES[0].text;
+renderRules(); evaluate();
+</script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waste Demand Regression</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<style>
+  #plot .pt { fill: var(--accent); opacity: .65; }
+  #plot .pt.out { fill: var(--yes); opacity: .9; }
+  #plot .fit { stroke: var(--accent-2); stroke-width: 3.5; }
+  #plot .res { stroke: var(--yes); stroke-width: 1; opacity: .55; }
+  #plot .nodata { fill: var(--accent-2-soft); opacity: .6; }
+  #plot .newpt { fill: var(--accent-2); stroke: var(--surface); stroke-width: 2; }
+  .check { display: flex; gap: 10px; align-items: center; cursor: pointer; }
+  .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <h1>4 · <span lang="en">Predict daily waste for a ward (regression)</span><span lang="bn">ওয়ার্ডের দৈনিক বর্জ্যের পূর্বাভাস (রিগ্রেশন)</span></h1>
+  <p class="lead">
+    <span lang="en">AI can predict <b>numbers</b>, not just categories. Using 120 wards, the machine finds the line that best predicts tonnes of waste per day, so the city can plan trucks and staff for a new ward.</span>
+    <span lang="bn">এআই শুধু শ্রেণি নয়, <b>সংখ্যাও</b> অনুমান করতে পারে। ১২০টি ওয়ার্ডের তথ্য থেকে যন্ত্র এমন একটি রেখা খুঁজে বের করে যা দৈনিক কত টন বর্জ্য হবে তা সবচেয়ে ভালোভাবে অনুমান করে, যাতে নতুন ওয়ার্ডের জন্য গাড়ি ও কর্মী পরিকল্পনা করা যায়।</span>
+  </p>
+
+  <div class="main-side">
+    <div class="card">
+      <div class="row">
+        <span class="muted"><span lang="en">Predict from:</span><span lang="bn">যেটি থেকে অনুমান:</span></span>
+        <button class="btn on" data-x="pop"><span lang="en">Population</span><span lang="bn">জনসংখ্যা</span></button>
+        <button class="btn" data-x="biz"><span lang="en">Number of businesses</span><span lang="bn">ব্যবসাপ্রতিষ্ঠানের সংখ্যা</span></button>
+      </div>
+      <svg id="plot" class="chart" style="margin-top:10px"></svg>
+      <label class="check" style="margin-top:6px"><input type="checkbox" id="showres"> <span><span lang="en">Show prediction errors (red lines)</span><span lang="bn">অনুমানের ভুল দেখাও (লাল রেখা)</span></span></label>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3><span lang="en">Train</span><span lang="bn">শেখাই</span></h3>
+        <div class="row">
+          <button class="btn primary" id="gd">▶ <span lang="en">Learn step by step</span><span lang="bn">ধাপে ধাপে শেখো</span></button>
+          <button class="btn" id="ols"><span lang="en">Best fit instantly</span><span lang="bn">সরাসরি সেরা রেখা</span></button>
+        </div>
+        <svg id="loss" style="margin-top:8px"></svg>
+        <p class="muted" style="font-size:.82rem;margin:0"><span lang="en">Average squared error while learning: it should go down.</span><span lang="bn">শেখার সময় গড় বর্গ-ভুল: এটি কমা উচিত।</span></p>
+      </div>
+      <div class="card">
+        <h3><span lang="en">Evaluate</span><span lang="bn">যাচাই</span></h3>
+        <div class="stats">
+          <div class="stat"><div class="k"><span lang="en">Average error</span><span lang="bn">গড় ভুল</span></div><div class="v" id="mae">–</div></div>
+          <div class="stat"><div class="k"><span lang="en">Variation explained (R²)</span><span lang="bn">ব্যাখ্যাকৃত তারতম্য (R²)</span></div><div class="v" id="r2">–</div></div>
+        </div>
+        <p id="eq" style="margin:.8em 0 0;font-size:.95rem"></p>
+      </div>
+      <div class="card">
+        <h3><span lang="en">Use: plan for a new ward</span><span lang="bn">ব্যবহার: নতুন ওয়ার্ডের পরিকল্পনা</span></h3>
+        <label class="ctl"><span id="newlabel"></span><input type="range" id="newx" min="0" max="300" value="60"></label>
+        <div class="big-result" id="newy">–</div>
+        <p class="muted" id="newnote" style="font-size:.88rem;margin:0"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="callout break">
+      <div class="label"><span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
+      <label class="check"><input type="checkbox" id="outliers"> <span><span lang="en">Add 5 market wards: few residents, huge waste</span><span lang="bn">৫টি বাজার-ওয়ার্ড যোগ করুন: বাসিন্দা কম, বর্জ্য বিপুল</span></span></label>
+      <p style="margin:.6em 0 0"><span lang="en">Then press "Best fit" again: a few unusual wards pull the whole line. Also move the new-ward slider far to the right: the model happily predicts for wards far larger than any it has seen.</span>
+      <span lang="bn">তারপর আবার "সরাসরি সেরা রেখা" চাপুন: অল্প কয়েকটি ব্যতিক্রমী ওয়ার্ড পুরো রেখাকে টেনে সরিয়ে দেয়। নতুন ওয়ার্ডের স্লাইডার অনেক ডানে সরান: মডেল এমন বড় ওয়ার্ডের জন্যও অনুমান দেয় যা সে কখনো দেখেনি।</span></p>
+    </div>
+    <div class="callout lesson">
+      <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+      <p style="margin:0"><span lang="en"><b>Regression predicts quantities</b>: waste, transport demand, school enrolment. Learning means repeatedly adjusting the line to reduce the error. <b>Correlation is not causation</b>: number of businesses also predicts waste well, but that does not tell us what causes waste or what policy will reduce it.</span>
+      <span lang="bn"><b>রিগ্রেশন পরিমাণ অনুমান করে</b>: বর্জ্য, পরিবহনের চাহিদা, স্কুলে ভর্তি। শেখা মানে ভুল কমাতে বারবার রেখাটি সমন্বয় করা। <b>সম্পর্ক মানেই কারণ নয়</b>: ব্যবসার সংখ্যা দিয়েও বর্জ্য ভালোভাবে অনুমান করা যায়, কিন্তু তাতে বোঝা যায় না বর্জ্য কেন হয় বা কোন নীতি তা কমাবে।</span></p>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script>
+LAB.header({ home: '../index.html', family: ['Machine learning · regression', 'মেশিন লার্নিং · রিগ্রেশন'], synthetic: true });
+var $ = function (id) { return document.getElementById(id); };
+
+var BASE = (function () {
+  var r = LAB.rng(7), out = [];
+  for (var i = 0; i < 120; i++) {
+    var pop = Math.round(15 + r() * 95);
+    var biz = Math.round(pop * (6 + r() * 6) + LAB.gauss(r) * 40);
+    var waste = Math.max(2, 2 + 0.45 * pop + 0.004 * (biz - pop * 9) + LAB.gauss(r) * 3.2);
+    out.push({ pop: pop, biz: Math.max(20, biz), waste: +waste.toFixed(1) });
+  }
+  return out;
+})();
+var OUT = [{ pop: 18, biz: 900, waste: 82 }, { pop: 22, biz: 1100, waste: 88 }, { pop: 26, biz: 950, waste: 76 }, { pop: 20, biz: 1000, waste: 79 }, { pop: 25, biz: 1050, waste: 85 }];
+var X = { pop: { en: 'Population (thousand)', bn: 'জনসংখ্যা (হাজার)', max: 120, sliderMax: 300 }, biz: { en: 'Number of businesses', bn: 'ব্যবসাপ্রতিষ্ঠানের সংখ্যা', max: 1400, sliderMax: 3000 } };
+var xk = 'pop', a = 0, b = 0, losses = [], timer = null;
+
+function data() { return $('outliers').checked ? BASE.concat(OUT.map(function (o) { return Object.assign({ out: 1 }, o); })) : BASE; }
+function mse(rows, A, B) { var s = 0; rows.forEach(function (d) { var e = d.waste - (A + B * d[xk]); s += e * e; }); return s / rows.length; }
+function ols() {
+  var rows = data(), n = rows.length, mx = 0, my = 0, sxy = 0, sxx = 0;
+  rows.forEach(function (d) { mx += d[xk]; my += d.waste; }); mx /= n; my /= n;
+  rows.forEach(function (d) { sxy += (d[xk] - mx) * (d.waste - my); sxx += (d[xk] - mx) * (d[xk] - mx); });
+  b = sxy / sxx; a = my - b * mx;
+}
+function gd() {
+  if (timer) clearInterval(timer);
+  var rows = data(), n = rows.length, mx = 0, sx = 0;
+  rows.forEach(function (d) { mx += d[xk]; }); mx /= n;
+  rows.forEach(function (d) { sx += Math.pow(d[xk] - mx, 2); }); sx = Math.sqrt(sx / n);
+  var A = 0, B = 0, lr = 0.08, it = 0; losses = [];
+  a = 0; b = 0;
+  timer = setInterval(function () {
+    var ga = 0, gb = 0;
+    rows.forEach(function (d) { var z = (d[xk] - mx) / sx, e = A + B * z - d.waste; ga += e; gb += e * z; });
+    A -= lr * ga / n; B -= lr * gb / n;
+    b = B / sx; a = A - B * mx / sx;
+    losses.push(mse(rows, a, b));
+    draw();
+    if (++it >= 60) { clearInterval(timer); timer = null; }
+  }, 60);
+}
+
+function draw() {
+  var rows = data(), svg = $('plot'), W = 640, H = 360, P = { l: 48, r: 14, t: 12, b: 40 };
+  var nx = +$('newx').value * (xk === 'pop' ? 1 : 10);
+  var xmax = Math.max(X[xk].max, nx * 1.05), ymax = Math.max(100, a + b * xmax + 10);
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  var xs = function (v) { return P.l + v / xmax * (W - P.l - P.r); }, ys = function (v) { return H - P.b - v / ymax * (H - P.t - P.b); };
+  var dmax = Math.max.apply(null, rows.map(function (d) { return d[xk]; }));
+  var h = '';
+  if (nx > dmax) h += '<rect class="nodata" x="' + xs(dmax) + '" y="' + P.t + '" width="' + (xs(xmax) - xs(dmax)) + '" height="' + (H - P.t - P.b) + '"/>' +
+    '<text x="' + (xs(dmax) + 6) + '" y="' + (P.t + 16) + '">' + LAB.t('no data here', 'এখানে কোনো ডেটা নেই') + '</text>';
+  for (var k = 0; k <= 4; k++) {
+    var yv = ymax * k / 4, xv = xmax * k / 4;
+    h += '<line class="axis" x1="' + P.l + '" x2="' + (W - P.r) + '" y1="' + ys(yv) + '" y2="' + ys(yv) + '" stroke-dasharray="' + (k ? '3 4' : '') + '"/>';
+    h += '<text x="' + (P.l - 6) + '" y="' + (ys(yv) + 4) + '" text-anchor="end">' + Math.round(yv) + '</text>';
+    h += '<text x="' + xs(xv) + '" y="' + (H - P.b + 16) + '" text-anchor="middle">' + Math.round(xv) + '</text>';
+  }
+  h += '<text x="' + ((W + P.l) / 2) + '" y="' + (H - 4) + '" text-anchor="middle">' + LAB.t(X[xk].en, X[xk].bn) + '</text>';
+  h += '<text x="12" y="' + (H / 2) + '" text-anchor="middle" transform="rotate(-90 12 ' + (H / 2) + ')">' + LAB.t('waste (tonnes/day)', 'বর্জ্য (টন/দিন)') + '</text>';
+  var fitted = a !== 0 || b !== 0;
+  if ($('showres').checked && fitted) rows.forEach(function (d) { h += '<line class="res" x1="' + xs(d[xk]) + '" x2="' + xs(d[xk]) + '" y1="' + ys(d.waste) + '" y2="' + ys(a + b * d[xk]) + '"/>'; });
+  rows.forEach(function (d) { h += '<circle class="pt' + (d.out ? ' out' : '') + '" cx="' + xs(d[xk]).toFixed(1) + '" cy="' + ys(d.waste).toFixed(1) + '" r="' + (d.out ? 6 : 4.5) + '"/>'; });
+  if (fitted) {
+    h += '<line class="fit" x1="' + xs(0) + '" y1="' + ys(Math.max(0, a)) + '" x2="' + xs(xmax) + '" y2="' + ys(Math.max(0, a + b * xmax)) + '"/>';
+    var ny = a + b * nx;
+    h += '<circle class="newpt" cx="' + xs(nx) + '" cy="' + ys(Math.max(0, ny)) + '" r="8"/>';
+  }
+  svg.innerHTML = h;
+  LAB.lineChart($('loss'), [{ values: losses.length ? losses : [0], color: LAB.css('--accent-2') }], { height: 140, ymin: 0 });
+  if (fitted) {
+    var res = rows.map(function (d) { return d.waste - (a + b * d[xk]); });
+    var mae = res.reduce(function (s, e) { return s + Math.abs(e); }, 0) / rows.length;
+    var my = rows.reduce(function (s, d) { return s + d.waste; }, 0) / rows.length;
+    var sst = rows.reduce(function (s, d) { return s + Math.pow(d.waste - my, 2); }, 0);
+    var sse = res.reduce(function (s, e) { return s + e * e; }, 0);
+    $('mae').textContent = '±' + mae.toFixed(1) + ' t';
+    $('r2').textContent = Math.round((1 - sse / sst) * 100) + '%';
+    $('eq').innerHTML = LAB.bi('Learned rule: waste ≈ ', 'শেখা নিয়ম: বর্জ্য ≈ ') + '<b>' + a.toFixed(1) + ' + ' + b.toFixed(3) + ' × ' + LAB.t(X[xk].en.toLowerCase(), X[xk].bn) + '</b>';
+    $('newy').textContent = Math.max(0, a + b * nx).toFixed(1) + ' ' + LAB.t('tonnes/day', 'টন/দিন');
+    $('newnote').innerHTML = nx > dmax ? '⚠️ ' + LAB.bi('Far outside the data the model learned from. This is a guess, not knowledge.', 'মডেল যে ডেটা থেকে শিখেছে তার অনেক বাইরে। এটা জ্ঞান নয়, আন্দাজ।') : LAB.bi('About ' + Math.ceil(Math.max(0, a + b * nx) / 5) + ' truck trips per day (5 t per truck).', 'দৈনিক প্রায় ' + Math.ceil(Math.max(0, a + b * nx) / 5) + 'টি গাড়ির ট্রিপ (প্রতি গাড়ি ৫ টন)।');
+  } else {
+    $('mae').textContent = '–'; $('r2').textContent = '–'; $('eq').textContent = ''; $('newy').textContent = '–'; $('newnote').textContent = '';
+  }
+  $('newlabel').innerHTML = LAB.bi('New ward: ', 'নতুন ওয়ার্ড: ') + '<b>' + nx + '</b> ' + (xk === 'pop' ? LAB.t('thousand people', 'হাজার মানুষ') : LAB.t('businesses', 'ব্যবসাপ্রতিষ্ঠান'));
+}
+
+document.querySelectorAll('[data-x]').forEach(function (btn) {
+  btn.onclick = function () {
+    xk = btn.dataset.x; a = 0; b = 0; losses = [];
+    document.querySelectorAll('[data-x]').forEach(function (o) { o.classList.toggle('on', o === btn); });
+    draw();
+  };
+});
+$('gd').onclick = gd;
+$('ols').onclick = function () { if (timer) clearInterval(timer); ols(); losses = [mse(data(), a, b)]; draw(); };
+$('showres').onchange = draw;
+$('outliers').onchange = draw;
+$('newx').oninput = draw;
+LAB.onLang(draw);
+draw();
+</script>
+</body>
+</html>

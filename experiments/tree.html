@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waterlogging Decision Tree</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<style>
+  #treebox { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+  #tree text { font-family: var(--font); fill: var(--text); }
+  #tree .edge { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  #tree .edge.hot { stroke: var(--accent-2); stroke-width: 4; }
+  #tree .q { fill: var(--surface); stroke: var(--border); }
+  #tree .leaf-yes { fill: var(--yes-soft); stroke: var(--yes); }
+  #tree .leaf-no { fill: var(--no-soft); stroke: var(--no); }
+  #tree .hot rect, #tree rect.hot, #tree circle.hot { stroke: var(--accent-2); stroke-width: 4; }
+  #tree .el { fill: var(--muted); font-size: 12px; }
+  #scatter circle.y { fill: var(--yes); } #scatter circle.n { fill: var(--no); }
+  .cm td, .cm th { text-align: center !important; }
+  .cm td.good { background: var(--accent-soft); font-weight: 700; }
+  .cm td.bad { background: var(--accent-2-soft); font-weight: 700; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: .95rem; cursor: pointer; }
+  .check input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent-2); }
+  #pred { font-size: 1.6rem; font-weight: 800; }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <h1>3 · <span lang="en">Predict waterlogging with a decision tree</span><span lang="bn">ডিসিশন ট্রি দিয়ে জলাবদ্ধতার পূর্বাভাস</span></h1>
+  <p class="lead">
+    <span lang="en">In Experiment 2 a human wrote the rules. Here we give the machine <b>800 past records</b> (rainfall, drain blockage, elevation, area type, and whether the street flooded) and let it <b>discover the rules itself</b>.</span>
+    <span lang="bn">২ নম্বর পরীক্ষায় নিয়ম লিখেছিল মানুষ। এখানে আমরা যন্ত্রকে <b>৮০০টি পুরোনো রেকর্ড</b> দিচ্ছি (বৃষ্টিপাত, ড্রেন বন্ধের মাত্রা, উচ্চতা, এলাকার ধরন, এবং রাস্তায় পানি জমেছিল কি না) এবং সে <b>নিজেই নিয়ম খুঁজে বের করবে</b>।</span>
+  </p>
+  <div id="cycle"></div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>① <span lang="en">Explore the data</span><span lang="bn">ডেটা দেখি</span></h2>
+      <svg id="scatter"></svg>
+      <p class="muted" style="font-size:.85rem;margin:.4em 0">
+        <span style="color:var(--yes)">●</span> <span lang="en">flooded</span><span lang="bn">পানি জমেছিল</span> &nbsp;
+        <span style="color:var(--no)">●</span> <span lang="en">no flooding</span><span lang="bn">পানি জমেনি</span> ·
+        <span lang="en">x: rainfall, y: drain blockage</span><span lang="bn">x: বৃষ্টিপাত, y: ড্রেন বন্ধ</span>
+      </p>
+      <div class="scroll-x"><table class="data" id="rows"></table></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn small" id="csv">⬇ <span lang="en">Download CSV (for Orange)</span><span lang="bn">CSV ডাউনলোড (Orange-এর জন্য)</span></button>
+        <span class="muted" id="counts" style="font-size:.85rem"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>② <span lang="en">Train</span><span lang="bn">শেখাই</span></h2>
+      <label class="ctl"><span><span lang="en">Records used for training</span><span lang="bn">প্রশিক্ষণে ব্যবহৃত রেকর্ড</span>: <b id="v-split"></b></span>
+        <input type="range" id="split" min="5" max="90" value="70" step="5"></label>
+      <p class="muted" style="font-size:.85rem;margin:.2em 0 .8em"><span lang="en">The rest is hidden from the machine and used only to test it.</span><span lang="bn">বাকিগুলো যন্ত্রের কাছ থেকে লুকানো থাকে, শুধু যাচাইয়ের জন্য।</span></p>
+      <label class="ctl"><span><span lang="en">Maximum tree depth (number of questions)</span><span lang="bn">গাছের সর্বোচ্চ গভীরতা (প্রশ্নের সংখ্যা)</span>: <b id="v-depth"></b></span>
+        <input type="range" id="depth" min="1" max="12" value="3"></label>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="train">▶ <span lang="en">Train the tree</span><span lang="bn">গাছকে শেখাও</span></button>
+        <button class="btn" id="sweep">📈 <span lang="en">Try every depth</span><span lang="bn">সব গভীরতা পরীক্ষা</span></button>
+      </div>
+      <h2 style="margin-top:18px">③ <span lang="en">Evaluate on unseen records</span><span lang="bn">অদেখা রেকর্ডে যাচাই</span></h2>
+      <div class="stats">
+        <div class="stat"><div class="k"><span lang="en">Accuracy on training data</span><span lang="bn">প্রশিক্ষণ ডেটায় নির্ভুলতা</span></div><div class="v" id="acc-train">–</div></div>
+        <div class="stat"><div class="k"><span lang="en">Accuracy on unseen test data</span><span lang="bn">অদেখা টেস্ট ডেটায় নির্ভুলতা</span></div><div class="v" id="acc-test">–</div></div>
+      </div>
+      <table class="data cm" id="cm" style="margin-top:10px"></table>
+      <svg id="sweepchart" class="hidden" style="margin-top:10px"></svg>
+      <p class="muted hidden" id="sweeplegend" style="font-size:.85rem"><span style="color:var(--accent)">━</span> <span lang="en">training accuracy</span><span lang="bn">প্রশিক্ষণে নির্ভুলতা</span> &nbsp; <span style="color:var(--accent-2)">━</span> <span lang="en">test accuracy (unseen)</span><span lang="bn">টেস্টে নির্ভুলতা (অদেখা)</span> · <span lang="en">x: depth</span><span lang="bn">x: গভীরতা</span></p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2><span lang="en">The rules the machine discovered</span><span lang="bn">যন্ত্র যে নিয়মগুলো খুঁজে পেয়েছে</span></h2>
+    <p class="muted" style="font-size:.9rem" id="treenote"></p>
+    <div id="treebox"><svg id="tree"></svg></div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <h2>⑥ <span lang="en">Use the model: a new day</span><span lang="bn">মডেল ব্যবহার: নতুন একটি দিন</span></h2>
+      <label class="ctl"><span><span lang="en">Rainfall</span><span lang="bn">বৃষ্টিপাত</span>: <b id="v-rain"></b> mm</span><input type="range" id="a-rain" min="0" max="200" value="90"></label>
+      <label class="ctl"><span><span lang="en">Drain blockage</span><span lang="bn">ড্রেন বন্ধ</span>: <b id="v-block"></b>%</span><input type="range" id="a-block" min="0" max="100" value="60"></label>
+      <label class="ctl"><span><span lang="en">Elevation</span><span lang="bn">উচ্চতা</span>: <b id="v-elev"></b> m</span><input type="range" id="a-elev" min="1" max="12" step="0.5" value="4"></label>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="a-inf"> <span><span lang="en">Informal settlement</span><span lang="bn">অনানুষ্ঠানিক বসতি</span></span></label>
+      <div style="margin-top:12px" id="pred">–</div>
+      <p class="muted" style="font-size:.88rem"><span lang="en">The orange path in the tree shows how the decision was made.</span><span lang="bn">গাছের কমলা পথটি দেখায় সিদ্ধান্ত কীভাবে নেওয়া হলো।</span></p>
+    </div>
+
+    <div class="callout break">
+      <div class="label">⑤ <span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
+      <h3><span lang="en">A. Overfitting</span><span lang="bn">ক. ওভারফিটিং</span></h3>
+      <p><span lang="en">Set depth to 12 and press "Try every depth". Training accuracy approaches 100%, but test accuracy gets <i>worse</i>. The tree memorised the past instead of learning.</span>
+      <span lang="bn">গভীরতা ১২ করে "সব গভীরতা পরীক্ষা" চাপুন। প্রশিক্ষণে নির্ভুলতা প্রায় ১০০%, কিন্তু টেস্টে নির্ভুলতা <i>কমে যায়</i>। গাছটি শেখেনি, অতীত মুখস্থ করেছে।</span></p>
+      <h3><span lang="en">B. Too little data</span><span lang="bn">খ. খুব কম ডেটা</span></h3>
+      <p><span lang="en">Train with only 5% of the records (40 rows). The rules become strange and unstable.</span><span lang="bn">মাত্র ৫% রেকর্ড (৪০টি) দিয়ে শেখান। নিয়মগুলো অদ্ভুত ও অস্থির হয়ে যায়।</span></p>
+      <h3><span lang="en">C. Biased records</span><span lang="bn">গ. পক্ষপাতদুষ্ট রেকর্ড</span></h3>
+      <label class="check"><input type="checkbox" id="bias"> <span><span lang="en">In informal settlements, <b>70% of floods were never reported</b> to the city corporation.</span><span lang="bn">অনানুষ্ঠানিক বসতিতে <b>৭০% জলাবদ্ধতার খবর কখনো</b> সিটি কর্পোরেশনে পৌঁছায়নি।</span></span></label>
+      <div id="reality" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="callout lesson" style="margin-top:16px">
+    <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+    <p style="margin:0"><span lang="en"><b>Instead of programming rules, we let the machine learn them from examples, and we test them on records it has never seen.</b> The model is only as good as its records: when some communities' problems were never recorded, the model learns that those communities are "safe". High test accuracy on biased records does not mean the model is fair or correct.</span>
+    <span lang="bn"><b>নিয়ম প্রোগ্রাম না করে আমরা যন্ত্রকে উদাহরণ থেকে নিয়ম শিখতে দিই, এবং এমন রেকর্ডে যাচাই করি যা সে কখনো দেখেনি।</b> মডেল তার রেকর্ডের মতোই ভালো: যে জনগোষ্ঠীর সমস্যা কখনো নথিভুক্ত হয়নি, মডেল শেখে যে তারা "নিরাপদ"। পক্ষপাতদুষ্ট রেকর্ডে উচ্চ নির্ভুলতা মানেই মডেল ন্যায্য বা সঠিক নয়।</span></p>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script>
+LAB.header({ home: '../index.html', family: ['Machine learning · classification', 'মেশিন লার্নিং · শ্রেণিবিন্যাস'], synthetic: true });
+LAB.cycle(document.getElementById('cycle'));
+var $ = function (id) { return document.getElementById(id); };
+
+var FEATS = [
+  { key: 'rain', en: 'Rainfall', bn: 'বৃষ্টিপাত', fmt: function (v) { return Math.round(v) + ' mm'; } },
+  { key: 'block', en: 'Drain blockage', bn: 'ড্রেন বন্ধ', fmt: function (v) { return Math.round(v) + '%'; } },
+  { key: 'elev', en: 'Elevation', bn: 'উচ্চতা', fmt: function (v) { return v.toFixed(1) + ' m'; } },
+  { key: 'inf', en: 'Informal settlement', bn: 'অনানুষ্ঠানিক বসতি', binary: true }
+];
+var FMAP = {}; FEATS.forEach(function (f) { FMAP[f.key] = f; });
+
+/* ---------- synthetic data (seeded: identical in every session) ---------- */
+var DATA = (function () {
+  var r = LAB.rng(2024), out = [];
+  for (var i = 0; i < 800; i++) {
+    var rain = Math.min(200, Math.round(-Math.log(1 - r()) * 55));
+    var block = Math.round(r() * 100);
+    var elev = Math.round((1 + r() * 11) * 2) / 2;
+    var inf = r() < 0.35 ? 1 : 0;
+    var z = 0.06 * (rain - 60) + 0.05 * (block - 50) - 0.55 * (elev - 6) + 1.2 * inf - 0.5;
+    var truth = r() < 1 / (1 + Math.exp(-z)) ? 1 : 0;
+    var unreported = truth && inf && r() < 0.7;
+    out.push({ rain: rain, block: block, elev: elev, inf: inf, truth: truth, unreported: unreported });
+  }
+  return out;
+})();
+var ORDER = LAB.shuffle(DATA.map(function (_, i) { return i; }), LAB.rng(99));
+
+var tree = null, nid = 0, train = [], test = [], showDepth = 99, animTimer = null;
+
+function label(row) { return $('bias').checked && row.unreported ? 0 : row.truth; }
+function split() {
+  var k = Math.round(DATA.length * $('split').value / 100);
+  train = ORDER.slice(0, k).map(function (i) { return DATA[i]; });
+  test = ORDER.slice(k).map(function (i) { return DATA[i]; });
+}
+
+/* ---------- CART decision tree (Gini impurity) ---------- */
+function gini(p, n) { if (!n) return 0; var q = p / n; return 2 * q * (1 - q); }
+function build(rows, depth, maxDepth) {
+  var n = rows.length, pos = 0;
+  rows.forEach(function (r) { pos += r.y; });
+  var node = { id: nid++, n: n, pos: pos, depth: depth };
+  if (depth >= maxDepth || n < 2 || pos === 0 || pos === n) return node;
+  var parent = gini(pos, n), best = null;
+  FEATS.forEach(function (f) {
+    var s = rows.slice().sort(function (a, b) { return a[f.key] - b[f.key]; }), lp = 0;
+    for (var i = 0; i < n - 1; i++) {
+      lp += s[i].y;
+      if (s[i][f.key] === s[i + 1][f.key]) continue;
+      var ln = i + 1, rn = n - ln;
+      var gain = parent - (ln * gini(lp, ln) + rn * gini(pos - lp, rn)) / n;
+      if (!best || gain > best.gain + 1e-12) best = { f: f.key, thr: (s[i][f.key] + s[i + 1][f.key]) / 2, gain: gain };
+    }
+  });
+  if (!best || best.gain < 1e-6) return node;
+  node.f = best.f; node.thr = best.thr;
+  node.left = build(rows.filter(function (r) { return r[best.f] <= best.thr; }), depth + 1, maxDepth);
+  node.right = build(rows.filter(function (r) { return r[best.f] > best.thr; }), depth + 1, maxDepth);
+  return node;
+}
+function fit(maxDepth) {
+  nid = 0;
+  return build(train.map(function (r) { return Object.assign({}, r, { y: label(r) }); }), 0, maxDepth);
+}
+function leafFor(node, row, limit) {
+  while (node.f && node.depth < limit) node = row[node.f] <= node.thr ? node.left : node.right;
+  return node;
+}
+function treeDepth(node) { return node.f ? 1 + Math.max(treeDepth(node.left), treeDepth(node.right)) : 0; }
+function accuracy(node, rows, limit) {
+  if (!rows.length) return 0;
+  var ok = 0;
+  rows.forEach(function (r) { var l = leafFor(node, r, limit); ok += ((l.pos / l.n >= 0.5 ? 1 : 0) === label(r)) ? 1 : 0; });
+  return ok / rows.length;
+}
+
+/* ---------- explore ---------- */
+function drawScatter() {
+  var svg = $('scatter'), W = 520, H = 260, P = 34;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.classList.add('chart');
+  var h = '<line class="axis" x1="' + P + '" y1="' + (H - P) + '" x2="' + W + '" y2="' + (H - P) + '"/><line class="axis" x1="' + P + '" y1="0" x2="' + P + '" y2="' + (H - P) + '"/>';
+  [0, 50, 100, 150, 200].forEach(function (v) { h += '<text x="' + (P + v / 200 * (W - P - 6)) + '" y="' + (H - P + 16) + '" text-anchor="middle">' + v + '</text>'; });
+  [0, 50, 100].forEach(function (v) { h += '<text x="' + (P - 6) + '" y="' + (H - P - v / 100 * (H - P - 8) + 4) + '" text-anchor="end">' + v + '</text>'; });
+  h += '<text x="' + W / 2 + '" y="' + (H - 2) + '" text-anchor="middle">' + LAB.t('rainfall (mm)', 'বৃষ্টিপাত (মিমি)') + '</text>';
+  train.forEach(function (r) {
+    h += '<circle class="' + (label(r) ? 'y' : 'n') + '" cx="' + (P + r.rain / 200 * (W - P - 6)).toFixed(1) + '" cy="' + (H - P - r.block / 100 * (H - P - 8)).toFixed(1) + '" r="3" opacity=".6"/>';
+  });
+  svg.innerHTML = h;
+  var t = '<tr><th>#</th>' + FEATS.map(function (f) { return '<th>' + LAB.t(f.en, f.bn) + '</th>'; }).join('') + '<th>' + LAB.t('Flooded?', 'পানি জমেছিল?') + '</th></tr>';
+  train.slice(0, 6).forEach(function (r, i) {
+    t += '<tr><td>' + (i + 1) + '</td><td>' + r.rain + '</td><td>' + r.block + '%</td><td>' + r.elev + '</td><td>' + (r.inf ? LAB.t('Yes', 'হ্যাঁ') : LAB.t('No', 'না')) + '</td><td>' +
+      (label(r) ? '<span class="pill yes">' + LAB.t('Yes', 'হ্যাঁ') + '</span>' : '<span class="pill no">' + LAB.t('No', 'না') + '</span>') + '</td></tr>';
+  });
+  $('rows').innerHTML = t;
+  var yes = train.filter(label).length;
+  $('counts').textContent = LAB.t(train.length + ' training records · ' + yes + ' flooded', train.length + 'টি প্রশিক্ষণ রেকর্ড · ' + yes + 'টিতে পানি জমেছিল');
+}
+
+/* ---------- tree drawing ---------- */
+function drawTree(hotLeaf) {
+  var svg = $('tree');
+  if (!tree) { svg.innerHTML = ''; return; }
+  var visible = function (n) { return n.f && n.depth < showDepth; };
+  var leaves = 0;
+  (function count(n) { if (visible(n)) { count(n.left); count(n.right); } else leaves++; })(tree);
+  var compact = leaves > 14;
+  var colW = compact ? 34 : 150, rowH = compact ? 46 : 92, bw = 136, bh = 54;
+  var maxD = 0, pos = {}, li = 0;
+  (function place(n) {
+    maxD = Math.max(maxD, n.depth);
+    if (visible(n)) { place(n.left); place(n.right); pos[n.id] = { x: (pos[n.left.id].x + pos[n.right.id].x) / 2, y: 20 + n.depth * rowH }; }
+    else { pos[n.id] = { x: (li++ + .5) * colW + 10, y: 20 + n.depth * rowH }; }
+  })(tree);
+  var W = Math.max(leaves * colW + 20, $('treebox').clientWidth - 2), H = 40 + (maxD + 1) * rowH;
+  var off = (W - (leaves * colW + 20)) / 2;
+  svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  var hot = {};
+  if (hotLeaf) { var n = tree; hot[n.id] = 1; while (visible(n)) { n = hotRow[n.f] <= n.thr ? n.left : n.right; hot[n.id] = 1; } }
+  var edges = '', nodes = '';
+  (function walk(n) {
+    var p = pos[n.id], x = p.x + off, y = p.y;
+    if (visible(n)) {
+      [n.left, n.right].forEach(function (c, k) {
+        var q = pos[c.id], cx = q.x + off;
+        edges += '<path class="edge' + (hot[n.id] && hot[c.id] ? ' hot' : '') + '" d="M' + x + ',' + (y + (compact ? 8 : bh / 2)) + ' C' + x + ',' + (y + rowH / 2) + ' ' + cx + ',' + (q.y - rowH / 2) + ' ' + cx + ',' + (q.y - (compact ? 8 : bh / 2)) + '"/>';
+        if (!compact) {
+          var f = FMAP[n.f], yes = f.binary ? k === 1 : k === 0;
+          edges += '<text class="el" x="' + ((x + cx) / 2 + (k ? 8 : -8)) + '" y="' + (y + rowH / 2 + 4) + '" text-anchor="' + (k ? 'start' : 'end') + '">' + (yes ? LAB.t('yes', 'হ্যাঁ') : LAB.t('no', 'না')) + '</text>';
+        }
+        walk(c);
+      });
+    }
+    var isLeaf = !visible(n), prob = n.pos / n.n, cls = isLeaf ? (prob >= .5 ? 'leaf-yes' : 'leaf-no') : 'q', hc = hot[n.id] ? ' hot' : '';
+    if (compact) {
+      nodes += '<circle class="' + cls + hc + '" cx="' + x + '" cy="' + y + '" r="' + (isLeaf ? 9 : 6) + '"/>';
+    } else {
+      nodes += '<g class="' + hc + '"><rect class="' + cls + '" x="' + (x - bw / 2) + '" y="' + (y - bh / 2) + '" width="' + bw + '" height="' + bh + '" rx="10"/>';
+      if (isLeaf) {
+        nodes += '<text x="' + x + '" y="' + (y - 4) + '" text-anchor="middle" font-weight="700" font-size="14">' + (prob >= .5 ? LAB.t('Flood risk', 'ঝুঁকি আছে') : LAB.t('Low risk', 'ঝুঁকি কম')) + ' ' + Math.round(prob * 100) + '%</text>';
+        nodes += '<text x="' + x + '" y="' + (y + 15) + '" text-anchor="middle" font-size="12" fill="var(--muted)">' + n.n + ' ' + LAB.t('records', 'রেকর্ড') + '</text>';
+      } else {
+        var f = FMAP[n.f];
+        nodes += '<text x="' + x + '" y="' + (y - 3) + '" text-anchor="middle" font-weight="700" font-size="13.5">' + LAB.t(f.en, f.bn) + '</text>';
+        nodes += '<text x="' + x + '" y="' + (y + 15) + '" text-anchor="middle" font-size="13">' + (f.binary ? '?' : '≤ ' + f.fmt(n.thr) + ' ?') + '</text>';
+      }
+      nodes += '</g>';
+    }
+  })(tree);
+  svg.innerHTML = edges + nodes;
+  $('treenote').innerHTML = compact
+    ? LAB.bi('This tree has ' + leaves + ' end points: too many to read. If humans cannot read the rules, can they still check them?', 'এই গাছে ' + leaves + 'টি শেষ বিন্দু: পড়ার পক্ষে অনেক বেশি। মানুষ যদি নিয়মগুলো পড়তেই না পারে, তাহলে কি যাচাই করতে পারবে?')
+    : LAB.bi('Read from the top. Each box is a question the machine chose because it best separates flooded from non-flooded records.', 'ওপর থেকে পড়ুন। প্রতিটি বাক্স একটি প্রশ্ন, যা যন্ত্র বেছে নিয়েছে কারণ এটি পানি জমা ও না-জমা রেকর্ডকে সবচেয়ে ভালোভাবে আলাদা করে।');
+}
+
+/* ---------- evaluate ---------- */
+function evaluate() {
+  if (!tree) return;
+  var L = showDepth;
+  $('acc-train').textContent = LAB.pct(accuracy(tree, train, L));
+  $('acc-test').textContent = LAB.pct(accuracy(tree, test, L));
+  var cm = [[0, 0], [0, 0]];
+  test.forEach(function (r) { var l = leafFor(tree, r, L); cm[label(r)][l.pos / l.n >= .5 ? 1 : 0]++; });
+  var Y = LAB.t('Flood', 'জলাবদ্ধ'), N = LAB.t('No flood', 'জলাবদ্ধ নয়');
+  $('cm').innerHTML = '<tr><th></th><th>' + LAB.t('Predicted: ', 'অনুমান: ') + Y + '</th><th>' + LAB.t('Predicted: ', 'অনুমান: ') + N + '</th></tr>' +
+    '<tr><th>' + LAB.t('Recorded: ', 'রেকর্ড: ') + Y + '</th><td class="good">' + cm[1][1] + '</td><td class="bad">' + cm[1][0] + ' <small>' + LAB.t('missed', 'মিস') + '</small></td></tr>' +
+    '<tr><th>' + LAB.t('Recorded: ', 'রেকর্ড: ') + N + '</th><td class="bad">' + cm[0][1] + ' <small>' + LAB.t('false alarm', 'ভুল সতর্কতা') + '</small></td><td class="good">' + cm[0][0] + '</td></tr>';
+  // reality check against what actually happened (true outcomes)
+  var grp = function (inf) {
+    var real = test.filter(function (r) { return r.inf === inf && r.truth; });
+    var warned = real.filter(function (r) { var l = leafFor(tree, r, L); return l.pos / l.n >= .5; }).length;
+    return { n: real.length, w: warned, p: real.length ? warned / real.length : 0 };
+  };
+  var a = grp(1), b = grp(0);
+  $('reality').innerHTML = '<b>' + LAB.bi('Reality check: of the streets that <i>actually</i> flooded (test set), how many did the model warn about?', 'বাস্তবতা যাচাই: যেসব রাস্তায় <i>আসলেই</i> পানি জমেছিল (টেস্ট সেট), মডেল তার কতগুলোর জন্য সতর্ক করেছে?') + '</b>' +
+    '<div class="stats" style="margin-top:6px"><div class="stat"><div class="k">' + LAB.bi('Informal settlements', 'অনানুষ্ঠানিক বসতি') + '</div><div class="v" style="color:' + (a.p < b.p - .15 ? 'var(--yes)' : 'inherit') + '">' + LAB.pct(a.p) + '</div><div class="k">' + a.w + ' / ' + a.n + '</div></div>' +
+    '<div class="stat"><div class="k">' + LAB.bi('Planned areas', 'পরিকল্পিত এলাকা') + '</div><div class="v">' + LAB.pct(b.p) + '</div><div class="k">' + b.w + ' / ' + b.n + '</div></div></div>';
+}
+
+/* ---------- apply ---------- */
+var hotRow = {};
+function apply() {
+  hotRow = { rain: +$('a-rain').value, block: +$('a-block').value, elev: +$('a-elev').value, inf: $('a-inf').checked ? 1 : 0 };
+  $('v-rain').textContent = hotRow.rain; $('v-block').textContent = hotRow.block; $('v-elev').textContent = hotRow.elev;
+  if (!tree) { $('pred').textContent = '–'; return; }
+  var l = leafFor(tree, hotRow, showDepth), p = l.pos / l.n;
+  $('pred').innerHTML = p >= .5
+    ? '<span style="color:var(--yes)">⚠️ ' + LAB.t('Waterlogging likely', 'জলাবদ্ধতার সম্ভাবনা বেশি') + '</span> <small class="muted">(' + Math.round(p * 100) + '%)</small>'
+    : '<span style="color:var(--no)">✓ ' + LAB.t('Waterlogging unlikely', 'জলাবদ্ধতার সম্ভাবনা কম') + '</span> <small class="muted">(' + Math.round(p * 100) + '%)</small>';
+  drawTree(true);
+}
+
+function refresh() {
+  $('v-split').textContent = $('split').value + '% (' + Math.round(DATA.length * $('split').value / 100) + ')';
+  $('v-depth').textContent = $('depth').value;
+  split(); drawScatter();
+  tree = fit(+$('depth').value); showDepth = 99;
+  evaluate(); apply();
+}
+function animateTrain() {
+  if (animTimer) clearTimeout(animTimer);
+  split(); tree = fit(+$('depth').value);
+  var D = treeDepth(tree); showDepth = 0;
+  (function step() {
+    evaluate(); apply();
+    if (showDepth < D) { showDepth++; animTimer = setTimeout(step, 900); } else { showDepth = 99; animTimer = null; }
+  })();
+}
+function sweep() {
+  split();
+  var tr = [], te = [];
+  for (var d = 1; d <= 12; d++) { var t = fit(d); tr.push(accuracy(t, train, 99)); te.push(accuracy(t, test, 99)); }
+  $('sweepchart').classList.remove('hidden'); $('sweeplegend').classList.remove('hidden');
+  LAB.lineChart($('sweepchart'), [{ values: tr, color: LAB.css('--accent') }, { values: te, color: LAB.css('--accent-2') }], { ymin: .5, ymax: 1, yfmt: function (v) { return Math.round(v * 100) + '%'; }, height: 200 });
+  tree = fit(+$('depth').value); showDepth = 99; evaluate(); apply();
+}
+
+['split', 'depth'].forEach(function (id) { $(id).addEventListener('input', refresh); });
+$('bias').addEventListener('change', function () { refresh(); if (!$('sweepchart').classList.contains('hidden')) sweep(); });
+['a-rain', 'a-block', 'a-elev', 'a-inf'].forEach(function (id) { $(id).addEventListener('input', apply); });
+$('train').onclick = animateTrain;
+$('sweep').onclick = sweep;
+$('csv').onclick = function () {
+  LAB.downloadCSV('waterlogging_synthetic.csv', [['rainfall_mm', 'drain_blockage_pct', 'elevation_m', 'informal_settlement', 'waterlogging']].concat(
+    DATA.map(function (r) { return [r.rain, r.block, r.elev, r.inf ? 'yes' : 'no', label(r) ? 'yes' : 'no']; })));
+};
+LAB.onLang(function () { drawScatter(); evaluate(); apply(); });
+window.addEventListener('resize', function () { drawTree(true); });
+refresh();
+</script>
+</body>
+</html>

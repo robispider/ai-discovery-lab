@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route Finding</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<style>
+  #map { width: 100%; touch-action: none; border-radius: 10px; cursor: crosshair; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 1px solid var(--border); }
+  #cmp td, #cmp th { text-align: right; } #cmp td:first-child, #cmp th:first-child { text-align: left; }
+  #cmp tr.cur td { font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <h1>1 · <span lang="en">Garbage truck route finding</span><span lang="bn">ময়লার গাড়ির পথ খোঁজা</span></h1>
+  <p class="lead">
+    <span lang="en">A garbage truck 🚛 must reach the transfer station 🏁. Some roads are congested (slow), the canal can only be crossed on two bridges, and you can block roads. The computer searches for a route. There is <b>no data and no training</b> here: only a search procedure written by humans.</span>
+    <span lang="bn">ময়লার গাড়ি 🚛 কে ট্রান্সফার স্টেশনে 🏁 পৌঁছাতে হবে। কিছু রাস্তায় যানজট (ধীর), খাল পার হওয়া যায় কেবল দুটি সেতু দিয়ে, আর আপনি রাস্তা বন্ধ করতে পারেন। কম্পিউটার পথ খুঁজবে। এখানে <b>কোনো ডেটা বা প্রশিক্ষণ নেই</b>: শুধু মানুষের লেখা একটি অনুসন্ধান পদ্ধতি।</span>
+  </p>
+
+  <div class="main-side">
+    <div class="card">
+      <canvas id="map"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--road)"></i><span lang="en">Road</span><span lang="bn">রাস্তা</span></span>
+        <span><i style="background:var(--congested)"></i><span lang="en">Congested road (4× slower)</span><span lang="bn">যানজটের রাস্তা (৪ গুণ ধীর)</span></span>
+        <span><i style="background:var(--water)"></i><span lang="en">Canal</span><span lang="bn">খাল</span></span>
+        <span><i style="background:var(--blocked)"></i><span lang="en">Blocked by you</span><span lang="bn">আপনার বন্ধ করা</span></span>
+        <span><i style="background:var(--accent-soft)"></i><span lang="en">Explored by the algorithm</span><span lang="bn">অ্যালগরিদম যেখানে খুঁজেছে</span></span>
+        <span><i style="background:var(--accent-2)"></i><span lang="en">Chosen route</span><span lang="bn">বেছে নেওয়া পথ</span></span>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3><span lang="en">Edit the map</span><span lang="bn">মানচিত্র সম্পাদনা</span></h3>
+        <div class="row">
+          <button class="btn on" data-mode="block"><span lang="en">✏️ Block / unblock road</span><span lang="bn">✏️ রাস্তা বন্ধ / খোলা</span></button>
+          <button class="btn" data-mode="start"><span lang="en">🚛 Move truck</span><span lang="bn">🚛 গাড়ি সরান</span></button>
+          <button class="btn" data-mode="goal"><span lang="en">🏁 Move station</span><span lang="bn">🏁 স্টেশন সরান</span></button>
+        </div>
+        <p class="muted" style="font-size:.85rem;margin:.6em 0 0"><span lang="en">Click or drag on roads.</span><span lang="bn">রাস্তার ওপর ক্লিক বা টেনে আঁকুন।</span></p>
+      </div>
+
+      <div class="card">
+        <h3><span lang="en">Search for a route</span><span lang="bn">পথ খুঁজুন</span></h3>
+        <div class="row">
+          <button class="btn primary" data-alg="bfs">BFS</button>
+          <button class="btn primary" data-alg="dijkstra">Dijkstra</button>
+          <button class="btn primary" data-alg="astar">A*</button>
+          <button class="btn primary" data-alg="greedy">Greedy</button>
+        </div>
+        <div class="row">
+          <label class="ctl" style="flex:1"><span><span lang="en">Animation speed</span><span lang="bn">অ্যানিমেশনের গতি</span></span>
+            <input type="range" id="speed" min="1" max="40" value="6"></label>
+        </div>
+        <div class="stats" style="margin-top:10px">
+          <div class="stat"><div class="k"><span lang="en">Places explored</span><span lang="bn">যাচাই করা স্থান</span></div><div class="v" id="s-exp">–</div></div>
+          <div class="stat"><div class="k"><span lang="en">Travel time</span><span lang="bn">যাত্রার সময়</span></div><div class="v" id="s-cost">–</div></div>
+        </div>
+        <p id="status" style="margin:.8em 0 0"></p>
+      </div>
+
+      <div class="card">
+        <h3><span lang="en">Compare algorithms</span><span lang="bn">অ্যালগরিদম তুলনা</span></h3>
+        <table class="data" id="cmp"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="callout break">
+      <div class="label"><span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
+      <div class="row">
+        <button class="btn warn" id="b-one"><span lang="en">Block the west bridge</span><span lang="bn">পশ্চিমের সেতু বন্ধ</span></button>
+        <button class="btn warn" id="b-both"><span lang="en">Block both bridges</span><span lang="bn">দুটি সেতুই বন্ধ</span></button>
+        <button class="btn" id="b-reset"><span lang="en">Reset map</span><span lang="bn">মানচিত্র রিসেট</span></button>
+      </div>
+      <p style="margin:.6em 0 0;font-size:.92rem">
+        <span lang="en">BFS counts streets but ignores traffic. Greedy rushes toward the goal and can choose a slow route. With both bridges blocked, every algorithm correctly reports that no route exists. It cannot invent a road.</span>
+        <span lang="bn">BFS রাস্তার সংখ্যা গোনে কিন্তু যানজট উপেক্ষা করে। Greedy লক্ষ্যের দিকে ছুটে যায় এবং ধীর পথ বেছে নিতে পারে। দুটি সেতু বন্ধ হলে সব অ্যালগরিদমই ঠিকভাবে জানায় কোনো পথ নেই। নতুন রাস্তা সে বানাতে পারে না।</span>
+      </p>
+    </div>
+    <div class="callout lesson">
+      <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+      <p style="margin:0">
+        <span lang="en"><b>Intelligent behaviour does not always need data, neural networks or an LLM.</b> A* finds the fastest route while exploring far fewer places than Dijkstra, because a human gave it a good rule of thumb (straight-line distance to the goal). The same idea powers navigation apps and vehicle routing.</span>
+        <span lang="bn"><b>বুদ্ধিমান আচরণের জন্য সবসময় ডেটা, নিউরাল নেটওয়ার্ক বা LLM লাগে না।</b> A* দ্রুততম পথ খুঁজে পায় এবং Dijkstra-র চেয়ে অনেক কম জায়গা যাচাই করে, কারণ মানুষ তাকে একটি ভালো আন্দাজের নিয়ম দিয়েছে (লক্ষ্য পর্যন্ত সরাসরি দূরত্ব)। নেভিগেশন অ্যাপ ও গাড়ির রুট পরিকল্পনা একই ধারণায় চলে।</span>
+      </p>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script>
+LAB.header({ home: '../index.html', family: ['Classical AI · search', 'ক্লাসিক্যাল এআই · অনুসন্ধান'] });
+
+var W = 33, H = 21;
+var ROAD = 0, BUILDING = 1, WATER = 2, BRIDGE = 3, CONGESTED = 4, BLOCKED = 5;
+var grid, start, goal, result = null, anim = null, mode = 'block', results = {};
+var BRIDGES_X = [4, 24];
+
+function buildCity() {
+  grid = [];
+  for (var y = 0; y < H; y++) {
+    var row = [];
+    for (var x = 0; x < W; x++) row.push(x % 4 === 0 || y % 4 === 0 ? ROAD : BUILDING);
+    grid.push(row);
+  }
+  for (var x = 0; x < W; x++) for (var y = 9; y <= 11; y++) grid[y][x] = BRIDGES_X.indexOf(x) >= 0 ? BRIDGE : WATER;
+  // congested market district (south side) and a busy road (north side)
+  for (var y = 13; y <= 19; y++) for (var x = 4; x < W; x++) if (grid[y][x] === ROAD) grid[y][x] = CONGESTED;
+  for (var x = 0; x <= 12; x++) if (grid[4][x] === ROAD) grid[4][x] = CONGESTED;
+  start = { x: 0, y: 0 }; goal = { x: 32, y: 20 };
+}
+function cost(t) { return t === CONGESTED ? 4 : 1; }
+function passable(x, y) { return x >= 0 && y >= 0 && x < W && y < H && [ROAD, BRIDGE, CONGESTED].indexOf(grid[y][x]) >= 0; }
+
+function search(alg) {
+  var key = function (x, y) { return y * W + x; };
+  var h = function (x, y) { return Math.abs(x - goal.x) + Math.abs(y - goal.y); };
+  var g = {}, prev = {}, closed = {}, order = [];
+  var open = [{ x: start.x, y: start.y, f: 0, g: 0, n: 0 }], counter = 0;
+  g[key(start.x, start.y)] = 0;
+  while (open.length) {
+    var bi = 0;
+    if (alg !== 'bfs') for (var i = 1; i < open.length; i++) if (open[i].f < open[bi].f || (open[i].f === open[bi].f && open[i].n < open[bi].n)) bi = i;
+    var cur = open.splice(bi, 1)[0], ck = key(cur.x, cur.y);
+    if (closed[ck]) continue;
+    closed[ck] = true; order.push(ck);
+    if (cur.x === goal.x && cur.y === goal.y) break;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
+      var nx = cur.x + d[0], ny = cur.y + d[1];
+      if (!passable(nx, ny)) return;
+      var nk = key(nx, ny);
+      if (closed[nk]) return;
+      var ng = g[ck] + (alg === 'bfs' ? 1 : cost(grid[ny][nx]));
+      if (g[nk] == null || ng < g[nk]) {
+        if (alg === 'bfs' && g[nk] != null) return;
+        g[nk] = ng; prev[nk] = ck;
+        var f = alg === 'dijkstra' ? ng : alg === 'astar' ? ng + h(nx, ny) : alg === 'greedy' ? h(nx, ny) : 0;
+        open.push({ x: nx, y: ny, f: f, n: counter++ });
+      }
+    });
+  }
+  var gk = key(goal.x, goal.y), path = [];
+  if (closed[gk]) { for (var k = gk; k != null; k = prev[k]) path.unshift(k); }
+  var travel = 0;
+  for (var i = 1; i < path.length; i++) travel += cost(grid[Math.floor(path[i] / W)][path[i] % W]);
+  return { alg: alg, order: order, path: path, travel: travel, found: path.length > 0 };
+}
+
+var canvas = document.getElementById('map'), ctx = canvas.getContext('2d'), cell = 20;
+function resize() {
+  var w = canvas.parentElement.clientWidth - 36;
+  cell = Math.max(8, Math.floor(w / W));
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = cell * W * dpr; canvas.height = cell * H * dpr;
+  canvas.style.width = cell * W + 'px'; canvas.style.height = cell * H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+function draw(shown) {
+  var col = {}; [ROAD, BUILDING, WATER, BRIDGE, CONGESTED, BLOCKED].forEach(function (t) {
+    col[t] = LAB.css(['--road', '--building', '--water', '--road', '--congested', '--blocked'][t]);
+  });
+  ctx.fillStyle = LAB.css('--surface-2'); ctx.fillRect(0, 0, W * cell, H * cell);
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+    var t = grid[y][x];
+    ctx.fillStyle = col[t];
+    if (t === BUILDING) ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
+    else ctx.fillRect(x * cell, y * cell, cell, cell);
+    if (t === BRIDGE) { ctx.strokeStyle = LAB.css('--muted'); ctx.lineWidth = 1; ctx.strokeRect(x * cell + 1.5, y * cell + .5, cell - 3, cell - 1); }
+  }
+  if (result) {
+    var n = shown == null ? result.order.length : shown;
+    ctx.fillStyle = LAB.css('--accent'); ctx.globalAlpha = .45;
+    for (var i = 0; i < n; i++) { var k = result.order[i]; ctx.fillRect((k % W) * cell, Math.floor(k / W) * cell, cell, cell); }
+    ctx.globalAlpha = 1;
+    if (n >= result.order.length && result.path.length) {
+      ctx.strokeStyle = LAB.css('--accent-2'); ctx.lineWidth = Math.max(3, cell * .35); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      result.path.forEach(function (k, i) { var px = (k % W + .5) * cell, py = (Math.floor(k / W) + .5) * cell; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+      ctx.stroke();
+    }
+  }
+  ctx.font = Math.round(cell * 1.05) + 'px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🚛', (start.x + .5) * cell, (start.y + .55) * cell);
+  ctx.fillText('🏁', (goal.x + .5) * cell, (goal.y + .55) * cell);
+}
+
+var NAMES = { bfs: 'BFS', dijkstra: 'Dijkstra', astar: 'A*', greedy: 'Greedy' };
+var DESC = {
+  bfs: ['Breadth-first: expands evenly in all directions, counts streets, ignores congestion.', 'ব্রেডথ-ফার্স্ট: সব দিকে সমানভাবে ছড়ায়, রাস্তার সংখ্যা গোনে, যানজট উপেক্ষা করে।'],
+  dijkstra: ['Dijkstra: always expands the place with the lowest travel time so far. Guaranteed fastest, but explores a lot.', 'Dijkstra: সবসময় এখন পর্যন্ত সবচেয়ে কম সময়ের জায়গা থেকে খোঁজে। দ্রুততম পথ নিশ্চিত, তবে অনেক জায়গা খোঁজে।'],
+  astar: ['A*: travel time so far + estimated distance to goal. Fastest route with much less exploring.', 'A*: এ পর্যন্ত যাত্রার সময় + লক্ষ্য পর্যন্ত আনুমানিক দূরত্ব। কম খুঁজেই দ্রুততম পথ।'],
+  greedy: ['Greedy: only looks at distance to the goal. Fast to decide, but may pick a slow route.', 'Greedy: শুধু লক্ষ্য পর্যন্ত দূরত্ব দেখে। দ্রুত সিদ্ধান্ত নেয়, কিন্তু ধীর পথ বেছে নিতে পারে।']
+};
+function run(alg) {
+  if (anim) cancelAnimationFrame(anim);
+  result = search(alg); results[alg] = result;
+  var shown = 0;
+  document.getElementById('s-cost').textContent = '…';
+  document.getElementById('status').innerHTML = LAB.bi(DESC[alg][0], DESC[alg][1]);
+  (function step() {
+    shown = Math.min(result.order.length, shown + +document.getElementById('speed').value);
+    draw(shown);
+    document.getElementById('s-exp').textContent = shown;
+    if (shown < result.order.length) { anim = requestAnimationFrame(step); return; }
+    anim = null;
+    document.getElementById('s-cost').textContent = result.found ? result.travel + ' min' : '—';
+    if (!result.found) document.getElementById('status').innerHTML = '<b>' + LAB.bi('No route exists. The algorithm proved it by exploring every reachable place.', 'কোনো পথ নেই। পৌঁছানো যায় এমন সব জায়গা খুঁজে অ্যালগরিদম তা প্রমাণ করেছে।') + '</b>';
+    renderCmp(alg);
+  })();
+}
+function renderCmp(cur) {
+  var best = Infinity;
+  Object.keys(results).forEach(function (a) { if (results[a].found) best = Math.min(best, results[a].travel); });
+  var h = '<tr><th></th><th>' + LAB.bi('Explored', 'যাচাই') + '</th><th>' + LAB.bi('Travel time', 'সময়') + '</th><th>' + LAB.bi('Fastest?', 'দ্রুততম?') + '</th></tr>';
+  ['bfs', 'dijkstra', 'astar', 'greedy'].forEach(function (a) {
+    var r = results[a];
+    h += '<tr class="' + (a === cur ? 'cur' : '') + '"><td>' + NAMES[a] + '</td><td>' + (r ? r.order.length : '–') + '</td><td>' +
+      (r ? (r.found ? r.travel + ' min' : '—') : '–') + '</td><td>' + (r && r.found ? (r.travel === best ? '✅' : '❌') : '') + '</td></tr>';
+  });
+  document.getElementById('cmp').innerHTML = h;
+}
+function invalidate() { result = null; results = {}; renderCmp(); document.getElementById('s-exp').textContent = '–'; document.getElementById('s-cost').textContent = '–'; document.getElementById('status').textContent = ''; draw(); }
+
+var painting = null;
+function cellAt(e) { var r = canvas.getBoundingClientRect(); return { x: Math.floor((e.clientX - r.left) / (r.width / W)), y: Math.floor((e.clientY - r.top) / (r.height / H)) }; }
+canvas.addEventListener('pointerdown', function (e) {
+  var c = cellAt(e); if (c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) return;
+  var t = grid[c.y][c.x];
+  if (mode === 'block') {
+    if (t === BUILDING || t === WATER) return;
+    if ((c.x === start.x && c.y === start.y) || (c.x === goal.x && c.y === goal.y)) return;
+    painting = t === BLOCKED ? 'unblock' : 'block';
+    paint(c); canvas.setPointerCapture(e.pointerId);
+  } else if (passable(c.x, c.y)) {
+    if (mode === 'start') start = c; else goal = c;
+    invalidate();
+  }
+});
+canvas.addEventListener('pointermove', function (e) { if (painting) paint(cellAt(e)); });
+window.addEventListener('pointerup', function () { painting = null; });
+var original = {};
+function paint(c) {
+  if (c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) return;
+  var k = c.y * W + c.x, t = grid[c.y][c.x];
+  if ((c.x === start.x && c.y === start.y) || (c.x === goal.x && c.y === goal.y)) return;
+  if (painting === 'block' && [ROAD, BRIDGE, CONGESTED].indexOf(t) >= 0) { original[k] = t; grid[c.y][c.x] = BLOCKED; invalidate(); }
+  if (painting === 'unblock' && t === BLOCKED) { grid[c.y][c.x] = original[k] != null ? original[k] : ROAD; invalidate(); }
+}
+document.querySelectorAll('[data-mode]').forEach(function (b) {
+  b.onclick = function () { mode = b.dataset.mode; document.querySelectorAll('[data-mode]').forEach(function (o) { o.classList.toggle('on', o === b); }); };
+});
+document.querySelectorAll('[data-alg]').forEach(function (b) { b.onclick = function () { run(b.dataset.alg); }; });
+function blockBridge(bx) { for (var y = 9; y <= 11; y++) if (grid[y][bx] === BRIDGE) { original[y * W + bx] = BRIDGE; grid[y][bx] = BLOCKED; } }
+document.getElementById('b-one').onclick = function () { blockBridge(4); invalidate(); run('astar'); };
+document.getElementById('b-both').onclick = function () { blockBridge(4); blockBridge(24); invalidate(); run('astar'); };
+document.getElementById('b-reset').onclick = function () { buildCity(); original = {}; invalidate(); };
+
+buildCity(); renderCmp();
+window.addEventListener('resize', resize);
+document.addEventListener('labresize', resize);
+document.addEventListener('themechange', function () { draw(); });
+LAB.onLang(function () { renderCmp(); });
+resize();
+</script>
+</body>
+</html>

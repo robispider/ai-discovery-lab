@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learning Traffic Signal</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<style>
+  .sims { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .sims { grid-template-columns: 1fr; } }
+  .sims canvas { width: 100%; aspect-ratio: 1; border-radius: 10px; background: var(--surface-2); }
+  .sims h3 { text-align: center; }
+  .policy { border-collapse: collapse; font-size: .8rem; margin: 4px 0 10px; }
+  .policy td, .policy th { width: 42px; height: 30px; text-align: center; border: 1px solid var(--border); }
+  .policy td.k { background: var(--accent-soft); } .policy td.s { background: var(--accent-2-soft); } .policy td.u { color: var(--muted); }
+  .radio { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: .95rem; }
+  .radio input { width: 18px; height: 18px; accent-color: var(--accent-2); }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <h1>8 · <span lang="en">A traffic signal that learns from experience</span><span lang="bn">অভিজ্ঞতা থেকে শেখা ট্রাফিক সিগন্যাল</span></h1>
+  <p class="lead">
+    <span lang="en">No labelled examples here. An <b>agent</b> watches the queues, chooses to <b>keep</b> or <b>switch</b> the green light, and receives a <b>reward</b> (fewer waiting vehicles = better). Over many simulated rush hours it learns a strategy by trial and error.</span>
+    <span lang="bn">এখানে কোনো লেবেলযুক্ত উদাহরণ নেই। একটি <b>এজেন্ট</b> সারির দৈর্ঘ্য দেখে, সবুজ বাতি <b>রাখবে</b> নাকি <b>বদলাবে</b> তা ঠিক করে, এবং <b>পুরস্কার</b> পায় (কম গাড়ি অপেক্ষায় = ভালো)। অনেকগুলো কৃত্রিম ব্যস্ত সময় পার করে সে চেষ্টা ও ভুলের মাধ্যমে একটি কৌশল শেখে।</span>
+  </p>
+
+  <div class="grid3">
+    <div class="card" style="text-align:center">👀 <b><span lang="en">Observe</span><span lang="bn">পর্যবেক্ষণ</span></b><br><span class="muted" style="font-size:.9rem"><span lang="en">vehicle queues, current green</span><span lang="bn">গাড়ির সারি, এখন কোন দিকে সবুজ</span></span></div>
+    <div class="card" style="text-align:center">🚦 <b><span lang="en">Act</span><span lang="bn">পদক্ষেপ</span></b><br><span class="muted" style="font-size:.9rem"><span lang="en">keep green, or switch</span><span lang="bn">সবুজ রাখো, নাকি বদলাও</span></span></div>
+    <div class="card" style="text-align:center">🏆 <b><span lang="en">Reward</span><span lang="bn">পুরস্কার</span></b><br><span class="muted" style="font-size:.9rem"><span lang="en">minus the number of waiting vehicles</span><span lang="bn">অপেক্ষমাণ গাড়ির সংখ্যার ঋণাত্মক মান</span></span></div>
+  </div>
+
+  <div class="main-side" style="margin-top:16px">
+    <div class="card">
+      <div class="sims">
+        <div><h3><span lang="en">Fixed timer (30 s each way)</span><span lang="bn">নির্দিষ্ট টাইমার (প্রতি দিকে ৩০ সে.)</span></h3><canvas id="cv-fixed" width="420" height="420"></canvas>
+          <div class="stats" style="margin-top:8px;justify-content:center"><div class="stat"><div class="k"><span lang="en">Avg wait / vehicle</span><span lang="bn">গাড়িপ্রতি গড় অপেক্ষা</span></div><div class="v" id="w-fixed">–</div></div></div></div>
+        <div><h3><span lang="en">Learning agent</span><span lang="bn">শিখতে পারা এজেন্ট</span></h3><canvas id="cv-agent" width="420" height="420"></canvas>
+          <div class="stats" style="margin-top:8px;justify-content:center"><div class="stat"><div class="k"><span lang="en">Avg wait / vehicle</span><span lang="bn">গাড়িপ্রতি গড় অপেক্ষা</span></div><div class="v" id="w-agent">–</div></div></div></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="watch">▶ <span lang="en">Watch both</span><span lang="bn">দুটোই দেখুন</span></button>
+        <button class="btn" id="pause">⏸</button>
+        <label class="ctl" style="flex:1;min-width:180px"><span><span lang="en">Simulation speed</span><span lang="bn">সিমুলেশনের গতি</span>: <b id="vspeed"></b>×</span><input type="range" id="speed" min="1" max="60" value="8"></label>
+      </div>
+      <p class="muted" style="font-size:.85rem;margin:.4em 0 0"><span lang="en">Both intersections receive exactly the same cars at the same moments.</span><span lang="bn">দুটি মোড়েই ঠিক একই সময়ে একই গাড়ি আসে।</span></p>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3><span lang="en">Traffic</span><span lang="bn">যানবাহন</span></h3>
+        <label class="ctl"><span><span lang="en">North–South arrivals</span><span lang="bn">উত্তর–দক্ষিণ থেকে আগমন</span>: <b id="vns"></b>/min</span><input type="range" id="ns" min="3" max="27" value="18"></label>
+        <label class="ctl"><span><span lang="en">East–West arrivals</span><span lang="bn">পূর্ব–পশ্চিম থেকে আগমন</span>: <b id="vew"></b>/min</span><input type="range" id="ew" min="3" max="27" value="7"></label>
+      </div>
+      <div class="card">
+        <h3><span lang="en">Train the agent</span><span lang="bn">এজেন্টকে শেখান</span></h3>
+        <div class="row">
+          <button class="btn primary" id="train">🧠 <span lang="en">Train 30 rush hours</span><span lang="bn">৩০টি ব্যস্ত সময়ে শেখাও</span></button>
+          <button class="btn" id="forget"><span lang="en">Forget everything</span><span lang="bn">সব ভুলে যাও</span></button>
+        </div>
+        <svg id="curve" style="margin-top:8px"></svg>
+        <p class="muted" style="font-size:.82rem;margin:0"><span style="color:var(--accent-2)">━</span> <span lang="en">agent's average wait (s) per training episode</span><span lang="bn">প্রতি প্রশিক্ষণ পর্বে এজেন্টের গড় অপেক্ষা (সে.)</span> · <span style="color:var(--muted)">━</span> <span lang="en">fixed timer</span><span lang="bn">নির্দিষ্ট টাইমার</span></p>
+        <p id="episodes" style="margin:.4em 0 0;font-size:.9rem"></p>
+      </div>
+      <div class="card">
+        <h3>🛡️ <span lang="en">Safety rules (cannot be overridden)</span><span lang="bn">নিরাপত্তা নিয়ম (এজেন্ট ভাঙতে পারে না)</span></h3>
+        <p style="font-size:.9rem;margin:0"><span lang="en">Minimum green 5 s · yellow 3 s before every change. These are enforced by ordinary code <i>outside</i> the learning agent.</span><span lang="bn">ন্যূনতম সবুজ ৫ সে. · প্রতিটি পরিবর্তনের আগে ৩ সে. হলুদ। এগুলো শেখার এজেন্টের <i>বাইরে</i> সাধারণ কোড দিয়ে নিশ্চিত করা হয়।</span></p>
+        <p style="font-size:.9rem;margin:.4em 0 0" id="blocked"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <h3><span lang="en">What the agent learned (its strategy)</span><span lang="bn">এজেন্ট কী শিখেছে (তার কৌশল)</span></h3>
+      <p class="muted" style="font-size:.85rem"><span lang="en">K = keep green, S = switch. Rows: queue on the green road; columns: queue on the red road.</span><span lang="bn">K = সবুজ রাখো, S = বদলাও। সারি: সবুজ রাস্তার সারি; কলাম: লাল রাস্তার সারি।</span></p>
+      <div class="grid2" id="policy"></div>
+    </div>
+    <div class="callout break">
+      <div class="label"><span lang="en">Break it: what do we reward?</span><span lang="bn">ভেঙে দেখি: আমরা কীসের জন্য পুরস্কার দিই?</span></div>
+      <label class="radio"><input type="radio" name="reward" value="all" checked> <span><span lang="en">Reward: fewer waiting vehicles on <b>all</b> roads</span><span lang="bn">পুরস্কার: <b>সব</b> রাস্তায় কম অপেক্ষমাণ গাড়ি</span></span></label>
+      <label class="radio" style="margin-top:6px"><input type="radio" name="reward" value="ns"> <span><span lang="en">Reward: fewer waiting vehicles on the <b>main road (North–South) only</b></span><span lang="bn">পুরস্কার: শুধু <b>প্রধান সড়কে (উত্তর–দক্ষিণ)</b> কম অপেক্ষমাণ গাড়ি</span></span></label>
+      <p style="margin:.7em 0 0;font-size:.92rem"><span lang="en">Switch the reward, train again and watch: the agent does exactly what it is rewarded for and lets the side road wait almost forever. Also try changing traffic after training without retraining.</span>
+      <span lang="bn">পুরস্কার বদলে আবার শেখান ও দেখুন: এজেন্ট ঠিক সেটাই করে যার জন্য পুরস্কার পায়, আর পাশের রাস্তাকে প্রায় অনন্তকাল অপেক্ষা করায়। প্রশিক্ষণের পর আবার না শিখিয়ে যানবাহন বদলেও দেখুন।</span></p>
+    </div>
+  </div>
+
+  <div class="callout lesson" style="margin-top:16px">
+    <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+    <p style="margin:0"><span lang="en"><b>AI can learn through experience, not only from labelled examples.</b> But humans choose the reward, and the agent optimises exactly that, including unfair outcomes nobody intended. In physical infrastructure, safety limits must be engineered as hard rules around the learning system, never left for it to learn.</span>
+    <span lang="bn"><b>এআই শুধু লেবেলযুক্ত উদাহরণ থেকে নয়, অভিজ্ঞতা থেকেও শিখতে পারে।</b> কিন্তু পুরস্কার ঠিক করে মানুষ, আর এজেন্ট ঠিক সেটাকেই সর্বোচ্চ করে, এমনকি কেউ চায়নি এমন অন্যায্য ফলাফলসহ। ভৌত অবকাঠামোতে নিরাপত্তার সীমা শেখার ব্যবস্থার চারপাশে কঠোর নিয়ম হিসেবে তৈরি করতে হয়, শেখার জন্য ছেড়ে দেওয়া যায় না।</span></p>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script>
+LAB.header({ home: '../index.html', family: ['Reinforcement learning', 'রিইনফোর্সমেন্ট লার্নিং'] });
+var $ = function (id) { return document.getElementById(id); };
+var MIN_GREEN = 5, YELLOW = 3, FIXED_GREEN = 30, EPISODE = 900;
+var BUCKETS = [0, 3, 7, 14];
+function bucket(q) { var b = 0; while (b < BUCKETS.length && q > BUCKETS[b]) b++; return b; } // 0..4
+
+function rates() { return [+$('ns').value / 60, +$('ew').value / 60]; }
+
+function Sim(seed) { this.r = LAB.rng(seed); this.q = [0, 0, 0, 0]; this.phase = 0; this.yellow = 0; this.green = 0; this.t = 0; this.wait = 0; this.arrived = 0; this.blocked = 0; this.flash = 0; }
+Sim.prototype.tick = function (ctl, rt) {
+  for (var i = 0; i < 4; i++) if (this.r() < rt[i < 2 ? 0 : 1]) { this.q[i]++; this.arrived++; }
+  if (!this.yellow) {
+    var allowed = this.green >= MIN_GREEN;
+    if (ctl.act(this, allowed) === 1) { if (allowed) this.yellow = YELLOW; else { this.blocked++; } }
+  }
+  if (!this.yellow) {
+    var arms = this.phase === 0 ? [0, 1] : [2, 3], self = this;
+    arms.forEach(function (i) { if (self.q[i] > 0) self.q[i]--; });
+    this.green++;
+  } else if (--this.yellow === 0) { this.phase = 1 - this.phase; this.green = 0; }
+  var tot = this.q[0] + this.q[1] + this.q[2] + this.q[3];
+  this.wait += tot; this.t++;
+  if (ctl.reward) ctl.reward(this);
+};
+Sim.prototype.avgWait = function () { return this.arrived ? this.wait / this.arrived : 0; };
+
+var Fixed = { act: function (s) { return s.green >= FIXED_GREEN ? 1 : 0; } };
+
+var Agent = {
+  Q: new Float64Array(50 * 2), visits: new Uint32Array(50), learning: false, eps: 0.1, alpha: 0.1, gamma: 0.95,
+  r: LAB.rng(42), prevS: -1, prevA: 0, acc: 0, episodes: 0,
+  state: function (s) {
+    var green = s.phase === 0 ? s.q[0] + s.q[1] : s.q[2] + s.q[3], red = s.phase === 0 ? s.q[2] + s.q[3] : s.q[0] + s.q[1];
+    return s.phase * 25 + bucket(green) * 5 + bucket(red);
+  },
+  best: function (st) { return this.Q[st * 2 + 1] > this.Q[st * 2] ? 1 : 0; },
+  act: function (s, allowed) {
+    var st = this.state(s);
+    if (this.learning && this.prevS >= 0) {
+      var target = this.acc + this.gamma * Math.max(this.Q[st * 2], this.Q[st * 2 + 1]);
+      this.Q[this.prevS * 2 + this.prevA] += this.alpha * (target - this.Q[this.prevS * 2 + this.prevA]);
+    }
+    var a = this.learning && this.r() < this.eps ? (this.r() < .5 ? 1 : 0) : this.best(st);
+    var eff = a === 1 && !allowed ? 0 : a;
+    if (this.learning) this.visits[st]++;
+    this.prevS = st; this.prevA = eff; this.acc = 0;
+    return a;
+  },
+  reward: function (s) {
+    var nsOnly = document.querySelector('input[name="reward"]:checked').value === 'ns';
+    this.acc += -(nsOnly ? s.q[0] + s.q[1] : s.q[0] + s.q[1] + s.q[2] + s.q[3]) / 10;
+  },
+  reset: function () { this.Q.fill(0); this.visits.fill(0); this.episodes = 0; this.prevS = -1; }
+};
+
+var curve = [], baseline = [];
+function fixedBaseline(seed) { var s = new Sim(seed); for (var t = 0; t < EPISODE; t++) s.tick(Fixed, rates()); return s.avgWait(); }
+function train(n) {
+  for (var e = 0; e < n; e++) {
+    var seed = 1000 + Agent.episodes, s = new Sim(seed);
+    Agent.learning = true; Agent.prevS = -1;
+    for (var t = 0; t < EPISODE; t++) s.tick(Agent, rates());
+    Agent.learning = false; Agent.episodes++;
+    curve.push(s.avgWait()); baseline.push(fixedBaseline(seed));
+  }
+  drawCurve(); drawPolicy(); resetWatch();
+}
+function drawCurve() {
+  LAB.lineChart($('curve'), [{ values: baseline, color: LAB.css('--muted') }, { values: curve, color: LAB.css('--accent-2') }], { height: 170, ymin: 0 });
+  $('episodes').innerHTML = LAB.bi('Episodes trained: ', 'প্রশিক্ষিত পর্ব: ') + '<b>' + Agent.episodes + '</b>' +
+    (Agent.episodes ? '' : ' · ' + LAB.bi('the untrained agent never switches the light!', 'অপ্রশিক্ষিত এজেন্ট কখনো বাতি বদলায় না!'));
+}
+function drawPolicy() {
+  var h = '';
+  [0, 1].forEach(function (ph) {
+    h += '<div><b>' + (ph === 0 ? LAB.t('Green: North–South', 'সবুজ: উত্তর–দক্ষিণ') : LAB.t('Green: East–West', 'সবুজ: পূর্ব–পশ্চিম')) + '</b><table class="policy"><tr><th></th>';
+    var lab = ['0', '1–3', '4–7', '8–14', '15+'];
+    lab.forEach(function (l) { h += '<th>' + l + '</th>'; });
+    h += '</tr>';
+    for (var g = 0; g < 5; g++) {
+      h += '<tr><th>' + lab[g] + '</th>';
+      for (var rr = 0; rr < 5; rr++) {
+        var st = ph * 25 + g * 5 + rr, seen = Agent.visits[st] > 0, a = Agent.best(st);
+        h += '<td class="' + (seen ? (a ? 's' : 'k') : 'u') + '">' + (seen ? (a ? 'S' : 'K') : '·') + '</td>';
+      }
+      h += '</tr>';
+    }
+    h += '</table></div>';
+  });
+  $('policy').innerHTML = h;
+}
+
+/* ---------- watching ---------- */
+var simF, simA, running = false, last = 0, accT = 0, watchSeed = 5000;
+function resetWatch() { simF = new Sim(watchSeed); simA = new Sim(watchSeed); drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); stats(); }
+function stats() {
+  $('w-fixed').textContent = simF.t ? simF.avgWait().toFixed(0) + ' s' : '–';
+  $('w-agent').textContent = simA.t ? simA.avgWait().toFixed(0) + ' s' : '–';
+  $('blocked').innerHTML = LAB.bi('Times the safety rules stopped the agent from switching too early: ', 'যতবার নিরাপত্তা নিয়ম এজেন্টকে খুব তাড়াতাড়ি বদলাতে দেয়নি: ') + '<b>' + simA.blocked + '</b>';
+}
+function loop(ts) {
+  if (!running) return;
+  var dt = Math.min(0.1, (ts - (last || ts)) / 1000); last = ts;
+  accT += dt * +$('speed').value;
+  while (accT >= 1) { simF.tick(Fixed, rates()); simA.tick(Agent, rates()); accT -= 1; }
+  drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); stats();
+  requestAnimationFrame(loop);
+}
+function drawSim(cv, s) {
+  var ctx = cv.getContext('2d'), W = cv.width, c = W / 2, rw = 70;
+  ctx.clearRect(0, 0, W, W);
+  ctx.fillStyle = LAB.css('--building'); ctx.fillRect(0, 0, W, W);
+  ctx.fillStyle = LAB.css('--road'); ctx.fillRect(c - rw / 2, 0, rw, W); ctx.fillRect(0, c - rw / 2, W, rw);
+  ctx.strokeStyle = LAB.css('--border'); ctx.setLineDash([8, 8]); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(c, 0); ctx.lineTo(c, c - rw / 2); ctx.moveTo(c, c + rw / 2); ctx.lineTo(c, W); ctx.moveTo(0, c); ctx.lineTo(c - rw / 2, c); ctx.moveTo(c + rw / 2, c); ctx.lineTo(W, c); ctx.stroke(); ctx.setLineDash([]);
+  var car = 12, gap = 4, colN = LAB.css('--c5'), colE = LAB.css('--c3');
+  function queue(n, x0, y0, dx, dy, col) {
+    ctx.fillStyle = col;
+    for (var i = 0; i < Math.min(n, 13); i++) ctx.fillRect(x0 + dx * i * (car + gap) - car / 2, y0 + dy * i * (car + gap) - car / 2, car, car);
+    if (n > 13) { ctx.fillStyle = LAB.css('--text'); ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('+' + (n - 13), x0 + dx * 13.6 * (car + gap), y0 + dy * 13.6 * (car + gap) + 5); }
+  }
+  queue(s.q[0], c - rw / 4, c - rw / 2 - 14, 0, -1, colN);   // north arm, heading south
+  queue(s.q[1], c + rw / 4, c + rw / 2 + 14, 0, 1, colN);    // south arm
+  queue(s.q[2], c + rw / 2 + 14, c - rw / 4, 1, 0, colE);    // east arm
+  queue(s.q[3], c - rw / 2 - 14, c + rw / 4, -1, 0, colE);   // west arm
+  function light(x, y, on) {
+    ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fillStyle = on === 'g' ? '#16a34a' : on === 'y' ? '#eab308' : '#dc2626'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = LAB.css('--surface'); ctx.stroke();
+  }
+  var nsState = s.phase === 0 ? (s.yellow ? 'y' : 'g') : 'r', ewState = s.phase === 1 ? (s.yellow ? 'y' : 'g') : 'r';
+  light(c - rw / 2 - 16, c - rw / 2 - 16, nsState); light(c + rw / 2 + 16, c + rw / 2 + 16, nsState);
+  light(c + rw / 2 + 16, c - rw / 2 - 16, ewState); light(c - rw / 2 - 16, c + rw / 2 + 16, ewState);
+  ctx.fillStyle = LAB.css('--text'); ctx.font = '14px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText(LAB.t('time ', 'সময় ') + Math.floor(s.t / 60) + ':' + String(s.t % 60).padStart(2, '0'), 8, 18);
+  ctx.textAlign = 'center'; ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('N ' + s.q[0], c - rw / 4, 16); ctx.fillText('S ' + s.q[1], c + rw / 4, W - 8);
+  ctx.fillText('E ' + s.q[2], W - 26, c - rw / 4 - 14); ctx.fillText('W ' + s.q[3], 26, c + rw / 4 + 24);
+}
+
+function labels() { $('vns').textContent = $('ns').value; $('vew').textContent = $('ew').value; $('vspeed').textContent = $('speed').value; }
+['ns', 'ew', 'speed'].forEach(function (id) { $(id).addEventListener('input', labels); });
+$('watch').onclick = function () { watchSeed++; resetWatch(); running = true; last = 0; requestAnimationFrame(loop); };
+$('pause').onclick = function () { running = !running; if (running) { last = 0; requestAnimationFrame(loop); } };
+$('train').onclick = function () { running = false; train(30); };
+$('forget').onclick = function () { running = false; Agent.reset(); curve = []; baseline = []; drawCurve(); drawPolicy(); resetWatch(); };
+document.querySelectorAll('input[name="reward"]').forEach(function (r) { r.onchange = function () { $('forget').click(); }; });
+LAB.onLang(function () { drawCurve(); drawPolicy(); stats(); drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); });
+document.addEventListener('themechange', function () { drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); });
+labels(); drawCurve(); drawPolicy(); resetWatch();
+</script>
+</body>
+</html>

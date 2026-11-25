@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Right AI for the Job</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<style>
+  #results td, #results th { vertical-align: top; }
+  #results td.num { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); font-weight: 700; } .bad { color: var(--yes); font-weight: 700; }
+  #hard td { font-size: .9rem; }
+  .ev { display: inline-block; margin: 2px; padding: 1px 7px; border-radius: 6px; background: var(--accent-soft); font-size: .85rem; }
+  details summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <h1>11 · <span lang="en">The right AI for the job: routing Bangla complaints</span><span lang="bn">কাজের জন্য সঠিক এআই: বাংলা অভিযোগ বণ্টন</span></h1>
+  <p class="lead">
+    <span lang="en">One task, several approaches, <b>the same test complaints</b>. Which is most accurate? Fastest? Cheapest? Easiest to explain to a citizen or an auditor?</span>
+    <span lang="bn">একটি কাজ, কয়েকটি পদ্ধতি, <b>একই টেস্ট অভিযোগ</b>। কোনটি সবচেয়ে নির্ভুল? দ্রুততম? সবচেয়ে সস্তা? নাগরিক বা নিরীক্ষকের কাছে ব্যাখ্যা করা সবচেয়ে সহজ কোনটি?</span>
+  </p>
+
+  <div class="grid2">
+    <div class="card">
+      <h2><span lang="en">Data</span><span lang="bn">ডেটা</span></h2>
+      <p style="font-size:.95rem"><span lang="en"><b id="d-n1"></b> labelled complaints in 6 departments. Some are used for training; <b>90 are held back</b> as the standard test. Plus <b>10 hard complaints</b> written to be difficult: mixed topics, no keywords, Banglish.</span>
+      <span lang="bn">৬টি বিভাগে <b id="d-n2"></b>টি লেবেলযুক্ত অভিযোগ। কিছু প্রশিক্ষণে ব্যবহৃত হয়; <b>৯০টি আলাদা রাখা হয়েছে</b> সাধারণ টেস্টের জন্য। এছাড়া <b>১০টি কঠিন অভিযোগ</b>: মিশ্র বিষয়, কীওয়ার্ড নেই, Banglish।</span></p>
+      <label class="ctl"><span><span lang="en">Training examples for machine learning</span><span lang="bn">মেশিন লার্নিংয়ের প্রশিক্ষণ উদাহরণ</span>: <b id="v-ntrain"></b></span>
+        <input type="range" id="ntrain" min="12" max="270" step="6" value="270"></label>
+      <div class="scroll-x" style="margin-top:10px"><table class="data" id="sample"></table></div>
+    </div>
+    <div class="card">
+      <h2><span lang="en">Try a complaint</span><span lang="bn">একটি অভিযোগ লিখে দেখুন</span></h2>
+      <textarea id="mine"></textarea>
+      <div id="mineout" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0"><span lang="en">Results on the same test set</span><span lang="bn">একই টেস্ট সেটে ফলাফল</span></h2>
+      <button class="btn primary" id="run">▶ <span lang="en">Run the comparison</span><span lang="bn">তুলনা চালাও</span></button>
+    </div>
+    <div class="scroll-x" style="margin-top:10px"><table class="data" id="results"></table></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2><span lang="en">The 10 hard complaints</span><span lang="bn">১০টি কঠিন অভিযোগ</span></h2>
+    <div class="scroll-x"><table class="data" id="hard"></table></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <details id="llmbox">
+      <summary><span lang="en">Optional: add a local LLM (runs on this laptop with Ollama, no cloud, no API key)</span><span lang="bn">ঐচ্ছিক: লোকাল LLM যোগ করুন (Ollama দিয়ে এই ল্যাপটপেই চলে, ক্লাউড বা API কী লাগে না)</span></summary>
+      <p style="font-size:.92rem;margin-top:8px"><span lang="en">Requires <code>ollama</code> running on this computer with a small model pulled beforehand (e.g. <code>ollama pull qwen2.5:3b</code>). Works when the lab is opened from this computer (double-clicked file or localhost), not from the GitHub Pages site.</span>
+      <span lang="bn">এই কম্পিউটারে <code>ollama</code> চালু থাকতে হবে এবং আগে থেকে একটি ছোট মডেল নামানো থাকতে হবে (যেমন <code>ollama pull qwen2.5:3b</code>)। ল্যাবটি এই কম্পিউটার থেকে খুললে (ফাইল বা localhost) কাজ করবে, GitHub Pages সাইট থেকে নয়।</span></p>
+      <div class="row">
+        <input type="text" id="llm-url" value="http://localhost:11434" style="max-width:260px">
+        <input type="text" id="llm-model" value="qwen2.5:3b" style="max-width:180px">
+        <button class="btn" id="llm-run">▶ <span lang="en">Run LLM on hard + 30 standard</span><span lang="bn">কঠিন + ৩০টি সাধারণে LLM চালাও</span></button>
+      </div>
+      <p id="llm-status" style="margin:.6em 0 0;font-size:.92rem"></p>
+    </details>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="callout break">
+      <div class="label"><span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
+      <p style="margin:0"><span lang="en">Reduce training examples to 12 and run again. Machine learning needs enough good labelled data; rules need none, but someone must write them. Both fail on Banglish because neither has seen it. Notice that the standard test looks much better than the hard one: <b>a test set that is too easy flatters every model</b>.</span>
+      <span lang="bn">প্রশিক্ষণ উদাহরণ ১২-তে নামিয়ে আবার চালান। মেশিন লার্নিংয়ের জন্য যথেষ্ট ভালো লেবেলযুক্ত ডেটা লাগে; নিয়মের জন্য ডেটা লাগে না, কিন্তু কাউকে নিয়মগুলো লিখতে হয়। Banglish-এ দুটোই ব্যর্থ, কারণ কেউই তা দেখেনি। লক্ষ করুন, সাধারণ টেস্টের ফল কঠিন টেস্টের চেয়ে অনেক ভালো: <b>খুব সহজ টেস্ট সেট সব মডেলকেই ভালো দেখায়</b>।</span></p>
+    </div>
+    <div class="callout lesson">
+      <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+      <p style="margin:0"><span lang="en"><b>The most sophisticated AI is not necessarily the most appropriate AI.</b> Compare accuracy <i>and</i> speed, cost, explainability, privacy and maintenance on <i>your own</i> held-out test data before choosing. And keep a human review path for complaints the system is unsure about.</span>
+      <span lang="bn"><b>সবচেয়ে উন্নত এআই মানেই সবচেয়ে উপযুক্ত এআই নয়।</b> বেছে নেওয়ার আগে <i>নিজেদের</i> আলাদা রাখা টেস্ট ডেটায় নির্ভুলতা <i>এবং</i> গতি, খরচ, ব্যাখ্যাযোগ্যতা, গোপনীয়তা ও রক্ষণাবেক্ষণ তুলনা করুন। আর যেসব অভিযোগে সিস্টেম নিশ্চিত নয়, সেগুলোর জন্য মানুষের যাচাইয়ের পথ রাখুন।</span></p>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script src="../assets/complaints-data.js"></script>
+<script>
+LAB.header({ home: '../index.html', family: ['Capstone · comparing approaches', 'সমাপনী · পদ্ধতির তুলনা'], synthetic: true });
+var $ = function (id) { return document.getElementById(id); };
+var C = COMPLAINTS;
+var ALL = C.build(360, 11), TEST = ALL.slice(0, 90), POOL = ALL.slice(90), HARD = C.HARD;
+var nb = null, llm = null, ran = false;
+$('d-n1').textContent = ALL.length; $('d-n2').textContent = ALL.length;
+
+function dn(d) { if (!d) return '❓ ' + LAB.t('none', 'কোনোটি নয়'); var x = C.DEPTS[d]; return x.icon + ' ' + LAB.t(x.en, x.bn); }
+function trainNB() {
+  // keep classes balanced even with few examples
+  var n = +$('ntrain').value, rows = [], per = {};
+  POOL.forEach(function (r) { per[r.dept] = per[r.dept] || []; per[r.dept].push(r); });
+  for (var i = 0; rows.length < n; i++) C.DEPT_KEYS.forEach(function (d) { if (rows.length < n && per[d][i]) rows.push(per[d][i]); });
+  nb = C.trainNB(rows);
+  $('v-ntrain').textContent = rows.length;
+}
+var rulesPredict = function (t) { return C.applyRules(C.DEFAULT_RULES, t).dept; };
+var nbPredict = function (t) { return C.predictNB(nb, t).dept; };
+function acc(fn, set) { var ok = 0; set.forEach(function (r) { if (fn(r.text) === r.dept) ok++; }); return ok / set.length; }
+function speed(fn) {
+  var t0 = performance.now(), n = 0;
+  while (n < 1000) { fn(TEST[n % TEST.length].text); n++; }
+  return performance.now() - t0;
+}
+function fmtMs(ms) { return ms < 1 ? '< 1 ms' : ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(1) + ' s'; }
+
+function renderSample() {
+  $('sample').innerHTML = '<tr><th>' + LAB.t('Complaint', 'অভিযোগ') + '</th><th>' + LAB.t('Correct department', 'সঠিক বিভাগ') + '</th></tr>' +
+    POOL.slice(0, 5).map(function (r) { return '<tr><td>' + LAB.esc(r.text) + '</td><td>' + dn(r.dept) + '</td></tr>'; }).join('');
+}
+
+function renderResults() {
+  var H = function (en, bn) { return '<th>' + LAB.t(en, bn) + '</th>'; };
+  var h = '<tr>' + H('Approach', 'পদ্ধতি') + H('Accuracy: standard test (90)', 'নির্ভুলতা: সাধারণ টেস্ট (৯০)') + H('Accuracy: hard test (10)', 'নির্ভুলতা: কঠিন টেস্ট (১০)') +
+    H('Time for 1,000 complaints', '১,০০০ অভিযোগে সময়') + H('What it needs', 'যা লাগে') + H('Can it explain why?', 'কেন, তা ব্যাখ্যা করতে পারে?') + '</tr>';
+  var rowsDef = [
+    { name: ['Rules (Experiment 2)', 'নিয়ম (পরীক্ষা ২)'], fn: rulesPredict,
+      needs: ['An expert to write and maintain keyword rules. No training data.', 'কীওয়ার্ড নিয়ম লেখা ও হালনাগাদ রাখার জন্য একজন বিশেষজ্ঞ। প্রশিক্ষণ ডেটা লাগে না।'],
+      explain: ['Yes: exactly which rule and keyword fired.', 'হ্যাঁ: ঠিক কোন নিয়ম ও কীওয়ার্ড কাজ করেছে।'] },
+    { name: ['Machine learning (Naive Bayes)', 'মেশিন লার্নিং (নাইভ বেইজ)'], fn: nbPredict,
+      needs: ['Labelled past complaints (' + nb.N + ' here). Runs on any laptop.', 'লেবেলযুক্ত পুরোনো অভিযোগ (এখানে ' + nb.N + 'টি)। যেকোনো ল্যাপটপে চলে।'],
+      explain: ['Partly: which words pushed the decision.', 'আংশিক: কোন শব্দগুলো সিদ্ধান্তকে প্রভাবিত করেছে।'] }
+  ];
+  rowsDef.forEach(function (r) {
+    h += '<tr><td><b>' + LAB.t(r.name[0], r.name[1]) + '</b></td>' +
+      (ran ? '<td class="num">' + LAB.pct(acc(r.fn, TEST)) + '</td><td class="num">' + LAB.pct(acc(r.fn, HARD)) + '</td><td>' + fmtMs(speed(r.fn)) + '</td>' : '<td>–</td><td>–</td><td>–</td>') +
+      '<td>' + LAB.t(r.needs[0], r.needs[1]) + '</td><td>' + LAB.t(r.explain[0], r.explain[1]) + '</td></tr>';
+  });
+  h += '<tr><td><b>' + LAB.t('Local LLM (optional)', 'লোকাল LLM (ঐচ্ছিক)') + '</b></td>' +
+    (llm ? '<td class="num">' + LAB.pct(llm.std) + ' <small class="muted">(30)</small></td><td class="num">' + LAB.pct(llm.hard) + '</td><td>≈ ' + fmtMs(llm.msPer * 1000) + '</td>'
+      : '<td colspan="3" class="muted">' + LAB.t('Not run. See the optional panel below.', 'চালানো হয়নি। নিচের ঐচ্ছিক প্যানেল দেখুন।') + '</td>') +
+    '<td>' + LAB.t('No task-specific training, only an instruction. A multi-GB model and a strong computer, or a paid cloud service (where citizen data leaves your office).', 'কাজভিত্তিক প্রশিক্ষণ লাগে না, শুধু নির্দেশনা। কয়েক GB-র মডেল ও শক্তিশালী কম্পিউটার, অথবা পেইড ক্লাউড সেবা (যেখানে নাগরিকের তথ্য অফিসের বাইরে যায়)।') + '</td>' +
+    '<td>' + LAB.t('It can write a reason, but the reason is generated text, not a guaranteed account of how it decided.', 'সে একটি কারণ লিখতে পারে, কিন্তু সেটি তৈরি করা লেখা, সিদ্ধান্ত কীভাবে নেওয়া হলো তার নিশ্চিত বিবরণ নয়।') + '</td></tr>';
+  $('results').innerHTML = h;
+
+  var hh = '<tr>' + H('Complaint', 'অভিযোগ') + H('Correct', 'সঠিক') + H('Rules', 'নিয়ম') + H('ML', 'ML') + (llm ? H('LLM', 'LLM') : '') + '</tr>';
+  HARD.forEach(function (r, i) {
+    var cell = function (p) { return ran || p !== undefined ? '<td class="' + (p === r.dept ? 'ok' : 'bad') + '">' + (p === r.dept ? '✓ ' : '✗ ') + dn(p) + '</td>' : '<td>–</td>'; };
+    hh += '<tr><td>' + LAB.esc(r.text) + '</td><td>' + dn(r.dept) + '</td>' + (ran ? cell(rulesPredict(r.text)) + cell(nbPredict(r.text)) : '<td>–</td><td>–</td>') + (llm ? cell(llm.hardPreds[i]) : '') + '</tr>';
+  });
+  $('hard').innerHTML = hh;
+}
+
+function renderMine() {
+  var t = $('mine').value.trim();
+  if (!t) { $('mineout').innerHTML = ''; return; }
+  var r = C.applyRules(C.DEFAULT_RULES, t), p = C.predictNB(nb, t);
+  var probs = C.DEPT_KEYS.map(function (d) { return { label: dn(d), value: p.probs[d] }; }).sort(function (a, b) { return b.value - a.value; });
+  $('mineout').innerHTML = '<div class="grid2"><div><div class="muted" style="font-size:.85rem">' + LAB.t('Rules', 'নিয়ম') + '</div><div class="big-result" style="font-size:1.3rem">' + dn(r.dept) + '</div>' +
+    '<div style="font-size:.88rem">' + (r.fired.length ? r.fired.map(function (f) { return LAB.t('found', 'পাওয়া গেছে') + ' "<b>' + LAB.esc(f.word) + '</b>" → ' + dn(f.dept); }).join('<br>') : LAB.t('no rule matched', 'কোনো নিয়ম মেলেনি')) + '</div></div>' +
+    '<div><div class="muted" style="font-size:.85rem">' + LAB.t('Machine learning', 'মেশিন লার্নিং') + '</div><div class="big-result" style="font-size:1.3rem">' + dn(p.dept) + '</div>' +
+    '<div style="font-size:.88rem">' + (p.evidence.length ? LAB.t('Words that pushed this decision: ', 'যেসব শব্দ এই সিদ্ধান্তকে প্রভাবিত করেছে: ') + p.evidence.slice(0, 4).filter(function (e) { return e.score > 0; }).map(function (e) { return '<span class="ev">' + LAB.esc(e.w) + '</span>'; }).join('') : LAB.t('No known words: it is only guessing from how common each department is.', 'কোনো পরিচিত শব্দ নেই: শুধু কোন বিভাগ কত সাধারণ তা দেখে আন্দাজ করছে।')) + '</div></div></div>' +
+    '<div id="mineprobs" style="margin-top:8px"></div>';
+  LAB.bars($('mineprobs'), probs);
+}
+
+async function runLLM() {
+  var url = $('llm-url').value.replace(/\/$/, '') + '/api/generate', model = $('llm-model').value.trim(), st = $('llm-status');
+  var keys = C.DEPT_KEYS.join(', ');
+  var ask = async function (text) {
+    var prompt = 'You route citizen complaints for a city corporation in Bangladesh. Departments: waste (garbage), drain (drainage, waterlogging), road (roads, footpaths), light (street lights), mosquito (mosquito, dengue), licence (trade licence). ' +
+      'Reply with exactly one word from: ' + keys + '.\nComplaint: ' + text + '\nDepartment:';
+    var ctl = new AbortController(), to = setTimeout(function () { ctl.abort(); }, 60000);
+    var res = await fetch(url, { method: 'POST', signal: ctl.signal, body: JSON.stringify({ model: model, prompt: prompt, stream: false, options: { temperature: 0 } }) });
+    clearTimeout(to);
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + (await res.text()).slice(0, 120));
+    var out = ((await res.json()).response || '').toLowerCase();
+    var hit = null, pos = 1e9;
+    C.DEPT_KEYS.forEach(function (k) { var i = out.indexOf(k); if (i >= 0 && i < pos) { pos = i; hit = k; } });
+    if (!hit && out.indexOf('license') >= 0) hit = 'licence';
+    return hit;
+  };
+  try {
+    var hardPreds = [], stdOk = 0, t0 = performance.now(), n = 0, std = TEST.slice(0, 30);
+    for (var i = 0; i < HARD.length; i++) { st.textContent = LAB.t('Asking the LLM… ', 'LLM-কে জিজ্ঞেস করা হচ্ছে… ') + (n + 1) + ' / ' + (HARD.length + std.length); hardPreds.push(await ask(HARD[i].text)); n++; }
+    for (var j = 0; j < std.length; j++) { st.textContent = LAB.t('Asking the LLM… ', 'LLM-কে জিজ্ঞেস করা হচ্ছে… ') + (n + 1) + ' / ' + (HARD.length + std.length); if ((await ask(std[j].text)) === std[j].dept) stdOk++; n++; }
+    var ms = performance.now() - t0;
+    llm = { hardPreds: hardPreds, hard: hardPreds.filter(function (p, i) { return p === HARD[i].dept; }).length / HARD.length, std: stdOk / std.length, msPer: ms / n };
+    st.textContent = '✅ ' + LAB.t('Done. ', 'সম্পন্ন। ') + n + LAB.t(' complaints in ', 'টি অভিযোগে ') + fmtMs(ms) + '.';
+    renderResults();
+  } catch (e) {
+    st.innerHTML = '⚠️ ' + LAB.bi('Could not reach the local model. Is Ollama running and the model pulled? Open the lab from this computer (not the website). ', 'লোকাল মডেলে পৌঁছানো যায়নি। Ollama কি চালু আছে এবং মডেল নামানো আছে? ল্যাবটি এই কম্পিউটার থেকে খুলুন (ওয়েবসাইট থেকে নয়)। ') + '<small class="muted">' + LAB.esc(e.message || e) + '</small>';
+  }
+}
+
+$('ntrain').oninput = function () { trainNB(); renderResults(); renderMine(); };
+$('run').onclick = function () { ran = true; renderResults(); };
+$('mine').oninput = renderMine;
+$('llm-run').onclick = runLLM;
+LAB.onLang(function () { renderSample(); renderResults(); renderMine(); });
+$('mine').value = 'বাসার সামনে স্তূপ জমে আছে, দুর্গন্ধে টেকা যায় না';
+trainNB(); renderSample(); renderResults(); renderMine();
+</script>
+</body>
+</html>

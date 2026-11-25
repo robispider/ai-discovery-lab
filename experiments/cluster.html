@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neighbourhood Clustering</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<style>
+  .profiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .prof { border-radius: 12px; padding: 12px; border: 2px solid var(--border); background: var(--surface); }
+  .prof h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .prof .dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
+  .prof table { font-size: .85rem; width: 100%; }
+  .prof td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .prof input { margin-top: 8px; font-size: .9rem; }
+  .check { display: flex; gap: 10px; align-items: center; cursor: pointer; }
+  .check input { width: 20px; height: 20px; accent-color: var(--accent-2); }
+  select { width: auto; }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <h1>5 · <span lang="en">Discover hidden groups of neighbourhoods (k-means)</span><span lang="bn">এলাকার লুকানো দল খোঁজা (k-means)</span></h1>
+  <p class="lead">
+    <span lang="en">200 neighbourhoods, 4 measurements each: population density, waste per person, public transport access, drainage coverage. <b>Nobody tells the machine the right answer.</b> It groups similar neighbourhoods by itself. Your job: interpret the groups.</span>
+    <span lang="bn">২০০টি এলাকা, প্রতিটির ৪টি পরিমাপ: জনঘনত্ব, মাথাপিছু বর্জ্য, গণপরিবহনে প্রবেশাধিকার, ড্রেনেজ কভারেজ। <b>যন্ত্রকে কেউ সঠিক উত্তর বলে দেয় না।</b> সে নিজেই একই রকম এলাকাগুলোকে দলে ভাগ করে। আপনার কাজ: দলগুলোর অর্থ বোঝা।</span>
+  </p>
+
+  <div class="main-side">
+    <div class="card">
+      <div class="row">
+        <span class="muted">x:</span><select id="ax"></select>
+        <span class="muted">y:</span><select id="ay"></select>
+      </div>
+      <svg id="plot" class="chart" style="margin-top:8px"></svg>
+      <p class="muted" style="font-size:.85rem;margin:0"><span lang="en">✕ = group centre. The machine uses all 4 measurements; the chart can only show 2 at a time.</span><span lang="bn">✕ = দলের কেন্দ্র। যন্ত্র ৪টি পরিমাপই ব্যবহার করে; চার্টে একসাথে মাত্র ২টি দেখানো যায়।</span></p>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <label class="ctl"><span><span lang="en">Number of groups (k)</span><span lang="bn">দলের সংখ্যা (k)</span>: <b id="vk"></b></span>
+          <input type="range" id="k" min="2" max="8" value="4"></label>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="run">▶ <span lang="en">Find groups</span><span lang="bn">দল খোঁজো</span></button>
+          <button class="btn" id="step"><span lang="en">One step</span><span lang="bn">এক ধাপ</span></button>
+          <button class="btn" id="reseed">🎲 <span lang="en">New random start</span><span lang="bn">নতুন এলোমেলো শুরু</span></button>
+        </div>
+        <p id="status" style="margin:.8em 0 0;font-size:.95rem"></p>
+      </div>
+      <div class="callout break">
+        <div class="label"><span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
+        <label class="check"><input type="checkbox" id="noscale"> <span><span lang="en">Turn off scaling (use raw numbers)</span><span lang="bn">স্কেলিং বন্ধ করুন (কাঁচা সংখ্যা ব্যবহার)</span></span></label>
+        <p style="margin:.6em 0 0;font-size:.92rem"><span lang="en">Density is in thousands and waste per person is below 1, so without scaling, density and drainage decide everything. Also try k = 2 and k = 8, and a new random start: same data, different stories.</span>
+        <span lang="bn">জনঘনত্ব হাজারের ঘরে, আর মাথাপিছু বর্জ্য ১-এর কম, তাই স্কেলিং ছাড়া জনঘনত্ব ও ড্রেনেজই সব ঠিক করে দেয়। k = ২ ও k = ৮ এবং নতুন এলোমেলো শুরুও চেষ্টা করুন: একই ডেটা, ভিন্ন গল্প।</span></p>
+        <button class="btn small" id="reveal" style="margin-top:8px"><span lang="en">Reveal how the data was generated</span><span lang="bn">ডেটা কীভাবে তৈরি হয়েছিল দেখুন</span></button>
+        <p id="truth" class="hidden" style="margin:.6em 0 0;font-size:.9rem"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2><span lang="en">Group profiles: give each group a name</span><span lang="bn">দলের বৈশিষ্ট্য: প্রতিটি দলের একটি নাম দিন</span></h2>
+    <div class="profiles" id="profiles"></div>
+  </div>
+
+  <div class="callout lesson" style="margin-top:16px">
+    <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+    <p style="margin:0"><span lang="en"><b>Machines can find patterns even when nobody provides the correct answers</b> (unsupervised learning). But the machine does not know what a group <i>means</i>. Choosing k, choosing and scaling the measurements, and naming the groups are human decisions, and they change the story. The same method groups survey respondents in social research.</span>
+    <span lang="bn"><b>কেউ সঠিক উত্তর না দিলেও যন্ত্র প্যাটার্ন খুঁজে পেতে পারে</b> (আনসুপারভাইজড লার্নিং)। কিন্তু একটি দলের <i>অর্থ</i> কী, যন্ত্র তা জানে না। k বাছাই, পরিমাপ বাছাই ও স্কেলিং, এবং দলের নামকরণ মানুষের সিদ্ধান্ত, এবং এগুলো গল্পটাই বদলে দেয়। সামাজিক গবেষণায় জরিপের উত্তরদাতাদের দলে ভাগ করতেও একই পদ্ধতি ব্যবহৃত হয়।</span></p>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script>
+LAB.header({ home: '../index.html', family: ['Machine learning · unsupervised', 'মেশিন লার্নিং · আনসুপারভাইজড'], synthetic: true });
+var $ = function (id) { return document.getElementById(id); };
+var F = [
+  { k: 'density', en: 'Density (thousand/km²)', bn: 'জনঘনত্ব (হাজার/বর্গকিমি)', d: 0 },
+  { k: 'waste', en: 'Waste per person (kg/day)', bn: 'মাথাপিছু বর্জ্য (কেজি/দিন)', d: 2 },
+  { k: 'transit', en: 'Transport access (0–10)', bn: 'গণপরিবহন সুবিধা (০–১০)', d: 1 },
+  { k: 'drain', en: 'Drainage coverage (%)', bn: 'ড্রেনেজ কভারেজ (%)', d: 0 }
+];
+var TYPES = [
+  { en: 'Dense old city', bn: 'ঘনবসতিপূর্ণ পুরান শহর', n: 55, m: [80, 0.55, 8, 32], s: [22, 0.05, 0.8, 6] },
+  { en: 'Planned residential', bn: 'পরিকল্পিত আবাসিক', n: 50, m: [22, 0.8, 6, 88], s: [5, 0.06, 0.8, 5] },
+  { en: 'Informal settlement', bn: 'অনানুষ্ঠানিক বসতি', n: 45, m: [85, 0.35, 3, 22], s: [24, 0.04, 0.8, 6] },
+  { en: 'Peri-urban fringe', bn: 'শহরতলি', n: 50, m: [8, 0.38, 2, 30], s: [3, 0.05, 0.7, 8] }
+];
+var DATA = (function () {
+  var r = LAB.rng(31), out = [];
+  TYPES.forEach(function (t, ti) {
+    for (var i = 0; i < t.n; i++) {
+      var o = { type: ti };
+      F.forEach(function (f, j) { o[f.k] = Math.max(0, t.m[j] + LAB.gauss(r) * t.s[j]); });
+      o.transit = Math.min(10, o.transit); o.drain = Math.min(100, o.drain);
+      out.push(o);
+    }
+  });
+  return out;
+})();
+var COLORS = ['--c1', '--c2', '--c3', '--c4', '--c5', '--c6', '--c7', '--c8'];
+var seed = 1, cents = null, assign = null, iter = 0, done = false, timer = null, names = {};
+
+function vecs() {
+  var scale = !$('noscale').checked, mu = [], sd = [];
+  F.forEach(function (f, j) {
+    var m = DATA.reduce(function (s, d) { return s + d[f.k]; }, 0) / DATA.length;
+    var v = DATA.reduce(function (s, d) { return s + Math.pow(d[f.k] - m, 2); }, 0) / DATA.length;
+    mu[j] = scale ? m : 0; sd[j] = scale ? Math.sqrt(v) : 1;
+  });
+  return DATA.map(function (d) { return F.map(function (f, j) { return (d[f.k] - mu[j]) / sd[j]; }); });
+}
+function dist(a, b) { var s = 0; for (var i = 0; i < a.length; i++) s += (a[i] - b[i]) * (a[i] - b[i]); return s; }
+function init() {
+  var V = vecs(), k = +$('k').value, r = LAB.rng(seed * 7919);
+  var idx = LAB.shuffle(V.map(function (_, i) { return i; }), r).slice(0, k);
+  cents = idx.map(function (i) { return V[i].slice(); });
+  assign = null; iter = 0; done = false;
+}
+function step() {
+  if (!cents) init();
+  var V = vecs(), k = cents.length;
+  var na = V.map(function (v) { var bi = 0; for (var c = 1; c < k; c++) if (dist(v, cents[c]) < dist(v, cents[bi])) bi = c; return bi; });
+  done = assign && na.every(function (a, i) { return a === assign[i]; });
+  assign = na; iter++;
+  for (var c = 0; c < k; c++) {
+    var mem = V.filter(function (_, i) { return assign[i] === c; });
+    if (mem.length) cents[c] = F.map(function (_, j) { return mem.reduce(function (s, v) { return s + v[j]; }, 0) / mem.length; });
+  }
+  draw();
+}
+function run() {
+  if (timer) clearInterval(timer);
+  init(); draw();
+  timer = setInterval(function () { step(); if (done || iter > 30) { clearInterval(timer); timer = null; } }, 600);
+}
+
+function fillSelects() {
+  ['ax', 'ay'].forEach(function (id, n) {
+    var cur = $(id).value || F[n === 0 ? 0 : 3].k;
+    $(id).innerHTML = F.map(function (f) { return '<option value="' + f.k + '"' + (f.k === cur ? ' selected' : '') + '>' + LAB.t(f.en, f.bn) + '</option>'; }).join('');
+  });
+}
+function draw() {
+  var fx = $('ax').value, fy = $('ay').value, svg = $('plot'), W = 600, H = 380, P = { l: 48, r: 12, t: 10, b: 42 };
+  var ext = function (k) { var v = DATA.map(function (d) { return d[k]; }); return [Math.min.apply(null, v), Math.max.apply(null, v)]; };
+  var ex = ext(fx), ey = ext(fy);
+  var xs = function (v) { return P.l + (v - ex[0]) / (ex[1] - ex[0]) * (W - P.l - P.r); }, ys = function (v) { return H - P.b - (v - ey[0]) / (ey[1] - ey[0]) * (H - P.t - P.b); };
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  var fxd = F.filter(function (f) { return f.k === fx; })[0], fyd = F.filter(function (f) { return f.k === fy; })[0];
+  var h = '<line class="axis" x1="' + P.l + '" x2="' + (W - P.r) + '" y1="' + (H - P.b) + '" y2="' + (H - P.b) + '"/><line class="axis" x1="' + P.l + '" x2="' + P.l + '" y1="' + P.t + '" y2="' + (H - P.b) + '"/>';
+  for (var t = 0; t <= 4; t++) {
+    var xv = ex[0] + t / 4 * (ex[1] - ex[0]), yv = ey[0] + t / 4 * (ey[1] - ey[0]);
+    h += '<text x="' + xs(xv) + '" y="' + (H - P.b + 16) + '" text-anchor="middle">' + xv.toFixed(fxd.d) + '</text>';
+    h += '<text x="' + (P.l - 6) + '" y="' + (ys(yv) + 4) + '" text-anchor="end">' + yv.toFixed(fyd.d) + '</text>';
+  }
+  h += '<text x="' + ((W + P.l) / 2) + '" y="' + (H - 4) + '" text-anchor="middle">' + LAB.t(fxd.en, fxd.bn) + '</text>';
+  h += '<text x="12" y="' + (H / 2) + '" text-anchor="middle" transform="rotate(-90 12 ' + (H / 2) + ')">' + LAB.t(fyd.en, fyd.bn) + '</text>';
+  DATA.forEach(function (d, i) {
+    var col = assign ? LAB.css(COLORS[assign[i]]) : LAB.css('--muted');
+    h += '<circle cx="' + xs(d[fx]).toFixed(1) + '" cy="' + ys(d[fy]).toFixed(1) + '" r="5" fill="' + col + '" opacity=".75"/>';
+  });
+  if (assign) for (var c = 0; c < cents.length; c++) {
+    var mem = DATA.filter(function (_, i) { return assign[i] === c; });
+    if (!mem.length) continue;
+    var cx = xs(mem.reduce(function (s, d) { return s + d[fx]; }, 0) / mem.length), cy = ys(mem.reduce(function (s, d) { return s + d[fy]; }, 0) / mem.length);
+    h += '<path d="M' + (cx - 10) + ',' + (cy - 10) + 'L' + (cx + 10) + ',' + (cy + 10) + 'M' + (cx + 10) + ',' + (cy - 10) + 'L' + (cx - 10) + ',' + (cy + 10) + '" stroke="' + LAB.css('--text') + '" stroke-width="7" stroke-linecap="round"/>';
+    h += '<path d="M' + (cx - 10) + ',' + (cy - 10) + 'L' + (cx + 10) + ',' + (cy + 10) + 'M' + (cx + 10) + ',' + (cy - 10) + 'L' + (cx - 10) + ',' + (cy + 10) + '" stroke="' + LAB.css(COLORS[c]) + '" stroke-width="4" stroke-linecap="round"/>';
+  }
+  svg.innerHTML = h;
+  $('vk').textContent = $('k').value;
+  $('status').innerHTML = !assign ? LAB.bi('Not grouped yet. Press "Find groups".', 'এখনো দলে ভাগ হয়নি। "দল খোঁজো" চাপুন।')
+    : done ? '✅ ' + LAB.bi('Stable after ' + iter + ' steps: no neighbourhood changes group any more.', iter + ' ধাপ পর স্থির: আর কোনো এলাকা দল বদলাচ্ছে না।')
+    : LAB.bi('Step ' + iter + ': each neighbourhood joins the nearest centre, then each centre moves to the middle of its group.', 'ধাপ ' + iter + ': প্রতিটি এলাকা নিকটতম কেন্দ্রে যোগ দেয়, তারপর প্রতিটি কেন্দ্র তার দলের মাঝখানে সরে যায়।');
+  profiles();
+}
+function profiles() {
+  var el = $('profiles');
+  if (!assign) { el.innerHTML = '<p class="muted">' + LAB.t('Groups will appear here.', 'দলগুলো এখানে দেখা যাবে।') + '</p>'; return; }
+  var h = '';
+  for (var c = 0; c < cents.length; c++) {
+    var mem = DATA.filter(function (_, i) { return assign[i] === c; });
+    if (!mem.length) continue;
+    h += '<div class="prof" style="border-color:' + LAB.css(COLORS[c]) + '"><h3><span class="dot" style="background:' + LAB.css(COLORS[c]) + '"></span>' +
+      LAB.t('Group ', 'দল ') + (c + 1) + ' <small class="muted">(' + mem.length + ')</small></h3><table>' +
+      F.map(function (f) { return '<tr><td>' + LAB.t(f.en, f.bn) + '</td><td><b>' + (mem.reduce(function (s, d) { return s + d[f.k]; }, 0) / mem.length).toFixed(f.d) + '</b></td></tr>'; }).join('') +
+      '</table><input type="text" data-c="' + c + '" placeholder="' + LAB.t('Name this group…', 'এই দলের নাম দিন…') + '" value="' + LAB.esc(names[c] || '') + '"></div>';
+  }
+  el.innerHTML = h;
+  el.querySelectorAll('input').forEach(function (inp) { inp.oninput = function () { names[inp.dataset.c] = inp.value; }; });
+}
+
+$('run').onclick = run;
+$('step').onclick = function () { if (timer) { clearInterval(timer); timer = null; } if (done) init(); step(); };
+$('reseed').onclick = function () { seed++; run(); };
+$('k').oninput = function () { names = {}; init(); cents = null; assign = null; draw(); };
+$('noscale').onchange = run;
+$('ax').onchange = draw; $('ay').onchange = draw;
+$('reveal').onclick = function () {
+  var el = $('truth'); el.classList.toggle('hidden');
+  el.innerHTML = LAB.bi('The data was generated from 4 hidden types: ', 'ডেটা তৈরি হয়েছিল ৪টি লুকানো ধরন থেকে: ') + TYPES.map(function (t) { return '<b>' + LAB.t(t.en, t.bn) + '</b> (' + t.n + ')'; }).join(', ') +
+    '. ' + LAB.bi('Did the machine find them? Real data rarely has such clean groups.', 'যন্ত্র কি সেগুলো খুঁজে পেয়েছে? বাস্তব ডেটায় এত পরিষ্কার দল খুব কমই থাকে।');
+};
+LAB.onLang(function () { fillSelects(); draw(); if (!$('truth').classList.contains('hidden')) { $('truth').classList.add('hidden'); $('reveal').click(); } });
+document.addEventListener('themechange', draw);
+fillSelects(); draw();
+</script>
+</body>
+</html>
