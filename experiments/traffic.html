@@ -1,250 +1,331 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Learning Traffic Signal</title>
+<title>A Traffic Light That Learns · AI Discovery Lab</title>
 <link rel="stylesheet" href="../assets/lab.css">
-<style>
-  .sims { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 700px) { .sims { grid-template-columns: 1fr; } }
-  .sims canvas { width: 100%; aspect-ratio: 1; border-radius: 10px; background: var(--surface-2); }
-  .sims h3 { text-align: center; }
-  .policy { border-collapse: collapse; font-size: .8rem; margin: 4px 0 10px; }
-  .policy td, .policy th { width: 42px; height: 30px; text-align: center; border: 1px solid var(--border); }
-  .policy td.k { background: var(--accent-soft); } .policy td.s { background: var(--accent-2-soft); } .policy td.u { color: var(--muted); }
-  .radio { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: .95rem; }
-  .radio input { width: 18px; height: 18px; accent-color: var(--accent-2); }
-</style>
+<link rel="stylesheet" href="../assets/traffic.css">
 </head>
-<body>
+<body class="traffic-page">
 <div id="lab-header"></div>
-<main class="wrap">
-  <h1>8 · <span lang="en">A traffic signal that learns from experience</span><span lang="bn">অভিজ্ঞতা থেকে শেখা ট্রাফিক সিগন্যাল</span></h1>
-  <p class="lead">
-    <span lang="en">No labelled examples here. An <b>agent</b> watches the queues, chooses to <b>keep</b> or <b>switch</b> the green light, and receives a <b>reward</b> (fewer waiting vehicles = better). Over many simulated rush hours it learns a strategy by trial and error.</span>
-    <span lang="bn">এখানে কোনো লেবেলযুক্ত উদাহরণ নেই। একটি <b>এজেন্ট</b> সারির দৈর্ঘ্য দেখে, সবুজ বাতি <b>রাখবে</b> নাকি <b>বদলাবে</b> তা ঠিক করে, এবং <b>পুরস্কার</b> পায় (কম গাড়ি অপেক্ষায় = ভালো)। অনেকগুলো কৃত্রিম ব্যস্ত সময় পার করে সে চেষ্টা ও ভুলের মাধ্যমে একটি কৌশল শেখে।</span>
-  </p>
 
-  <div class="grid3">
-    <div class="card" style="text-align:center">👀 <b><span lang="en">Observe</span><span lang="bn">পর্যবেক্ষণ</span></b><br><span class="muted" style="font-size:.9rem"><span lang="en">vehicle queues, current green</span><span lang="bn">গাড়ির সারি, এখন কোন দিকে সবুজ</span></span></div>
-    <div class="card" style="text-align:center">🚦 <b><span lang="en">Act</span><span lang="bn">পদক্ষেপ</span></b><br><span class="muted" style="font-size:.9rem"><span lang="en">keep green, or switch</span><span lang="bn">সবুজ রাখো, নাকি বদলাও</span></span></div>
-    <div class="card" style="text-align:center">🏆 <b><span lang="en">Reward</span><span lang="bn">পুরস্কার</span></b><br><span class="muted" style="font-size:.9rem"><span lang="en">minus the number of waiting vehicles</span><span lang="bn">অপেক্ষমাণ গাড়ির সংখ্যার ঋণাত্মক মান</span></span></div>
-  </div>
+<svg class="traffic-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M9 5v14m6-14v14" stroke-width="3"/></symbol>
+    <symbol id="icon-step" viewBox="0 0 24 24"><path d="m6 5 11 7-11 7z" fill="currentColor" stroke="none"/><path d="M19 6v12"/></symbol>
+    <symbol id="icon-restart" viewBox="0 0 24 24"><path d="M4 11a8 8 0 1 1 2 6m-2-6V5m0 6h6"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+    <symbol id="icon-agent" viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V4m-9 8v3m18-3v3m-12-2h.01m6 0h.01" stroke-width="2"/></symbol>
+    <symbol id="icon-sliders" viewBox="0 0 24 24"><path d="M4 7h5m4 0h7M4 17h9m4 0h3"/><circle cx="11" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></symbol>
+    <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3-6 10-6 10 6 10 6-3 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="icon-switch" viewBox="0 0 24 24"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></symbol>
+    <symbol id="icon-reward" viewBox="0 0 24 24"><path d="m13 2-8 12h6l-1 8 9-12h-6l1-8Z"/></symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24"><path d="m12 3 7 3v5c0 4-3 7-7 10-4-3-7-6-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
 
-  <div class="main-side" style="margin-top:16px">
-    <div class="card">
-      <div class="sims">
-        <div><h3><span lang="en">Fixed timer (30 s each way)</span><span lang="bn">নির্দিষ্ট টাইমার (প্রতি দিকে ৩০ সে.)</span></h3><canvas id="cv-fixed" width="420" height="420"></canvas>
-          <div class="stats" style="margin-top:8px;justify-content:center"><div class="stat"><div class="k"><span lang="en">Avg wait / vehicle</span><span lang="bn">গাড়িপ্রতি গড় অপেক্ষা</span></div><div class="v" id="w-fixed">–</div></div></div></div>
-        <div><h3><span lang="en">Learning agent</span><span lang="bn">শিখতে পারা এজেন্ট</span></h3><canvas id="cv-agent" width="420" height="420"></canvas>
-          <div class="stats" style="margin-top:8px;justify-content:center"><div class="stat"><div class="k"><span lang="en">Avg wait / vehicle</span><span lang="bn">গাড়িপ্রতি গড় অপেক্ষা</span></div><div class="v" id="w-agent">–</div></div></div></div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="watch">▶ <span lang="en">Watch both</span><span lang="bn">দুটোই দেখুন</span></button>
-        <button class="btn" id="pause">⏸</button>
-        <label class="ctl" style="flex:1;min-width:180px"><span><span lang="en">Simulation speed</span><span lang="bn">সিমুলেশনের গতি</span>: <b id="vspeed"></b>×</span><input type="range" id="speed" min="1" max="60" value="8"></label>
-      </div>
-      <p class="muted" style="font-size:.85rem;margin:.4em 0 0"><span lang="en">Both intersections receive exactly the same cars at the same moments.</span><span lang="bn">দুটি মোড়েই ঠিক একই সময়ে একই গাড়ি আসে।</span></p>
-    </div>
+    <g id="city-tree">
+      <circle cx="1.5" cy="2.5" r="6.5" fill="#667954" opacity=".25"/>
+      <circle r="6.5" fill="#63916b"/>
+      <circle cx="-1" cy="-1.5" r="5" fill="#80a477"/>
+      <path d="M-3-2q1-2 3-2" fill="none" stroke="#b7ca9d" stroke-linecap="round"/>
+    </g>
+    <g id="city-shrub"><circle r="3.4" fill="#83a179"/><circle cx="-1" cy="-1" r="2" fill="#a0b78a"/></g>
+    <g id="city-crosswalk" fill="#dadcce">
+      <path d="M0 0h5v9H0zm8 0h5v9H8zm8 0h5v9h-5zm8 0h5v9h-5zm8 0h5v9h-5zm8 0h5v9h-5zm8 0h5v9h-5zm8 0h5v9h-5zm8 0h5v9h-5zm8 0h5v9h-5z"/>
+    </g>
+    <g id="city-car">
+      <rect x="-6.8" y="-11" width="14" height="24" rx="5" fill="#142327" opacity=".6" transform="translate(1 1)"/>
+      <path d="M-7-7h14m-14 13h14" stroke="#20282b" stroke-width="2.8"/>
+      <rect x="-6.2" y="-11.4" width="12.4" height="22.8" rx="4" fill="currentColor" stroke="#28363b" stroke-width=".8"/>
+      <path d="M-4.6-6.3q4.6-2 9.2 0l-.8 3.8h-7.6zm.8 9.1h7.6l.7 3.6q-4.5 1.4-9 0z" fill="#28404b"/>
+      <path d="M-2.7-5.7h3.5" stroke="#bce0ea" opacity=".7" stroke-linecap="round"/>
+      <path d="M-4.3-9.2h1.9m4.8 0h1.9" stroke="#fcf3cf" stroke-linecap="round" stroke-width="1.25"/>
+      <path d="M-4.1 9h1.4m5.4 0h1.4" stroke="#c34748" stroke-linecap="round" stroke-width="1.2"/>
+    </g>
+    <g id="city-scene">
+      <rect width="440" height="324" fill="#d5dfc5"/>
+      <path d="M0 111h163q6 0 6-6V0h102v105q0 6 6 6h163v102H277q-6 0-6 6v105H169V219q0-6-6-6H0Z" fill="#eae4d6"/>
+      <path d="M0 118h166q10 0 10-10V0h88v108q0 10 10 10h166v88H274q-10 0-10 10v108h-88V216q0-10-10-10H0Z" fill="#3a464b" stroke="#f3ecdf" stroke-width="2"/>
+      <path d="M220 0v113m0 98v113M0 162h171m98 0h171" fill="none" stroke="#bcaa77" stroke-width="1.25" stroke-dasharray="8 7" opacity=".75"/>
+      <path d="M181 105h36m6 114h36m24-96v36m-126 6v36" stroke="#f3eee0" stroke-width="2"/>
+      <use href="#city-crosswalk" transform="translate(182 109)"/>
+      <use href="#city-crosswalk" transform="translate(182 206)"/>
+      <use href="#city-crosswalk" transform="translate(279 124) rotate(90)"/>
+      <use href="#city-crosswalk" transform="translate(170 124) rotate(90)"/>
+      <path d="M193 42l5 6 5-6m-5 5V33m49 249-5-6-5 6m5-5v14m135-144-6-5 6-5m-5 5h14m-323 35 6 5-6 5m5-5H54" stroke="#cbd1cc" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
 
-    <div class="stack">
-      <div class="card">
-        <h3><span lang="en">Traffic</span><span lang="bn">যানবাহন</span></h3>
-        <label class="ctl"><span><span lang="en">North–South arrivals</span><span lang="bn">উত্তর–দক্ষিণ থেকে আগমন</span>: <b id="vns"></b>/min</span><input type="range" id="ns" min="3" max="27" value="18"></label>
-        <label class="ctl"><span><span lang="en">East–West arrivals</span><span lang="bn">পূর্ব–পশ্চিম থেকে আগমন</span>: <b id="vew"></b>/min</span><input type="range" id="ew" min="3" max="27" value="7"></label>
+      <!-- Corner buildings, a courtyard park, and a small plaza -->
+      <path d="M0 13h153v84H0zM287 0h153v98H287zM0 226h150v98H0zM287 225h153v99H287z" fill="#c5d2b4"/>
+      <path d="M0 18h150v72H0m293-72h147m-146 70h146M0 238h147v86m149 0v-87h144" fill="none" stroke="#ece7d9" stroke-width="7"/>
+      <g transform="translate(25 25)">
+        <rect x="4" y="7" width="104" height="54" rx="3" fill="#7d755e" opacity=".32"/>
+        <rect width="103" height="53" rx="3" fill="#b9997c"/>
+        <rect x="3" y="2" width="97" height="42" rx="2" fill="#d9bb9b" stroke="#e6d0b3" stroke-width="2"/>
+        <path d="M7 8h89M7 37h89M38 5v36m34-36v36" stroke="#bda180" stroke-width="1.2"/>
+        <path d="M11 14h19v14H11zm35 0h18v14H46zm35 0h11v14H81z" fill="#ece0c7" stroke="#c4ac8e"/>
+        <path d="M7 49h12m6 0h12m28 0h12m6 0h12" stroke="#826f60" stroke-width="2.6"/>
+        <path d="M44 45h14v8H44z" fill="#31877d"/><path d="M48 45v8m5-8v8" stroke="#d0e2cc"/>
+      </g>
+      <use href="#city-tree" x="12" y="23"/><use href="#city-tree" x="12" y="51"/>
+      <use href="#city-tree" x="141" y="31"/><use href="#city-tree" x="141" y="61"/><use href="#city-shrub" x="12" y="75"/>
+      <path d="M315 37h96v35h-96zm39-12h18v61h-18z" fill="#e4dfc5"/>
+      <ellipse cx="363" cy="54" rx="29" ry="23" fill="#ece4cf" stroke="#f6eee0" stroke-width="2"/>
+      <ellipse cx="363" cy="54" rx="18" ry="13" fill="#8eb9b3" stroke="#b1cfbe" stroke-width="3"/>
+      <ellipse cx="363" cy="54" rx="8" ry="5" fill="#67a4a7" stroke="#c2ddd4"/>
+      <circle cx="363" cy="54" r="2.2" fill="#edf5df"/>
+      <use href="#city-tree" x="304" y="31"/><use href="#city-tree" x="322" y="47"/><use href="#city-tree" x="305" y="71"/>
+      <use href="#city-tree" x="422" y="32"/><use href="#city-tree" x="404" y="47"/><use href="#city-tree" x="421" y="70"/>
+      <path d="M321 69h9m66 0h9" stroke="#9d7657" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="331" cy="80" r="2" fill="#b68376"/><circle cx="394" cy="81" r="2" fill="#b68376"/>
+
+      <g transform="translate(13 248)">
+        <rect x="4" y="6" width="87" height="70" rx="3" fill="#82745f" opacity=".33"/>
+        <rect width="86" height="70" rx="3" fill="#9e8a79"/>
+        <rect x="2" y="2" width="82" height="60" rx="3" fill="#bfa897" stroke="#dcc5b2" stroke-width="2"/>
+        <path d="M6 10h72v43H6z" fill="#cbb5a0" stroke="#ac9382"/>
+        <path d="M12 16h39v7H12zm0 13h39v7H12zm0 13h39v6H12z" fill="#718d93" stroke="#e0d8ca"/>
+        <path d="M16 16v32m7-32v32m7-32v32m7-32v32m7-32v32" stroke="#b1bcc0" opacity=".8"/>
+        <rect x="59" y="15" width="13" height="18" rx="2" fill="#dfd4c0" stroke="#ac9382"/>
+        <circle cx="65.5" cy="22" r="3" fill="#aeab9d"/>
+        <path d="M8 66h11m6 0h11m6 0h11m6 0h11" stroke="#6e7772" stroke-width="2"/>
+      </g>
+      <rect x="114" y="251" width="26" height="73" rx="4" fill="#a9b7ac"/>
+      <path d="M114 261h15m-15 12h15m-15 12h15m-15 12h15m-15 12h15" stroke="#e4e8d7" stroke-width="1"/>
+      <use href="#city-tree" x="110" y="239"/><use href="#city-tree" x="148" y="262"/><use href="#city-tree" x="148" y="302"/>
+      <use href="#city-shrub" x="148" y="282"/><use href="#city-shrub" x="105" y="299"/>
+
+      <rect x="311" y="248" width="121" height="72" rx="5" fill="#e2d7c0" stroke="#eae4d5" stroke-width="2"/>
+      <path d="M318 252v64m16-64v64m16-64v64m16-64v64m16-64v64m16-64v64m16-64v64m-102-55h121m-121 16h121m-121 16h121m-121 16h121" stroke="#cfc4ae" stroke-width=".75"/>
+      <rect x="339" y="260" width="69" height="37" rx="4" fill="#7c7564" opacity=".25"/>
+      <rect x="335" y="256" width="69" height="37" rx="3" fill="#e6c3a7" stroke="#b7997f"/>
+      <rect x="338" y="259" width="63" height="24" rx="2" fill="#cc916e"/>
+      <path d="M340 263h59m-59 4h59m-59 4h59m-59 4h59m-59 4h59" stroke="#aa6e56" stroke-width="1"/>
+      <path d="M343 288h9m6 0h9m6 0h9m6 0h9" stroke="#89776c" stroke-width="2.5"/>
+      <path d="M343 295h54" stroke="#e5a463" stroke-width="4" stroke-linecap="round"/>
+      <use href="#city-tree" x="309" y="256"/><use href="#city-tree" x="321" y="305"/><use href="#city-tree" x="425" y="254"/>
+      <use href="#city-tree" x="424" y="304"/><use href="#city-shrub" x="307" y="280"/>
+
+      <path d="M159 105h9m103 0h9m-121 114h9m103 0h9" stroke="#c4a466" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M155 118v-9m0 106v-9m130-88v-9m0 106v-9" stroke="#dad5bf" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+  </defs>
+</svg>
+
+<main class="wrap traffic">
+  <header class="traffic-intro">
+    <h1><span lang="en">A traffic light <em>that learns</em></span><span lang="bn">যে ট্রাফিক বাতি <em>শিখতে পারে</em></span></h1>
+    <p><span lang="en">Two intersections get the same traffic. One follows a timer. The other learns when to change the light from the queues it leaves behind.</span><span lang="bn">দুটি মোড়ে একই যানবাহন আসে। একটি টাইমার মেনে চলে। অন্যটি গাড়ির সারি দেখে শেখে কখন বাতি বদলাতে হবে।</span></p>
+  </header>
+
+  <section class="traffic-workbench" aria-labelledby="simulation-title">
+    <div class="street-panel">
+      <div class="street-heading">
+        <h2 id="simulation-title"><span lang="en">The intersection</span><span lang="bn">রাস্তার মোড়</span></h2>
+        <div class="sim-clock"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-clock"/></svg><span><span lang="en">Sim time</span><span lang="bn">সিমুলেশনের সময়</span></span><time id="sim-time" datetime="PT0S">00:00</time></div>
       </div>
-      <div class="card">
-        <h3><span lang="en">Train the agent</span><span lang="bn">এজেন্টকে শেখান</span></h3>
-        <div class="row">
-          <button class="btn primary" id="train">🧠 <span lang="en">Train 30 rush hours</span><span lang="bn">৩০টি ব্যস্ত সময়ে শেখাও</span></button>
-          <button class="btn" id="forget"><span lang="en">Forget everything</span><span lang="bn">সব ভুলে যাও</span></button>
+      <div class="street-grid">
+        <article class="street-card fixed" aria-labelledby="fixed-title">
+          <div class="street-card-heading">
+            <span class="controller-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-clock"/></svg></span>
+            <div>
+              <h3 id="fixed-title"><span lang="en">Fixed timer</span><span lang="bn">নির্দিষ্ট টাইমার</span></h3>
+              <p id="fixed-plan"></p>
+            </div>
+          </div>
+          <svg id="map-fixed" class="street-map" viewBox="0 0 440 324" aria-hidden="true"></svg>
+          <div class="street-signal"><span class="signal-dot" id="dot-fixed"></span><span id="signal-fixed"></span></div>
+          <dl class="street-stats">
+            <div><dt><span lang="en">Avg wait</span><span lang="bn">গড় অপেক্ষা</span></dt><dd id="w-fixed">—</dd></div>
+            <div><dt><i class="road-key ns"></i><span lang="en">N–S queue</span><span lang="bn">উ–দ সারি</span></dt><dd id="qns-fixed">0</dd></div>
+            <div><dt><i class="road-key ew"></i><span lang="en">E–W queue</span><span lang="bn">পূ–প সারি</span></dt><dd id="qew-fixed">0</dd></div>
+            <div><dt><span lang="en">Crossed</span><span lang="bn">পার হয়েছে</span></dt><dd id="passed-fixed">0</dd></div>
+          </dl>
+        </article>
+        <article class="street-card agent" aria-labelledby="agent-title">
+          <div class="street-card-heading">
+            <span class="controller-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-agent"/></svg></span>
+            <div>
+              <h3 id="agent-title"><span lang="en">Learning agent</span><span lang="bn">শিখতে পারা এজেন্ট</span></h3>
+              <p id="agent-mode"></p>
+            </div>
+          </div>
+          <svg id="map-agent" class="street-map" viewBox="0 0 440 324" aria-hidden="true"></svg>
+          <div class="street-signal"><span class="signal-dot" id="dot-agent"></span><span id="signal-agent"></span></div>
+          <dl class="street-stats">
+            <div><dt><span lang="en">Avg wait</span><span lang="bn">গড় অপেক্ষা</span></dt><dd id="w-agent">—</dd></div>
+            <div><dt><i class="road-key ns"></i><span lang="en">N–S queue</span><span lang="bn">উ–দ সারি</span></dt><dd id="qns-agent">0</dd></div>
+            <div><dt><i class="road-key ew"></i><span lang="en">E–W queue</span><span lang="bn">পূ–প সারি</span></dt><dd id="qew-agent">0</dd></div>
+            <div><dt><span lang="en">Crossed</span><span lang="bn">পার হয়েছে</span></dt><dd id="passed-agent">0</dd></div>
+          </dl>
+        </article>
+      </div>
+
+      <div class="playback">
+        <div class="playback-buttons">
+          <button class="btn primary traffic-button" id="watch"><svg class="traffic-icon" aria-hidden="true"><use id="play-icon" href="#icon-play"/></svg><span id="play-label"></span></button>
+          <button class="btn traffic-button" id="step"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-step"/></svg><span lang="en">Step</span><span lang="bn">এক ধাপ</span></button>
+          <button class="btn traffic-button" id="restart"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-restart"/></svg><span lang="en">Restart</span><span lang="bn">আবার শুরু</span></button>
         </div>
-        <svg id="curve" style="margin-top:8px"></svg>
-        <p class="muted" style="font-size:.82rem;margin:0"><span style="color:var(--accent-2)">━</span> <span lang="en">agent's average wait (s) per training episode</span><span lang="bn">প্রতি প্রশিক্ষণ পর্বে এজেন্টের গড় অপেক্ষা (সে.)</span> · <span style="color:var(--muted)">━</span> <span lang="en">fixed timer</span><span lang="bn">নির্দিষ্ট টাইমার</span></p>
-        <p id="episodes" style="margin:.4em 0 0;font-size:.9rem"></p>
+        <label class="speed-control" for="speed"><span lang="en">Speed</span><span lang="bn">গতি</span><input type="range" id="speed" min="1" max="24" value="6"><output id="vspeed" for="speed">6×</output></label>
       </div>
-      <div class="card">
-        <h3>🛡️ <span lang="en">Safety rules (cannot be overridden)</span><span lang="bn">নিরাপত্তা নিয়ম (এজেন্ট ভাঙতে পারে না)</span></h3>
-        <p style="font-size:.9rem;margin:0"><span lang="en">Minimum green 5 s · yellow 3 s before every change. These are enforced by ordinary code <i>outside</i> the learning agent.</span><span lang="bn">ন্যূনতম সবুজ ৫ সে. · প্রতিটি পরিবর্তনের আগে ৩ সে. হলুদ। এগুলো শেখার এজেন্টের <i>বাইরে</i> সাধারণ কোড দিয়ে নিশ্চিত করা হয়।</span></p>
-        <p style="font-size:.9rem;margin:.4em 0 0" id="blocked"></p>
+      <div class="street-caption">
+        <p class="street-note"><span lang="en">Both views get the same arrivals. The fixed timer splits 60 seconds of green by demand when you restart.</span><span lang="bn">দুটি মোড়ে একই যানবাহন আসে। আবার শুরু করলে নির্দিষ্ট টাইমার চাহিদা অনুযায়ী ৬০ সেকেন্ড সবুজের সময় ভাগ করে।</span></p>
+        <a class="train-link" href="#training"><span lang="en">Train the agent</span><span lang="bn">এজেন্টকে শেখান</span><svg class="traffic-icon" aria-hidden="true"><use href="#icon-chevron"/></svg></a>
       </div>
     </div>
-  </div>
 
-  <div class="grid2" style="margin-top:16px">
-    <div class="card">
-      <h3><span lang="en">What the agent learned (its strategy)</span><span lang="bn">এজেন্ট কী শিখেছে (তার কৌশল)</span></h3>
-      <p class="muted" style="font-size:.85rem"><span lang="en">K = keep green, S = switch. Rows: queue on the green road; columns: queue on the red road.</span><span lang="bn">K = সবুজ রাখো, S = বদলাও। সারি: সবুজ রাস্তার সারি; কলাম: লাল রাস্তার সারি।</span></p>
-      <div class="grid2" id="policy"></div>
-    </div>
-    <div class="callout break">
-      <div class="label"><span lang="en">Break it: what do we reward?</span><span lang="bn">ভেঙে দেখি: আমরা কীসের জন্য পুরস্কার দিই?</span></div>
-      <label class="radio"><input type="radio" name="reward" value="all" checked> <span><span lang="en">Reward: fewer waiting vehicles on <b>all</b> roads</span><span lang="bn">পুরস্কার: <b>সব</b> রাস্তায় কম অপেক্ষমাণ গাড়ি</span></span></label>
-      <label class="radio" style="margin-top:6px"><input type="radio" name="reward" value="ns"> <span><span lang="en">Reward: fewer waiting vehicles on the <b>main road (North–South) only</b></span><span lang="bn">পুরস্কার: শুধু <b>প্রধান সড়কে (উত্তর–দক্ষিণ)</b> কম অপেক্ষমাণ গাড়ি</span></span></label>
-      <p style="margin:.7em 0 0;font-size:.92rem"><span lang="en">Switch the reward, train again and watch: the agent does exactly what it is rewarded for and lets the side road wait almost forever. Also try changing traffic after training without retraining.</span>
-      <span lang="bn">পুরস্কার বদলে আবার শেখান ও দেখুন: এজেন্ট ঠিক সেটাই করে যার জন্য পুরস্কার পায়, আর পাশের রাস্তাকে প্রায় অনন্তকাল অপেক্ষা করায়। প্রশিক্ষণের পর আবার না শিখিয়ে যানবাহন বদলেও দেখুন।</span></p>
-    </div>
-  </div>
+    <aside class="traffic-controls traffic-panel" aria-labelledby="controls-title">
+      <div class="panel-title">
+        <span class="panel-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-sliders"/></svg></span>
+        <h2 id="controls-title"><span lang="en">Traffic controls</span><span lang="bn">যানবাহন নিয়ন্ত্রণ</span></h2>
+      </div>
 
-  <div class="callout lesson" style="margin-top:16px">
-    <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
-    <p style="margin:0"><span lang="en"><b>AI can learn through experience, not only from labelled examples.</b> But humans choose the reward, and the agent optimises exactly that, including unfair outcomes nobody intended. In physical infrastructure, safety limits must be engineered as hard rules around the learning system, never left for it to learn.</span>
-    <span lang="bn"><b>এআই শুধু লেবেলযুক্ত উদাহরণ থেকে নয়, অভিজ্ঞতা থেকেও শিখতে পারে।</b> কিন্তু পুরস্কার ঠিক করে মানুষ, আর এজেন্ট ঠিক সেটাকেই সর্বোচ্চ করে, এমনকি কেউ চায়নি এমন অন্যায্য ফলাফলসহ। ভৌত অবকাঠামোতে নিরাপত্তার সীমা শেখার ব্যবস্থার চারপাশে কঠোর নিয়ম হিসেবে তৈরি করতে হয়, শেখার জন্য ছেড়ে দেওয়া যায় না।</span></p>
+      <label for="scenario" class="control-label"><span lang="en">Traffic pattern</span><span lang="bn">যানবাহনের ধরন</span></label>
+      <select id="scenario">
+        <option value="main">Main-road rush</option>
+        <option value="balanced">Even traffic</option>
+        <option value="side">Side-road rush</option>
+        <option value="custom" disabled>Custom</option>
+      </select>
+
+      <div class="arrival-controls">
+        <p><span lang="en">Average cars per minute, per approach. Cars arrive in waves.</span><span lang="bn">প্রতি প্রবেশপথে মিনিটে গড় গাড়ি। গাড়ি দলে দলে আসে।</span></p>
+        <label class="arrival-control ns" for="ns">
+          <span><i class="road-key ns"></i><span lang="en">North–South</span><span lang="bn">উত্তর–দক্ষিণ</span></span>
+          <output id="vns" for="ns">14</output>
+          <input type="range" id="ns" min="3" max="27" value="14">
+        </label>
+        <label class="arrival-control ew" for="ew">
+          <span><i class="road-key ew"></i><span lang="en">East–West</span><span lang="bn">পূর্ব–পশ্চিম</span></span>
+          <output id="vew" for="ew">6</output>
+          <input type="range" id="ew" min="3" max="27" value="6">
+        </label>
+        <div class="burst-buttons">
+          <button class="btn burst ns" id="burst-ns"><span lang="en">+5 N–S cars</span><span lang="bn">উ–দে +৫ গাড়ি</span></button>
+          <button class="btn burst ew" id="burst-ew"><span lang="en">+5 E–W cars</span><span lang="bn">পূ–পে +৫ গাড়ি</span></button>
+        </div>
+        <p id="burst-message" class="burst-message" role="status"></p>
+      </div>
+
+      <div class="road-safety">
+        <svg class="traffic-icon" aria-hidden="true"><use href="#icon-shield"/></svg>
+        <div>
+          <h3><span lang="en">Safety rules</span><span lang="bn">নিরাপত্তা নিয়ম</span></h3>
+          <p><span lang="en">At least 6 s green, then 3 s yellow and 1 s all-red when switching. Green starts with a 2 s delay, then up to one car per lane every 2 s.</span><span lang="bn">অন্তত ৬ সে. সবুজ, বদলানোর সময় ৩ সে. হলুদ ও ১ সে. সবদিকে লাল। সবুজের শুরুতে ২ সে. বিরতি, এরপর প্রতি লেনে প্রতি ২ সে.-তে সর্বোচ্চ একটি গাড়ি যায়।</span></p>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="decision-panel traffic-panel" aria-labelledby="decision-title">
+    <div class="decision-heading">
+      <h2 id="decision-title"><span lang="en">Inside the agent’s decision</span><span lang="bn">এজেন্ট যেভাবে সিদ্ধান্ত নেয়</span></h2>
+      <span id="decision-time" class="decision-time"></span>
+    </div>
+    <div class="decision-flow">
+      <div class="decision-stage observe">
+        <span class="panel-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-eye"/></svg></span>
+        <div><h3><span lang="en">Observe</span><span lang="bn">পর্যবেক্ষণ</span></h3><strong id="observed-queues"></strong><p id="observed-phase"></p></div>
+      </div>
+      <svg class="traffic-icon flow-arrow" aria-hidden="true"><use href="#icon-chevron"/></svg>
+      <div class="decision-stage act">
+        <span class="panel-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-switch"/></svg></span>
+        <div><h3><span lang="en">Act</span><span lang="bn">পদক্ষেপ</span></h3><strong id="action-value"></strong><p id="action-context"></p></div>
+      </div>
+      <svg class="traffic-icon flow-arrow" aria-hidden="true"><use href="#icon-chevron"/></svg>
+      <div class="decision-stage reward">
+        <span class="panel-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-reward"/></svg></span>
+        <div><h3><span lang="en">Reward</span><span lang="bn">পুরস্কার</span></h3><strong id="reward-value"></strong><p id="reward-context"></p></div>
+      </div>
+    </div>
+    <p id="last-q-update" class="last-q-update" hidden></p>
+  </section>
+
+  <div class="learning-grid">
+    <section id="training" class="traffic-panel training-panel" aria-labelledby="training-title">
+      <div class="panel-title">
+        <span class="panel-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-agent"/></svg></span>
+        <h2 id="training-title"><span lang="en">Train the agent</span><span lang="bn">এজেন্টকে শেখান</span></h2>
+      </div>
+      <p class="panel-copy"><span lang="en">The agent uses tabular Q-learning. It estimates each action’s future reward and explores less as it gains experience.</span><span lang="bn">এজেন্ট টেবিলভিত্তিক Q-learning ব্যবহার করে। প্রতিটি পদক্ষেপের ভবিষ্যৎ পুরস্কার অনুমান করে এবং অভিজ্ঞতা বাড়লে এলোমেলো চেষ্টা কমায়।</span></p>
+      <fieldset class="reward-picker">
+        <legend><span lang="en">Which queues count toward the reward?</span><span lang="bn">পুরস্কারে কোন সারি ধরা হবে?</span></legend>
+        <label><input type="radio" id="reward-all" name="reward" value="all" checked><span lang="en">Both roads</span><span lang="bn">দুই রাস্তা</span></label>
+        <label><input type="radio" id="reward-ns" name="reward" value="ns"><span lang="en">Main road only (N–S)</span><span lang="bn">শুধু প্রধান রাস্তা (উ–দ)</span></label>
+      </fieldset>
+      <p id="reward-hint" class="reward-hint"></p>
+      <div class="training-actions">
+        <button class="btn primary traffic-button" id="train"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-reward"/></svg><span lang="en">Train 30 episodes</span><span lang="bn">৩০টি পর্বে শেখান</span></button>
+        <button class="btn traffic-button" id="evaluate"><span lang="en">Evaluate policy</span><span lang="bn">কৌশল পরীক্ষা করুন</span></button>
+        <button class="btn traffic-button" id="forget"><span lang="en">Forget training</span><span lang="bn">প্রশিক্ষণ ভুলে যান</span></button>
+        <label class="live-toggle"><input type="checkbox" id="learn-live"><span lang="en">Learn as it runs</span><span lang="bn">চলার সময় শিখুক</span></label>
+      </div>
+      <p class="training-note"><span lang="en">Each training episode lasts 15 simulated minutes. Every five episodes, both controllers face the same 12 separate test runs. The agent uses its current policy with exploration and updates off.</span><span lang="bn">প্রতিটি প্রশিক্ষণ পর্ব ১৫ মিনিটের। প্রতি পাঁচ পর্বের পর দুটি নিয়ন্ত্রক একই ১২টি আলাদা পরীক্ষায় অংশ নেয়। এজেন্ট তখন বর্তমান কৌশল ব্যবহার করে, এলোমেলো চেষ্টা বা আপডেট ছাড়াই।</span></p>
+      <div class="chart-heading">
+        <h3><span lang="en">Test wait per car</span><span lang="bn">পরীক্ষায় গাড়িপ্রতি অপেক্ষা</span></h3>
+        <span id="episodes"></span>
+      </div>
+      <p id="test-conditions" class="test-conditions"></p>
+      <div class="training-chart">
+        <svg id="curve" viewBox="0 0 520 164" role="img" aria-labelledby="curve-title"></svg>
+        <p id="chart-empty"><span lang="en">Train to plot the test checkpoints.</span><span lang="bn">পরীক্ষার ধাপগুলো লেখচিত্রে দেখতে প্রশিক্ষণ দিন।</span></p>
+      </div>
+      <div class="chart-legend">
+        <span><i></i><span lang="en">Learning agent</span><span lang="bn">শিখতে পারা এজেন্ট</span></span>
+        <span><i></i><span lang="en">Fixed timer</span><span lang="bn">নির্দিষ্ট টাইমার</span></span>
+        <a class="train-link back-to-street" id="back-to-street" href="#simulation-title" hidden><span lang="en">Back to the intersection</span><span lang="bn">মোড়ে ফিরে যান</span><svg class="traffic-icon" aria-hidden="true"><use href="#icon-chevron"/></svg></a>
+      </div>
+      <div id="evaluation-results" hidden>
+        <table class="test-results">
+          <caption><span lang="en">Latest test results</span><span lang="bn">সর্বশেষ পরীক্ষার ফল</span></caption>
+          <thead><tr><td></td><th scope="col"><span lang="en">Agent</span><span lang="bn">এজেন্ট</span></th><th scope="col"><span lang="en">Timer</span><span lang="bn">টাইমার</span></th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><span lang="en">Overall wait / car</span><span lang="bn">সব রাস্তায় অপেক্ষা / গাড়ি</span></th><td id="test-wait-agent"></td><td id="test-wait-fixed"></td></tr>
+            <tr><th scope="row"><span lang="en">N–S wait / car</span><span lang="bn">উ–দ অপেক্ষা / গাড়ি</span></th><td id="test-ns-agent"></td><td id="test-ns-fixed"></td></tr>
+            <tr><th scope="row"><span lang="en">E–W wait / car</span><span lang="bn">পূ–প অপেক্ষা / গাড়ি</span></th><td id="test-ew-agent"></td><td id="test-ew-fixed"></td></tr>
+            <tr><th scope="row"><span lang="en">Cleared by 15 min</span><span lang="bn">১৫ মিনিটে পার হয়েছে</span></th><td id="test-cleared-agent"></td><td id="test-cleared-fixed"></td></tr>
+          </tbody>
+        </table>
+        <p id="test-wins" class="test-conditions"></p>
+        <p class="training-note"><span lang="en">Wait is time accumulated by every car up to the end of the run, including cars still queued. The chart’s x-axis shows completed training episodes.</span><span lang="bn">পর্ব শেষ হওয়া পর্যন্ত সব গাড়ির অপেক্ষা ধরা হয়, সারিতে থাকা গাড়িসহ। লেখচিত্রের অনুভূমিক অক্ষে সম্পন্ন প্রশিক্ষণ পর্বের সংখ্যা দেখানো হয়েছে।</span></p>
+      </div>
+      <progress id="train-progress" max="30" value="0" hidden></progress>
+    </section>
+
+    <section class="traffic-panel strategy-panel" aria-labelledby="policy-title">
+      <div class="panel-title">
+        <span class="panel-icon"><svg class="traffic-icon" aria-hidden="true"><use href="#icon-switch"/></svg></span>
+        <h2 id="policy-title"><span lang="en">What the agent learned</span><span lang="bn">এজেন্ট যা শিখেছে</span></h2>
+      </div>
+      <p class="panel-copy"><span lang="en">Each cell shows what the agent prefers for that pair of queues. Select a cell to inspect the estimates behind the choice.</span><span lang="bn">প্রতিটি ঘরে দুই সারির জন্য এজেন্টের পছন্দ দেখা যায়। পছন্দের পেছনের অনুমান দেখতে একটি ঘর বেছে নিন।</span></p>
+      <div class="policy-legend">
+        <span><i class="keep">K</i><span lang="en">Keep</span><span lang="bn">রাখো</span></span>
+        <span><i class="switch">S</i><span lang="en">Switch</span><span lang="bn">বদলাও</span></span>
+        <span><i class="unseen">·</i><span lang="en">Unseen</span><span lang="bn">দেখেনি</span></span>
+        <span><i class="current"></i><span lang="en">Last decision</span><span lang="bn">শেষ সিদ্ধান্ত</span></span>
+      </div>
+      <p class="policy-axes"><span lang="en">Rows are cars on green. Columns are cars on red.</span><span lang="bn">সারি হলো সবুজ বাতির গাড়ি। কলাম হলো লাল বাতির গাড়ি।</span></p>
+      <div id="policy" class="policy-grid"></div>
+      <p id="policy-detail" class="policy-detail"></p>
+      <details class="q-explain">
+        <summary><span lang="en">How Q-learning updates the table</span><span lang="bn">Q-learning যেভাবে টেবিল হালনাগাদ করে</span></summary>
+        <p><span lang="en">The state groups queues into ranges and records which road has green. Keep extends green by 2 s. Switch includes clearance and the next road’s minimum green before another choice.</span><span lang="bn">অবস্থায় গাড়ির সারি কয়েকটি সীমায় ভাগ হয় এবং কোন রাস্তায় সবুজ আছে তা ধরা হয়। রাখলে সবুজ ২ সে. বাড়ে। বদলালে পরের সিদ্ধান্তের আগে হলুদ, সবদিকে লাল এবং অন্য রাস্তার ন্যূনতম সবুজের সময় পার হয়।</span></p>
+        <p><span lang="en">The target adds the discounted rewards over that interval and the discounted best Q-value at the next decision. At the end of an episode only the interval rewards count.</span><span lang="bn">লক্ষ্যে ওই সময়ের ছাড়কৃত পুরস্কার এবং পরের সিদ্ধান্তের সেরা ছাড়কৃত Q মান যোগ হয়। পর্বের শেষে শুধু ওই সময়ের পুরস্কার ধরা হয়।</span></p>
+        <p><code>Q ← Q + 0.1 × (target − Q)</code> <span lang="en">Discount 0.98 per second.</span><span lang="bn">প্রতি সেকেন্ডে ছাড়ের গুণক ০.৯৮।</span></p>
+        <p id="learning-status"></p>
+      </details>
+    </section>
   </div>
+  <p class="traffic-takeaway">
+    <svg class="traffic-icon" aria-hidden="true"><use href="#icon-reward"/></svg>
+    <span lang="en"><b>Try changing the goal.</b> Train with the main-road-only reward, then compare East–West wait and the share of cars that cleared in the test.</span>
+    <span lang="bn"><b>লক্ষ্য বদলে দেখুন।</b> শুধু প্রধান রাস্তার পুরস্কার দিয়ে শেখান, তারপর পরীক্ষায় পূর্ব–পশ্চিমের অপেক্ষা এবং কত ভাগ গাড়ি পার হয়েছে তা তুলনা করুন।</span>
+  </p>
 </main>
 
 <script src="../assets/lab.js"></script>
-<script>
-LAB.header({ home: '../index.html', family: ['Reinforcement learning', 'রিইনফোর্সমেন্ট লার্নিং'] });
-var $ = function (id) { return document.getElementById(id); };
-var MIN_GREEN = 5, YELLOW = 3, FIXED_GREEN = 30, EPISODE = 900;
-var BUCKETS = [0, 3, 7, 14];
-function bucket(q) { var b = 0; while (b < BUCKETS.length && q > BUCKETS[b]) b++; return b; } // 0..4
-
-function rates() { return [+$('ns').value / 60, +$('ew').value / 60]; }
-
-function Sim(seed) { this.r = LAB.rng(seed); this.q = [0, 0, 0, 0]; this.phase = 0; this.yellow = 0; this.green = 0; this.t = 0; this.wait = 0; this.arrived = 0; this.blocked = 0; this.flash = 0; }
-Sim.prototype.tick = function (ctl, rt) {
-  for (var i = 0; i < 4; i++) if (this.r() < rt[i < 2 ? 0 : 1]) { this.q[i]++; this.arrived++; }
-  if (!this.yellow) {
-    var allowed = this.green >= MIN_GREEN;
-    if (ctl.act(this, allowed) === 1) { if (allowed) this.yellow = YELLOW; else { this.blocked++; } }
-  }
-  if (!this.yellow) {
-    var arms = this.phase === 0 ? [0, 1] : [2, 3], self = this;
-    arms.forEach(function (i) { if (self.q[i] > 0) self.q[i]--; });
-    this.green++;
-  } else if (--this.yellow === 0) { this.phase = 1 - this.phase; this.green = 0; }
-  var tot = this.q[0] + this.q[1] + this.q[2] + this.q[3];
-  this.wait += tot; this.t++;
-  if (ctl.reward) ctl.reward(this);
-};
-Sim.prototype.avgWait = function () { return this.arrived ? this.wait / this.arrived : 0; };
-
-var Fixed = { act: function (s) { return s.green >= FIXED_GREEN ? 1 : 0; } };
-
-var Agent = {
-  Q: new Float64Array(50 * 2), visits: new Uint32Array(50), learning: false, eps: 0.1, alpha: 0.1, gamma: 0.95,
-  r: LAB.rng(42), prevS: -1, prevA: 0, acc: 0, episodes: 0,
-  state: function (s) {
-    var green = s.phase === 0 ? s.q[0] + s.q[1] : s.q[2] + s.q[3], red = s.phase === 0 ? s.q[2] + s.q[3] : s.q[0] + s.q[1];
-    return s.phase * 25 + bucket(green) * 5 + bucket(red);
-  },
-  best: function (st) { return this.Q[st * 2 + 1] > this.Q[st * 2] ? 1 : 0; },
-  act: function (s, allowed) {
-    var st = this.state(s);
-    if (this.learning && this.prevS >= 0) {
-      var target = this.acc + this.gamma * Math.max(this.Q[st * 2], this.Q[st * 2 + 1]);
-      this.Q[this.prevS * 2 + this.prevA] += this.alpha * (target - this.Q[this.prevS * 2 + this.prevA]);
-    }
-    var a = this.learning && this.r() < this.eps ? (this.r() < .5 ? 1 : 0) : this.best(st);
-    var eff = a === 1 && !allowed ? 0 : a;
-    if (this.learning) this.visits[st]++;
-    this.prevS = st; this.prevA = eff; this.acc = 0;
-    return a;
-  },
-  reward: function (s) {
-    var nsOnly = document.querySelector('input[name="reward"]:checked').value === 'ns';
-    this.acc += -(nsOnly ? s.q[0] + s.q[1] : s.q[0] + s.q[1] + s.q[2] + s.q[3]) / 10;
-  },
-  reset: function () { this.Q.fill(0); this.visits.fill(0); this.episodes = 0; this.prevS = -1; }
-};
-
-var curve = [], baseline = [];
-function fixedBaseline(seed) { var s = new Sim(seed); for (var t = 0; t < EPISODE; t++) s.tick(Fixed, rates()); return s.avgWait(); }
-function train(n) {
-  for (var e = 0; e < n; e++) {
-    var seed = 1000 + Agent.episodes, s = new Sim(seed);
-    Agent.learning = true; Agent.prevS = -1;
-    for (var t = 0; t < EPISODE; t++) s.tick(Agent, rates());
-    Agent.learning = false; Agent.episodes++;
-    curve.push(s.avgWait()); baseline.push(fixedBaseline(seed));
-  }
-  drawCurve(); drawPolicy(); resetWatch();
-}
-function drawCurve() {
-  LAB.lineChart($('curve'), [{ values: baseline, color: LAB.css('--muted') }, { values: curve, color: LAB.css('--accent-2') }], { height: 170, ymin: 0 });
-  $('episodes').innerHTML = LAB.bi('Episodes trained: ', 'প্রশিক্ষিত পর্ব: ') + '<b>' + Agent.episodes + '</b>' +
-    (Agent.episodes ? '' : ' · ' + LAB.bi('the untrained agent never switches the light!', 'অপ্রশিক্ষিত এজেন্ট কখনো বাতি বদলায় না!'));
-}
-function drawPolicy() {
-  var h = '';
-  [0, 1].forEach(function (ph) {
-    h += '<div><b>' + (ph === 0 ? LAB.t('Green: North–South', 'সবুজ: উত্তর–দক্ষিণ') : LAB.t('Green: East–West', 'সবুজ: পূর্ব–পশ্চিম')) + '</b><table class="policy"><tr><th></th>';
-    var lab = ['0', '1–3', '4–7', '8–14', '15+'];
-    lab.forEach(function (l) { h += '<th>' + l + '</th>'; });
-    h += '</tr>';
-    for (var g = 0; g < 5; g++) {
-      h += '<tr><th>' + lab[g] + '</th>';
-      for (var rr = 0; rr < 5; rr++) {
-        var st = ph * 25 + g * 5 + rr, seen = Agent.visits[st] > 0, a = Agent.best(st);
-        h += '<td class="' + (seen ? (a ? 's' : 'k') : 'u') + '">' + (seen ? (a ? 'S' : 'K') : '·') + '</td>';
-      }
-      h += '</tr>';
-    }
-    h += '</table></div>';
-  });
-  $('policy').innerHTML = h;
-}
-
-/* ---------- watching ---------- */
-var simF, simA, running = false, last = 0, accT = 0, watchSeed = 5000;
-function resetWatch() { simF = new Sim(watchSeed); simA = new Sim(watchSeed); drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); stats(); }
-function stats() {
-  $('w-fixed').textContent = simF.t ? simF.avgWait().toFixed(0) + ' s' : '–';
-  $('w-agent').textContent = simA.t ? simA.avgWait().toFixed(0) + ' s' : '–';
-  $('blocked').innerHTML = LAB.bi('Times the safety rules stopped the agent from switching too early: ', 'যতবার নিরাপত্তা নিয়ম এজেন্টকে খুব তাড়াতাড়ি বদলাতে দেয়নি: ') + '<b>' + simA.blocked + '</b>';
-}
-function loop(ts) {
-  if (!running) return;
-  var dt = Math.min(0.1, (ts - (last || ts)) / 1000); last = ts;
-  accT += dt * +$('speed').value;
-  while (accT >= 1) { simF.tick(Fixed, rates()); simA.tick(Agent, rates()); accT -= 1; }
-  drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); stats();
-  requestAnimationFrame(loop);
-}
-function drawSim(cv, s) {
-  var ctx = cv.getContext('2d'), W = cv.width, c = W / 2, rw = 70;
-  ctx.clearRect(0, 0, W, W);
-  ctx.fillStyle = LAB.css('--building'); ctx.fillRect(0, 0, W, W);
-  ctx.fillStyle = LAB.css('--road'); ctx.fillRect(c - rw / 2, 0, rw, W); ctx.fillRect(0, c - rw / 2, W, rw);
-  ctx.strokeStyle = LAB.css('--border'); ctx.setLineDash([8, 8]); ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(c, 0); ctx.lineTo(c, c - rw / 2); ctx.moveTo(c, c + rw / 2); ctx.lineTo(c, W); ctx.moveTo(0, c); ctx.lineTo(c - rw / 2, c); ctx.moveTo(c + rw / 2, c); ctx.lineTo(W, c); ctx.stroke(); ctx.setLineDash([]);
-  var car = 12, gap = 4, colN = LAB.css('--c5'), colE = LAB.css('--c3');
-  function queue(n, x0, y0, dx, dy, col) {
-    ctx.fillStyle = col;
-    for (var i = 0; i < Math.min(n, 13); i++) ctx.fillRect(x0 + dx * i * (car + gap) - car / 2, y0 + dy * i * (car + gap) - car / 2, car, car);
-    if (n > 13) { ctx.fillStyle = LAB.css('--text'); ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('+' + (n - 13), x0 + dx * 13.6 * (car + gap), y0 + dy * 13.6 * (car + gap) + 5); }
-  }
-  queue(s.q[0], c - rw / 4, c - rw / 2 - 14, 0, -1, colN);   // north arm, heading south
-  queue(s.q[1], c + rw / 4, c + rw / 2 + 14, 0, 1, colN);    // south arm
-  queue(s.q[2], c + rw / 2 + 14, c - rw / 4, 1, 0, colE);    // east arm
-  queue(s.q[3], c - rw / 2 - 14, c + rw / 4, -1, 0, colE);   // west arm
-  function light(x, y, on) {
-    ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fillStyle = on === 'g' ? '#16a34a' : on === 'y' ? '#eab308' : '#dc2626'; ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = LAB.css('--surface'); ctx.stroke();
-  }
-  var nsState = s.phase === 0 ? (s.yellow ? 'y' : 'g') : 'r', ewState = s.phase === 1 ? (s.yellow ? 'y' : 'g') : 'r';
-  light(c - rw / 2 - 16, c - rw / 2 - 16, nsState); light(c + rw / 2 + 16, c + rw / 2 + 16, nsState);
-  light(c + rw / 2 + 16, c - rw / 2 - 16, ewState); light(c - rw / 2 - 16, c + rw / 2 + 16, ewState);
-  ctx.fillStyle = LAB.css('--text'); ctx.font = '14px sans-serif'; ctx.textAlign = 'left';
-  ctx.fillText(LAB.t('time ', 'সময় ') + Math.floor(s.t / 60) + ':' + String(s.t % 60).padStart(2, '0'), 8, 18);
-  ctx.textAlign = 'center'; ctx.font = 'bold 13px sans-serif';
-  ctx.fillText('N ' + s.q[0], c - rw / 4, 16); ctx.fillText('S ' + s.q[1], c + rw / 4, W - 8);
-  ctx.fillText('E ' + s.q[2], W - 26, c - rw / 4 - 14); ctx.fillText('W ' + s.q[3], 26, c + rw / 4 + 24);
-}
-
-function labels() { $('vns').textContent = $('ns').value; $('vew').textContent = $('ew').value; $('vspeed').textContent = $('speed').value; }
-['ns', 'ew', 'speed'].forEach(function (id) { $(id).addEventListener('input', labels); });
-$('watch').onclick = function () { watchSeed++; resetWatch(); running = true; last = 0; requestAnimationFrame(loop); };
-$('pause').onclick = function () { running = !running; if (running) { last = 0; requestAnimationFrame(loop); } };
-$('train').onclick = function () { running = false; train(30); };
-$('forget').onclick = function () { running = false; Agent.reset(); curve = []; baseline = []; drawCurve(); drawPolicy(); resetWatch(); };
-document.querySelectorAll('input[name="reward"]').forEach(function (r) { r.onchange = function () { $('forget').click(); }; });
-LAB.onLang(function () { drawCurve(); drawPolicy(); stats(); drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); });
-document.addEventListener('themechange', function () { drawSim($('cv-fixed'), simF); drawSim($('cv-agent'), simA); });
-labels(); drawCurve(); drawPolicy(); resetWatch();
-</script>
+<script src="../assets/traffic.js"></script>
 </body>
 </html>

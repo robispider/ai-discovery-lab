@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside GPT &amp; Open-Source LLMs · AI Discovery Lab</title>
+<link rel="stylesheet" href="../assets/lab.css">
+<link rel="stylesheet" href="../assets/llm-concepts.css">
+</head>
+<body class="llm-page">
+<div id="lab-header"></div>
+
+<main class="wrap llm-wrap">
+  <header class="llm-hero">
+    <div class="hero-kicker">
+      <span class="pill ok">12 · <span lang="en">Visual Interactive Guide</span><span lang="bn">ভিজ্যুয়াল ও অ্যানিমেটেড গাইড</span></span>
+      <span class="pill"><span lang="en">Offline</span><span lang="bn">অফলাইন</span></span>
+    </div>
+    <h1>
+      <span lang="en">How GPT &amp; LLMs really work: <em>Models, GPUs, Self-Hosting &amp; Civic Open Source</em></span>
+      <span lang="bn">GPT ও LLM আসলে কীভাবে কাজ করে: <em>মডেল, GPU, সেল্ফ-হোস্টিং ও সিটি কর্পোরেশনের ওপেন-সোর্স এআই</em></span>
+    </h1>
+    <p class="lead">
+      <span lang="en">Move past buzzwords with four live visual animations: open an AI model file to see weights and memory, race a CPU against GPU CUDA cores, trace how cloud GPT differs from a self-hosted city server, and choose open-source models for City Corporation work.</span>
+      <span lang="bn">জটিল শব্দের বাইরে গিয়ে চারটি জীবন্ত অ্যানিমেশনের মাধ্যমে শিখুন: একটি এআই মডেল ফাইলের ভেতরে কী থাকে, CPU বনাম GPU CUDA কোর-এর দৌড়, ক্লাউড GPT বনাম নিজস্ব সার্ভারে (সেল্ফ-হোস্টেড) ডেটা কীভাবে যায়, এবং সিটি কর্পোরেশনের কাজের জন্য সেরা ওপেন-সোর্স মডেল কোনগুলো।</span>
+    </p>
+    <nav class="chapter-nav" aria-label="Chapters">
+      <a class="chap-pill" href="#sec-model"><span>01</span> <span lang="en">What is a Model?</span><span lang="bn">মডেল কী?</span></a>
+      <a class="chap-pill" href="#sec-gpu"><span>02</span> <span lang="en">CPU vs GPU &amp; CUDA</span><span lang="bn">CPU বনাম GPU ও CUDA</span></a>
+      <a class="chap-pill" href="#sec-hosting"><span>03</span> <span lang="en">Cloud GPT vs Self-Hosted</span><span lang="bn">ক্লাউড GPT বনাম সেল্ফ-হোস্টেড</span></a>
+      <a class="chap-pill" href="#sec-civic"><span>04</span> <span lang="en">Open-Source Models for Cities</span><span lang="bn">সিটি কর্পোরেশনের ওপেন-সোর্স মডেল</span></a>
+    </nav>
+  </header>
+
+  <!-- =====================================================================
+       SECTION 1: WHAT IS A MODEL?
+       ===================================================================== -->
+  <section class="card llm-sec" id="sec-model">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <div>
+        <h2><span lang="en">What is an LLM "Model"? (Weights, Precision &amp; Context Memory)</span><span lang="bn">একটি LLM "মডেল" আসলে কী? (ওয়েট, প্রিসিশন ও কনটেক্সট মেমোরি)</span></h2>
+        <p class="muted">
+          <span lang="en">An AI model is <b>not</b> a database of saved answers and does not search the internet by itself. It is a single frozen file holding <b>billions of tuned numbers (parameters / weights)</b> learned during training, plus a small program (engine) that runs math through those numbers.</span>
+          <span lang="bn">একটি এআই মডেল কোনো সংরক্ষিত উত্তরের ডেটাবেস <b>নয়</b>, আর এটি নিজে থেকে ইন্টারনেটও খোঁজে না। এটি মূলত একটি স্থির ফাইল, যার ভেতর প্রশিক্ষণের সময় শেখা <b>কোটি কোটি সূক্ষ্ম সংখ্যা (প্যারামিটার / ওয়েট)</b> থাকে — আর একটি ছোট প্রোগ্রাম (ইঞ্জিন) এই সংখ্যাগুলো গুণ করে উত্তর তৈরি করে।</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="model-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label"><span lang="en">1. Choose Model Size (Parameters)</span><span lang="bn">১. মডেলের আকার বেছে নিন (প্যারামিটার)</span></div>
+        <div class="row" id="model-size-btns"></div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label"><span lang="en">2. Number Precision (Quantization)</span><span lang="bn">২. সংখ্যার সূক্ষ্মতা (কোয়ান্টাইজেশন)</span></div>
+        <div class="row" id="model-quant-btns"></div>
+      </div>
+    </div>
+
+    <div class="grid2 model-stage-grid">
+      <!-- Animated Model Pipeline Canvas -->
+      <div class="viz-box">
+        <div class="viz-head">
+          <strong><span lang="en">Live Inside a Model: Token → Layers of Weights → Next Token</span><span lang="bn">মডেলের ভেতরে: টোকেন → ওয়েটের স্তর → পরের টোকেন</span></strong>
+          <button class="btn small primary" id="btn-pulse-token">▶ <span lang="en">Send a token</span><span lang="bn">একটি টোকেন পাঠান</span></button>
+        </div>
+        <canvas id="model-canvas" width="600" height="310" aria-label="Animated neural model layers"></canvas>
+        <div class="viz-caption" id="model-flow-caption"></div>
+      </div>
+
+      <!-- Model Anatomy Readout -->
+      <div class="viz-box model-metrics-box">
+        <div class="viz-head">
+          <strong><span lang="en">What this model file looks like</span><span lang="bn">এই মডেল ফাইলটি দেখতে যেমন</span></strong>
+          <span class="pill ok" id="model-file-badge">model.gguf</span>
+        </div>
+
+        <div class="stats model-stats">
+          <div class="stat"><div class="k"><span lang="en">Parameters (Numbers)</span><span lang="bn">প্যারামিটার (সংখ্যা)</span></div><div class="v" id="m-params">—</div></div>
+          <div class="stat"><div class="k"><span lang="en">File / VRAM Needed</span><span lang="bn">ফাইল / VRAM লাগে</span></div><div class="v" id="m-vram">—</div></div>
+          <div class="stat"><div class="k"><span lang="en">Transformer Layers</span><span lang="bn">ট্রান্সফরমার লেয়ার</span></div><div class="v" id="m-layers">—</div></div>
+        </div>
+
+        <div class="quant-visual" id="quant-visual"></div>
+
+        <div class="hardware-fit" id="model-hw-fit"></div>
+      </div>
+    </div>
+
+    <!-- Context Window Interactive Desk -->
+    <div class="sub-panel">
+      <div class="viz-head">
+        <div>
+          <h3><span lang="en">Context Window = The Model's Working Desk (Short-Term Memory)</span><span lang="bn">কনটেক্সট উইন্ডো = মডেলের কাজের টেবিল (স্বল্পমেয়াদি স্মৃতি)</span></h3>
+          <p class="muted" style="margin:2px 0 0;font-size:.9rem">
+            <span lang="en">A model has no memory between chats. Every time you reply, your instructions, attached documents, and chat history are placed on its desk together. Drag the slider to add city circulars — watch what happens when the desk overflows!</span>
+            <span lang="bn">এক চ্যাট থেকে আরেক চ্যাটে মডেলের কোনো স্মৃতি থাকে না। প্রতিবার প্রশ্ন করলে আপনার নির্দেশনা, যুক্ত করা ডকুমেন্ট আর আগের কথা সব একসাথে এর টেবিলে রাখা হয়। স্লাইডার সরিয়ে সিটি সার্কুলার যোগ করুন — টেবিল উপচে পড়লে কী হয় দেখুন!</span>
+          </p>
+        </div>
+      </div>
+      <div class="ctx-controls">
+        <label class="ctl">
+          <span><span lang="en">Attached City Documents + Chat History</span><span lang="bn">সংযুক্ত সিটি ডকুমেন্ট + চ্যাটের ইতিহাস</span>: <b id="ctx-used-lbl">4,000 tokens</b></span>
+          <input type="range" id="ctx-slider" min="1000" max="42000" step="1000" value="6000">
+        </label>
+        <div class="row">
+          <span class="muted" style="font-size:.85rem"><span lang="en">Desk size:</span><span lang="bn">টেবিলের মাপ:</span></span>
+          <button class="btn small on" data-ctx="8000">8K</button>
+          <button class="btn small" data-ctx="32000">32K</button>
+          <button class="btn small" data-ctx="128000">128K</button>
+        </div>
+      </div>
+      <div class="ctx-desk" id="ctx-desk"></div>
+      <p class="ctx-note" id="ctx-note"></p>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       SECTION 2: GPU AND CUDA CORES
+       ===================================================================== -->
+  <section class="card llm-sec" id="sec-gpu">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <div>
+        <h2><span lang="en">Why AI Needs GPUs &amp; CUDA Cores (Live Race)</span><span lang="bn">এআই-এর জন্য GPU এবং CUDA কোর কেন লাগে? (সরাসরি প্রতিযোগিতা)</span></h2>
+        <p class="muted">
+          <span lang="en">A <b>CPU</b> has a few super-smart cores built to handle complex step-by-step office tasks one by one. A <b>GPU</b> has <b>thousands of tiny CUDA cores</b> built to do simple math on thousands of numbers at the exact same instant — originally invented for video game pixels, now the engine of all modern AI.</span>
+          <span lang="bn"><b>CPU</b>-তে থাকে অল্প কয়েকটি অত্যন্ত বুদ্ধিমান কোর, যা জটিল কাজ একটার পর একটা দ্রুত করে। আর <b>GPU</b>-তে থাকে <b>হাজার হাজার ছোট CUDA কোর</b>, যেগুলো একসাথে হাজার হাজার সাধারণ গুণ-যোগ করতে পারে — আগে ভিডিও গেমের পিক্সেলের জন্য তৈরি হয়েছিল, এখন আধুনিক এআই-এর মূল ইঞ্জিন।</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="race-toolbar">
+      <div class="row">
+        <button class="btn primary" id="btn-race-start">▶ <span lang="en">Start Race</span><span lang="bn">প্রতিযোগিতা শুরু করুন</span></button>
+        <button class="btn" id="btn-race-reset">↺ <span lang="en">Reset</span><span lang="bn">রিসেট</span></button>
+      </div>
+      <div class="row" id="race-mode-btns">
+        <button class="btn on" data-workload="ai">🧠 <span lang="en">AI Matrix Math (Generate 1 Token)</span><span lang="bn">এআই ম্যাট্রিক্স গণনা (১টি টোকেন তৈরি)</span></button>
+        <button class="btn" data-workload="seq">📋 <span lang="en">Step-by-Step Office Rule (Sequential)</span><span lang="bn">ধাপে ধাপে অফিস নিয়ম (ধারাবাহিক)</span></button>
+      </div>
+    </div>
+
+    <div class="grid2 race-grid">
+      <div class="viz-box race-card">
+        <div class="viz-head">
+          <div>
+            <strong>CPU · <span lang="en">8 Fast Specialist Cores</span><span lang="bn">৮টি দ্রুত বিশেষজ্ঞ কোর</span></strong>
+            <div class="muted" style="font-size:.82rem"><span lang="en">Analogy: 4 senior officers working sequentially</span><span lang="bn">উপমা: ৪ জন সিনিয়র অফিসার একটার পর একটা ফাইল দেখছেন</span></div>
+          </div>
+          <span class="race-time" id="cpu-time">0.0 ms</span>
+        </div>
+        <canvas id="cpu-canvas" width="540" height="250" aria-label="CPU processing animation"></canvas>
+        <div class="race-bar-wrap">
+          <div class="race-track"><div class="race-fill cpu-fill" id="cpu-bar"></div></div>
+          <span class="race-pct" id="cpu-pct">0%</span>
+        </div>
+      </div>
+
+      <div class="viz-box race-card">
+        <div class="viz-head">
+          <div>
+            <strong>GPU · <span lang="en">Thousands of CUDA Cores</span><span lang="bn">হাজার হাজার CUDA কোর</span></strong>
+            <div class="muted" style="font-size:.82rem"><span lang="en">Analogy: 200 clerks stamping the whole ward at once</span><span lang="bn">উপমা: ২০০ জন কর্মী একসাথে পুরো ওয়ার্ডের ফর্ম যাচাই করছেন</span></div>
+          </div>
+          <span class="race-time" id="gpu-time">0.0 ms</span>
+        </div>
+        <canvas id="gpu-canvas" width="540" height="250" aria-label="GPU CUDA cores processing animation"></canvas>
+        <div class="race-bar-wrap">
+          <div class="race-track"><div class="race-fill gpu-fill" id="gpu-bar"></div></div>
+          <span class="race-pct" id="gpu-pct">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="race-verdict" id="race-verdict"></div>
+
+    <!-- GPU Anatomy Interactive Cards -->
+    <div class="sub-panel">
+      <h3><span lang="en">4 Hardware Terms You Will Hear in AI Proposals (Click each to inspect)</span><span lang="bn">এআই প্রজেক্টের প্রস্তাবে যে ৪টি হার্ডওয়্যার শব্দ শুনবেন (ক্লিক করে দেখুন)</span></h3>
+      <div class="anatomy-tabs" id="gpu-anatomy-tabs"></div>
+      <div class="anatomy-detail" id="gpu-anatomy-detail"></div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       SECTION 3: HOW GPT SERVICE WORKS VS SELF-HOSTED
+       ===================================================================== -->
+  <section class="card llm-sec" id="sec-hosting">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <div>
+        <h2><span lang="en">How a GPT Service Works vs. What "Self-Hosted" Means</span><span lang="bn">GPT সার্ভিস কীভাবে কাজ করে বনাম "সেল্ফ-হোস্টেড" বলতে কী বোঝায়?</span></h2>
+        <p class="muted">
+          <span lang="en">When you type into ChatGPT or Gemini, your message leaves your computer and runs on giant remote GPU servers. <b>Self-hosting</b> means running an open-source model on hardware inside your own office or government data centre — so citizen data never crosses the public internet.</span>
+          <span lang="bn">ChatGPT বা Gemini-তে কিছু লিখলে আপনার বার্তা ইন্টারনেট পেরিয়ে বিদেশি বিশাল GPU সার্ভারে যায়। আর <b>সেল্ফ-হোস্টিং</b> মানে নিজের অফিস বা সরকারি ডেটা সেন্টারের কম্পিউটারেই ওপেন-সোর্স মডেল চালানো — যাতে নাগরিকের ব্যক্তিগত তথ্য কখনো অফিসের বাইরে না যায়।</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="hosting-controls">
+      <div class="row" id="hosting-mode-btns">
+        <button class="btn on" data-arch="cloud">☁️ <span lang="en">Cloud GPT Service (API / ChatGPT)</span><span lang="bn">ক্লাউড GPT সার্ভিস (API / ChatGPT)</span></button>
+        <button class="btn" data-arch="self">🏛️ <span lang="en">Self-Hosted (City Corporation Server)</span><span lang="bn">সেল্ফ-হোস্টেড (সিটি কর্পোরেশন সার্ভার)</span></button>
+        <button class="btn" data-arch="hybrid">🔀 <span lang="en">Hybrid (Smart Public-Sector Pattern)</span><span lang="bn">হাইব্রিড (সরকারি অফিসের স্মার্ট কৌশল)</span></button>
+      </div>
+
+      <div class="prompt-sim-bar">
+        <div class="prompt-pills" id="sim-prompt-btns"></div>
+        <button class="btn primary" id="btn-sim-send">▶ <span lang="en">Trace Request</span><span lang="bn">অনুরোধটি চালিয়ে দেখুন</span></button>
+      </div>
+    </div>
+
+    <!-- Animated SVG Architecture Diagram -->
+    <div class="viz-box arch-box">
+      <div class="arch-stage">
+        <svg id="arch-svg" viewBox="0 0 920 330" role="img" aria-label="GPT architecture animated diagram"></svg>
+      </div>
+      <div class="arch-log" id="arch-log"></div>
+    </div>
+
+    <!-- Comparison Table -->
+    <div class="sub-panel">
+      <h3><span lang="en">Decision Matrix: Cloud GPT vs. Self-Hosted</span><span lang="bn">সিদ্ধান্তের তুলনা: ক্লাউড GPT বনাম সেল্ফ-হোস্টেড</span></h3>
+      <div class="scroll-x">
+        <table class="data compare-tbl" id="hosting-compare"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       SECTION 4: USEFUL OPEN-SOURCE MODELS FOR A CITY CORPORATION
+       ===================================================================== -->
+  <section class="card llm-sec" id="sec-civic">
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <div>
+        <h2><span lang="en">Useful Open-Source AI Models for a City Corporation</span><span lang="bn">সিটি কর্পোরেশনের জন্য কার্যকর ওপেন-সোর্স এআই মডেলসমূহ</span></h2>
+        <p class="muted">
+          <span lang="en">A City Corporation does not need one giant chatbot for everything. Different open-source models excel at <b>Bangla citizen chat</b>, <b>reading scanned documents &amp; field photos</b>, <b>searching official rules without making things up (RAG)</b>, and <b>transcribing hotline calls</b>.</span>
+          <span lang="bn">সিটি কর্পোরেশনের সব কাজের জন্য একটি বিশাল চ্যাটবটের দরকার নেই। আলাদা আলাদা ওপেন-সোর্স মডেল <b>বাংলা নাগরিক সেবা</b>, <b>স্ক্যান করা ফর্ম ও মাঠের ছবি পড়া</b>, <b>না বানিয়ে আইন-সার্কুলার খোঁজা (RAG)</b> এবং <b>হটলাইন কল লিখে ফেলা</b>র কাজে সেরা।</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="row civic-filters" id="civic-filter-btns"></div>
+
+    <div class="civic-grid" id="civic-model-grid"></div>
+
+    <!-- Interactive Hardware & Stack Recommender -->
+    <div class="sub-panel planner-panel">
+      <h3><span lang="en">Interactive City AI Stack Planner</span><span lang="bn">ইন্টারেক্টিভ সিটি এআই স্ট্যাক প্ল্যানার</span></h3>
+      <p class="muted" style="font-size:.9rem;margin-bottom:12px">
+        <span lang="en">Pick your office's hardware budget and main municipal goal to see a realistic, proven open-source software stack.</span>
+        <span lang="bn">আপনার অফিসের হার্ডওয়্যার সক্ষমতা ও প্রধান লক্ষ্য বেছে নিন — বাস্তবসম্মত ওপেন-সোর্স সফটওয়্যার স্ট্যাক দেখুন।</span>
+      </p>
+      <div class="grid2">
+        <div>
+          <label class="ctl">
+            <span><span lang="en">Available Hardware</span><span lang="bn">বিদ্যমান হার্ডওয়্যার</span></span>
+            <select id="plan-hw"></select>
+          </label>
+        </div>
+        <div>
+          <label class="ctl">
+            <span><span lang="en">City Corporation Use Case</span><span lang="bn">সিটি কর্পোরেশনের কাজের ধরন</span></span>
+            <select id="plan-use"></select>
+          </label>
+        </div>
+      </div>
+      <div class="planner-out" id="planner-out"></div>
+    </div>
+  </section>
+
+  <!-- Break it & Lesson Callouts (matching AI Discovery Lab pedagogy) -->
+  <div class="grid2" style="margin-top:16px">
+    <div class="callout break">
+      <div class="label"><span lang="en">Reality Check · Common Traps</span><span lang="bn">বাস্তবতা যাচাই · সাধারণ ভুল ধারণা</span></div>
+      <ul style="margin:0;padding-left:20px;font-size:.94rem">
+        <li><span lang="en"><b>"Self-hosted means zero hallucination" — False!</b> Local open-source models can still invent facts unless grounded with your real documents (RAG) and human review.</span>
+            <span lang="bn"><b>"সেল্ফ-হোস্টেড মানেই কোনো ভুল উত্তর দেবে না" — ভুল!</b> লোকাল মডেলও তথ্য বানিয়ে বলতে পারে, তাই আসল সরকারি ডকুমেন্ট (RAG) ও মানুষের যাচাই অপরিহার্য।</span></li>
+        <li><span lang="en"><b>"Any office PC can run a 70B model" — False!</b> Without enough GPU VRAM, a huge model either fails to load or crawls at 1 word every 5 seconds.</span>
+            <span lang="bn"><b>"যেকোনো অফিস পিসিতে ৭০বি মডেল চলবে" — ভুল!</b> পর্যাপ্ত GPU VRAM না থাকলে বড় মডেল চালু হবে না বা প্রতি ৫ সেকেন্ডে মাত্র ১টি শব্দ লিখবে।</span></li>
+        <li><span lang="en"><b>Bangla token tax:</b> Bangla text often uses 2×–3× more tokens than English in older models — always test on <i>real Bangla city forms</i> before buying hardware.</span>
+            <span lang="bn"><b>বাংলা টোকেন খরচ:</b> পুরোনো মডেলে বাংলা লিখতে ইংরেজির চেয়ে ২–৩ গুণ বেশি টোকেন লাগে — তাই হার্ডওয়্যার কেনার আগে <i>নিজেদের বাংলা ফর্মে</i> পরীক্ষা করুন।</span></li>
+      </ul>
+    </div>
+    <div class="callout lesson">
+      <div class="label"><span lang="en">Key Takeaway for City Leaders</span><span lang="bn">সিটি কর্মকর্তাদের জন্য মূল শিক্ষা</span></div>
+      <p style="margin:0;font-size:.94rem">
+        <span lang="en">A modern LLM is a <b>compressed file of weights</b> powered by <b>parallel GPU CUDA cores</b>. You do not have to choose between "never use AI" and "send private citizen records to a foreign cloud." Start small: combine a <b>self-hosted 7B–14B multilingual model</b> (like Qwen or Gemma) with <b>local document search (RAG)</b> and <b>Open WebUI</b> on a single GPU workstation — keep sensitive citizen data inside your walls, and always keep an officer in the loop.</span>
+        <span lang="bn">আধুনিক LLM হলো <b>সমান্তরাল GPU CUDA কোর</b> দিয়ে চালিত <b>সংকুচিত ওয়েটের একটি ফাইল</b>। "এআই ব্যবহারই করব না" আর "নাগরিকের গোপন তথ্য বিদেশি ক্লাউডে পাঠাব" — এর মাঝামাঝি দারুণ পথ আছে। ছোট করে শুরু করুন: একটি GPU ওয়ার্কস্টেশনে <b>সেল্ফ-হোস্টেড ৭বি–১৪বি বহুভাষিক মডেল</b> (যেমন Qwen বা Gemma), <b>লোকাল ডকুমেন্ট সার্চ (RAG)</b> এবং <b>Open WebUI</b> ব্যবহার করুন — নাগরিকের তথ্য নিজেদের ভবনেই নিরাপদ রাখুন, আর চূড়ান্ত সিদ্ধান্তে সবসময় কর্মকর্তাকে যুক্ত রাখুন।</span>
+      </p>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/lab.js"></script>
+<script src="../assets/llm-concepts.js"></script>
+</body>
+</html>

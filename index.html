@@ -93,7 +93,8 @@
                     <div class="box llm">
                       <div class="t"><span><span lang="en">Language models (LLMs, GPT, ChatGPT…)</span><span lang="bn">ভাষা মডেল (LLM, GPT, ChatGPT…)</span></span></div>
                       <a href="experiments/nextword.html">9 · <span lang="en">Next-word prediction</span><span lang="bn">পরের শব্দ অনুমান</span></a> ·
-                      <a href="#exp10">10 · <span lang="en">Inside GPT-2</span><span lang="bn">GPT-2-এর ভেতরে</span></a>
+                      <a href="#exp10">10 · <span lang="en">Inside GPT-2</span><span lang="bn">GPT-2-এর ভেতরে</span></a> ·
+                      <a href="experiments/llm-concepts.html">12 · <span lang="en">Models, GPUs, self-hosting &amp; civic open source</span><span lang="bn">মডেল, GPU, সেল্ফ-হোস্টিং ও সিটি ওপেন সোর্স</span></a>
                     </div>
                   </div>
                 </div>
@@ -126,7 +127,7 @@
       <tr><td>20 min</td><td><span lang="en">Live image recognition</span><span lang="bn">সরাসরি ছবি চেনা</span></td><td>7</td></tr>
       <tr><td>10 min</td><td><span lang="en">Break</span><span lang="bn">বিরতি</span></td><td>—</td></tr>
       <tr><td>15 min</td><td><span lang="en">Reinforcement learning</span><span lang="bn">রিইনফোর্সমেন্ট লার্নিং</span></td><td>8</td></tr>
-      <tr><td>25 min</td><td><span lang="en">Language models and GPT</span><span lang="bn">ভাষা মডেল ও GPT</span></td><td>9, 10</td></tr>
+      <tr><td>25 min</td><td><span lang="en">Language models and GPT</span><span lang="bn">ভাষা মডেল ও GPT</span></td><td>9, 10, 12</td></tr>
       <tr><td>15 min</td><td><span lang="en">The right AI for the job; ethics and discussion</span><span lang="bn">কাজের জন্য সঠিক এআই; নৈতিকতা ও আলোচনা</span></td><td>11</td></tr>
     </table>
     </div>
@@ -186,7 +187,9 @@ var EXPS = [
       ['Point out: this is inference (using a trained model), not training. ChatGPT is the same idea at enormous scale.', 'লক্ষ করুন: এটা inference (শেখানো মডেল ব্যবহার), প্রশিক্ষণ নয়। ChatGPT একই ধারণা, বিশাল পরিসরে।']
     ] },
   { n: 11, href: 'experiments/complaints.html', fam: ['Capstone', 'সমাপনী'], t: ['The right AI for the job: Bangla complaint routing', 'কাজের জন্য সঠিক এআই: বাংলা অভিযোগ বণ্টন'],
-    d: ['Rules vs machine learning (and optionally a local LLM) on the same test set: accuracy, speed, cost and explainability.', 'একই টেস্ট সেটে নিয়ম বনাম মেশিন লার্নিং (ও ইচ্ছা হলে লোকাল LLM): নির্ভুলতা, গতি, খরচ ও ব্যাখ্যাযোগ্যতা।'] }
+    d: ['Rules vs machine learning (and optionally a local LLM) on the same test set: accuracy, speed, cost and explainability.', 'একই টেস্ট সেটে নিয়ম বনাম মেশিন লার্নিং (ও ইচ্ছা হলে লোকাল LLM): নির্ভুলতা, গতি, খরচ ও ব্যাখ্যাযোগ্যতা।'] },
+  { n: 12, href: 'experiments/llm-concepts.html', fam: ['Language models', 'ভাষা মডেল'], t: ['Visual guide: LLM models, GPU & CUDA cores, self-hosting & civic open source', 'ভিজ্যুয়াল গাইড: LLM মডেল, GPU ও CUDA কোর, সেল্ফ-হোস্টিং ও সিটি ওপেন-সোর্স'],
+    d: ['Animated walkthrough of what a model file holds, CPU vs GPU CUDA core race, cloud GPT vs self-hosted privacy flows, and open-source models for City Corporations.', 'মডেল ফাইলের ভেতরে কী থাকে, CPU বনাম GPU CUDA কোরের দৌড়, ক্লাউড GPT বনাম সেল্ফ-হোস্টেড গোপনীয়তা এবং সিটি কর্পোরেশনের জন্য ওপেন-সোর্স মডেলের অ্যানিমেটেড গাইড।'] }
 ];
 
 document.getElementById('exp-list').innerHTML = EXPS.map(function (e) {

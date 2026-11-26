@@ -24,6 +24,7 @@ non-technical professionals (city corporation officers, social science students)
 | 9 | Next-word prediction: train a tiny language model | Language models | built in |
 | 10 | Inside GPT-2 | Language models | Transformer Explainer (online) |
 | 11 | Bangla complaint routing: rules vs ML vs local LLM | Capstone | built in |
+| 12 | Visual guide: LLM models, GPU & CUDA cores, self-hosting & civic open source | Language models | built in |
 
 - Plain HTML/CSS/JavaScript with no build step and no external libraries.
 - All datasets are synthetic, seeded and labelled as such.

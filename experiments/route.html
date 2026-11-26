@@ -6,11 +6,109 @@
 <title>Route Finding</title>
 <link rel="stylesheet" href="../assets/lab.css">
 <style>
+  /* Map palette (page-local so the city reads like a real city in both themes) */
+  :root {
+    --m-ground: #e4ecd9; --m-block: #f6f1e6; --m-block-edge: #d9cdb4; --m-park: #c9e4b4;
+    --m-road: #c3c9d2; --m-dash: #ffffff; --m-jam: #f3a08a; --m-water: #8ec5f5; --m-wave: #c7e3fb;
+    --m-bridge: #b88a55; --m-rail: #7a5530; --m-explore: #0f766e; --m-route: #7c3aed; --m-casing: #ffffff;
+  }
+  :root[data-theme="dark"] {
+    --m-ground: #17201a; --m-block: #2a313c; --m-block-edge: #3b4452; --m-park: #23402a;
+    --m-road: #4b5462; --m-dash: #6b7585; --m-jam: #8a3a28; --m-water: #1e4f8a; --m-wave: #2c66a8;
+    --m-bridge: #8a6a43; --m-rail: #c9a273; --m-explore: #2dd4bf; --m-route: #c4b5fd; --m-casing: #12161d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --m-ground: #17201a; --m-block: #2a313c; --m-block-edge: #3b4452; --m-park: #23402a;
+      --m-road: #4b5462; --m-dash: #6b7585; --m-jam: #8a3a28; --m-water: #1e4f8a; --m-wave: #2c66a8;
+      --m-bridge: #8a6a43; --m-rail: #c9a273; --m-explore: #2dd4bf; --m-route: #c4b5fd; --m-casing: #12161d;
+    }
+  }
+
   #map { width: 100%; touch-action: none; border-radius: 10px; cursor: crosshair; }
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; color: var(--muted); margin-top: 8px; }
-  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 1px solid var(--border); }
-  #cmp td, #cmp th { text-align: right; } #cmp td:first-child, #cmp th:first-child { text-align: left; }
-  #cmp tr.cur td { font-weight: 700; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar .lbl { font-size: .85rem; color: var(--muted); margin-right: 2px; }
+  .toolbar .spacer { flex: 1; }
+
+  .legend { display: flex; gap: 8px 16px; flex-wrap: wrap; font-size: .85rem; color: var(--muted); margin-top: 12px; }
+  .legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { display: inline-block; width: 26px; height: 14px; border-radius: 3px; position: relative; flex: none; }
+  .sw.road { background: var(--m-road); }
+  .sw.road::after { content: ""; position: absolute; left: 4px; right: 4px; top: 6px; border-top: 2px dashed var(--m-dash); }
+  .sw.jam { background: var(--m-jam); }
+  .sw.water { background: var(--m-water); }
+  .sw.bridge { background: var(--m-bridge); border-left: 3px solid var(--m-rail); border-right: 3px solid var(--m-rail); }
+  .sw.blocked { background: repeating-linear-gradient(45deg, #dc2626 0 4px, #fff 4px 8px); }
+  .sw.explore { background: var(--m-explore); opacity: .5; }
+  .sw.route { background: var(--m-route); height: 6px; border-radius: 3px; }
+
+  /* Narration under the map */
+  .narr { margin-top: 16px; }
+  .narr-head { display: flex; gap: 12px; align-items: flex-start; }
+  .narr-icon { font-size: 2rem; line-height: 1; flex: none; }
+  .narr-main { font-size: 1.1rem; font-weight: 600; }
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .meter { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; }
+  .meter .k { font-size: .82rem; color: var(--muted); }
+  .meter .v { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .meter .v small { font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .formula { margin-top: 12px; font-size: 1rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .formula .chip { padding: 3px 10px; border-radius: 99px; background: var(--surface-2); font-variant-numeric: tabular-nums; }
+  .formula .chip.clear { background: var(--m-road); color: var(--text); }
+  .formula .chip.jam { background: var(--m-jam); color: var(--text); }
+  .formula .chip.total { background: var(--m-route); color: #fff; font-weight: 700; }
+  :root[data-theme="dark"] .formula .chip.total { color: #1b1530; }
+  .insight { margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: .98rem; }
+  .insight.good { background: var(--accent-soft); }
+  .insight.bad { background: var(--accent-2-soft); }
+  .insight:empty { display: none; }
+
+  /* Driver (algorithm) cards */
+  .drivers { display: grid; gap: 8px; }
+  .driver {
+    font: inherit; text-align: left; cursor: pointer; display: grid; grid-template-columns: 40px 1fr; gap: 10px;
+    align-items: center; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--border);
+    background: var(--surface); color: var(--text); width: 100%;
+  }
+  .driver:hover { border-color: var(--accent); }
+  .driver.sel { border-color: var(--m-route); background: var(--surface-2); }
+  .driver .ico { font-size: 1.7rem; text-align: center; }
+  .driver .top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .driver .nm { font-weight: 700; font-size: 1rem; line-height: 1.2; }
+  .driver .nick { font-weight: 600; color: var(--muted); font-size: .8rem; flex: 1; }
+  .driver .how { font-size: .84rem; color: var(--muted); line-height: 1.35; margin-top: 2px; }
+  .driver .go { font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: var(--accent); color: #fff; white-space: nowrap; }
+  :root[data-theme="dark"] .driver .go { color: #062421; }
+  .speed { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .85rem; color: var(--muted); }
+
+  /* Missions */
+  .missions { list-style: none; padding: 0; margin: 0; counter-reset: m; }
+  .missions li { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-size: .92rem; line-height: 1.35; }
+  .missions li:first-child { border-top: 0; }
+  .missions .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-weight: 700; font-size: .85rem; }
+  .missions li.done .num { background: var(--ok); color: #fff; }
+  .missions .btn { padding: 4px 10px; font-size: .82rem; }
+
+  /* Race: four algorithms side by side */
+  .race-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; margin-bottom: 6px; }
+  .race-head h2 { margin: 0; }
+  .race { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+  @media (max-width: 1000px) { .race { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .race { grid-template-columns: minmax(0, 1fr); } .meters { grid-template-columns: 1fr; } }
+  .rc { border: 2px solid var(--border); border-radius: 12px; padding: 10px; background: var(--surface); min-width: 0; }
+  .rc.best { border-color: var(--ok); }
+  .rc.slow { border-color: var(--accent-2); }
+  .rc-head { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 8px; }
+  .rc-head .ico { font-size: 1.3rem; }
+  .rc canvas { width: 100%; border-radius: 6px; }
+  .rc .empty { aspect-ratio: 33 / 21; display: grid; place-items: center; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: .85rem; text-align: center; padding: 8px; }
+  .mbar { display: grid; grid-template-columns: 74px 1fr 58px; gap: 6px; align-items: center; font-size: .8rem; margin-top: 8px; }
+  .mbar .track { height: 12px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+  .mbar .fill { height: 100%; border-radius: 6px; transition: width .4s; }
+  .mbar.eff .fill { background: var(--m-explore); }
+  .mbar.time .fill { background: var(--m-route); }
+  .mbar b { text-align: right; font-variant-numeric: tabular-nums; }
+  .verdict { margin-top: 8px; font-size: .85rem; font-weight: 600; min-height: 1.3em; }
 </style>
 </head>
 <body>
@@ -18,78 +116,90 @@
 <main class="wrap">
   <h1>1 · <span lang="en">Garbage truck route finding</span><span lang="bn">ময়লার গাড়ির পথ খোঁজা</span></h1>
   <p class="lead">
-    <span lang="en">A garbage truck 🚛 must reach the transfer station 🏁. Some roads are congested (slow), the canal can only be crossed on two bridges, and you can block roads. The computer searches for a route. There is <b>no data and no training</b> here: only a search procedure written by humans.</span>
-    <span lang="bn">ময়লার গাড়ি 🚛 কে ট্রান্সফার স্টেশনে 🏁 পৌঁছাতে হবে। কিছু রাস্তায় যানজট (ধীর), খাল পার হওয়া যায় কেবল দুটি সেতু দিয়ে, আর আপনি রাস্তা বন্ধ করতে পারেন। কম্পিউটার পথ খুঁজবে। এখানে <b>কোনো ডেটা বা প্রশিক্ষণ নেই</b>: শুধু মানুষের লেখা একটি অনুসন্ধান পদ্ধতি।</span>
+    <span lang="en">Every morning a garbage truck 🚛 leaves the depot and must reach the transfer station 🏁 across the canal. The market roads are jammed, and only two bridges cross the water. <b>Which way is fastest?</b> Watch four different "drivers" (search methods) work it out. There is <b>no data and no training</b> here: just step-by-step rules written by people.</span>
+    <span lang="bn">প্রতিদিন সকালে একটি ময়লার গাড়ি 🚛 ডিপো থেকে বের হয় এবং খাল পেরিয়ে ট্রান্সফার স্টেশনে 🏁 পৌঁছাতে হয়। বাজারের রাস্তায় যানজট, আর খাল পার হওয়ার সেতু মাত্র দুটি। <b>কোন পথে সবচেয়ে দ্রুত যাওয়া যায়?</b> চারজন ভিন্ন "চালক" (অনুসন্ধান পদ্ধতি) কীভাবে তা বের করে দেখুন। এখানে <b>কোনো ডেটা বা প্রশিক্ষণ নেই</b>: শুধু মানুষের লেখা ধাপে ধাপে নিয়ম।</span>
   </p>
 
   <div class="main-side">
-    <div class="card">
-      <canvas id="map"></canvas>
-      <div class="legend">
-        <span><i style="background:var(--road)"></i><span lang="en">Road</span><span lang="bn">রাস্তা</span></span>
-        <span><i style="background:var(--congested)"></i><span lang="en">Congested road (4× slower)</span><span lang="bn">যানজটের রাস্তা (৪ গুণ ধীর)</span></span>
-        <span><i style="background:var(--water)"></i><span lang="en">Canal</span><span lang="bn">খাল</span></span>
-        <span><i style="background:var(--blocked)"></i><span lang="en">Blocked by you</span><span lang="bn">আপনার বন্ধ করা</span></span>
-        <span><i style="background:var(--accent-soft)"></i><span lang="en">Explored by the algorithm</span><span lang="bn">অ্যালগরিদম যেখানে খুঁজেছে</span></span>
-        <span><i style="background:var(--accent-2)"></i><span lang="en">Chosen route</span><span lang="bn">বেছে নেওয়া পথ</span></span>
+    <div>
+      <div class="card">
+        <div class="toolbar">
+          <span class="lbl"><span lang="en">Click the map to:</span><span lang="bn">মানচিত্রে ক্লিক করে:</span></span>
+          <button class="btn on" data-mode="block"><span lang="en">🚧 Block / open a road</span><span lang="bn">🚧 রাস্তা বন্ধ / খোলা</span></button>
+          <button class="btn" data-mode="start"><span lang="en">🚛 Move truck</span><span lang="bn">🚛 গাড়ি সরান</span></button>
+          <button class="btn" data-mode="goal"><span lang="en">🏁 Move station</span><span lang="bn">🏁 স্টেশন সরান</span></button>
+          <span class="spacer"></span>
+          <button class="btn" id="b-reset"><span lang="en">↺ Reset map</span><span lang="bn">↺ রিসেট</span></button>
+        </div>
+        <canvas id="map" aria-label="City map with roads, a canal, two bridges, a garbage truck and a transfer station"></canvas>
+        <div class="legend">
+          <span><i class="sw road"></i><span lang="en">Clear road: 1 min per block</span><span lang="bn">ফাঁকা রাস্তা: প্রতি ব্লকে ১ মিনিট</span></span>
+          <span><i class="sw jam"></i><span lang="en">Traffic jam: 4 min per block</span><span lang="bn">যানজট: প্রতি ব্লকে ৪ মিনিট</span></span>
+          <span><i class="sw water"></i><span lang="en">Canal</span><span lang="bn">খাল</span></span>
+          <span><i class="sw bridge"></i><span lang="en">Bridge</span><span lang="bn">সেতু</span></span>
+          <span><i class="sw blocked"></i><span lang="en">Blocked by you</span><span lang="bn">আপনার বন্ধ করা</span></span>
+          <span><i class="sw explore"></i><span lang="en">Places the computer checked</span><span lang="bn">কম্পিউটার যেসব জায়গা যাচাই করেছে</span></span>
+          <span><i class="sw route"></i><span lang="en">Chosen route</span><span lang="bn">বেছে নেওয়া পথ</span></span>
+        </div>
+      </div>
+
+      <div class="card narr" aria-live="polite">
+        <div class="narr-head">
+          <div class="narr-icon" id="n-icon">👉</div>
+          <div class="narr-main" id="n-main"></div>
+        </div>
+        <div class="meters">
+          <div class="meter">
+            <div class="k"><span lang="en">🔍 Places checked (the computer's effort)</span><span lang="bn">🔍 যাচাই করা জায়গা (কম্পিউটারের পরিশ্রম)</span></div>
+            <div class="v" id="s-exp">–</div>
+          </div>
+          <div class="meter">
+            <div class="k"><span lang="en">⏱️ Trip time for the truck</span><span lang="bn">⏱️ গাড়ির যাত্রার সময়</span></div>
+            <div class="v" id="s-cost">–</div>
+          </div>
+        </div>
+        <div class="formula" id="n-formula"></div>
+        <div class="insight" id="n-insight"></div>
       </div>
     </div>
 
     <div class="stack">
       <div class="card">
-        <h3><span lang="en">Edit the map</span><span lang="bn">মানচিত্র সম্পাদনা</span></h3>
-        <div class="row">
-          <button class="btn on" data-mode="block"><span lang="en">✏️ Block / unblock road</span><span lang="bn">✏️ রাস্তা বন্ধ / খোলা</span></button>
-          <button class="btn" data-mode="start"><span lang="en">🚛 Move truck</span><span lang="bn">🚛 গাড়ি সরান</span></button>
-          <button class="btn" data-mode="goal"><span lang="en">🏁 Move station</span><span lang="bn">🏁 স্টেশন সরান</span></button>
-        </div>
-        <p class="muted" style="font-size:.85rem;margin:.6em 0 0"><span lang="en">Click or drag on roads.</span><span lang="bn">রাস্তার ওপর ক্লিক বা টেনে আঁকুন।</span></p>
+        <h3><span lang="en">Pick a driver</span><span lang="bn">একজন চালক বেছে নিন</span></h3>
+        <p class="muted" style="font-size:.85rem;margin:-.2em 0 .7em"><span lang="en">Each driver is a different search method: a different rule for deciding which street to check next.</span><span lang="bn">প্রতিটি চালক একটি ভিন্ন অনুসন্ধান পদ্ধতি: পরের কোন রাস্তা যাচাই করবে তা ঠিক করার ভিন্ন নিয়ম।</span></p>
+        <div class="drivers" id="drivers"></div>
+        <label class="speed"><span>🐢</span><input type="range" id="speed" min="1" max="40" value="6" aria-label="Animation speed"><span>🐇</span></label>
       </div>
 
       <div class="card">
-        <h3><span lang="en">Search for a route</span><span lang="bn">পথ খুঁজুন</span></h3>
-        <div class="row">
-          <button class="btn primary" data-alg="bfs">BFS</button>
-          <button class="btn primary" data-alg="dijkstra">Dijkstra</button>
-          <button class="btn primary" data-alg="astar">A*</button>
-          <button class="btn primary" data-alg="greedy">Greedy</button>
-        </div>
-        <div class="row">
-          <label class="ctl" style="flex:1"><span><span lang="en">Animation speed</span><span lang="bn">অ্যানিমেশনের গতি</span></span>
-            <input type="range" id="speed" min="1" max="40" value="6"></label>
-        </div>
-        <div class="stats" style="margin-top:10px">
-          <div class="stat"><div class="k"><span lang="en">Places explored</span><span lang="bn">যাচাই করা স্থান</span></div><div class="v" id="s-exp">–</div></div>
-          <div class="stat"><div class="k"><span lang="en">Travel time</span><span lang="bn">যাত্রার সময়</span></div><div class="v" id="s-cost">–</div></div>
-        </div>
-        <p id="status" style="margin:.8em 0 0"></p>
-      </div>
-
-      <div class="card">
-        <h3><span lang="en">Compare algorithms</span><span lang="bn">অ্যালগরিদম তুলনা</span></h3>
-        <table class="data" id="cmp"></table>
+        <h3><span lang="en">Try these, in order</span><span lang="bn">ক্রমানুসারে চেষ্টা করুন</span></h3>
+        <ol class="missions" id="missions"></ol>
       </div>
     </div>
   </div>
 
+  <section class="card" style="margin-top:16px">
+    <div class="race-head">
+      <h2><span lang="en">Same city, four ways of thinking</span><span lang="bn">একই শহর, চিন্তার চারটি ধরন</span></h2>
+      <button class="btn primary" id="b-all"><span lang="en">▶ Run all four</span><span lang="bn">▶ চারটিই চালান</span></button>
+    </div>
+    <p class="muted" style="margin:0;font-size:.92rem"><span lang="en">A good method finds the <b>fastest trip</b> (short purple bar) with <b>little checking</b> (short teal bar).</span><span lang="bn">ভালো পদ্ধতি <b>কম যাচাই</b> করে (ছোট সবুজ-নীল বার) <b>দ্রুততম যাত্রা</b> (ছোট বেগুনি বার) খুঁজে পায়।</span></p>
+    <div class="race" id="race"></div>
+  </section>
+
   <div class="grid2" style="margin-top:16px">
     <div class="callout break">
-      <div class="label"><span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
-      <div class="row">
-        <button class="btn warn" id="b-one"><span lang="en">Block the west bridge</span><span lang="bn">পশ্চিমের সেতু বন্ধ</span></button>
-        <button class="btn warn" id="b-both"><span lang="en">Block both bridges</span><span lang="bn">দুটি সেতুই বন্ধ</span></button>
-        <button class="btn" id="b-reset"><span lang="en">Reset map</span><span lang="bn">মানচিত্র রিসেট</span></button>
-      </div>
-      <p style="margin:.6em 0 0;font-size:.92rem">
-        <span lang="en">BFS counts streets but ignores traffic. Greedy rushes toward the goal and can choose a slow route. With both bridges blocked, every algorithm correctly reports that no route exists. It cannot invent a road.</span>
-        <span lang="bn">BFS রাস্তার সংখ্যা গোনে কিন্তু যানজট উপেক্ষা করে। Greedy লক্ষ্যের দিকে ছুটে যায় এবং ধীর পথ বেছে নিতে পারে। দুটি সেতু বন্ধ হলে সব অ্যালগরিদমই ঠিকভাবে জানায় কোনো পথ নেই। নতুন রাস্তা সে বানাতে পারে না।</span>
+      <div class="label"><span lang="en">What it cannot do</span><span lang="bn">যা সে পারে না</span></div>
+      <p style="margin:.3em 0 0;font-size:.95rem">
+        <span lang="en">A search only knows the map it is given. If the map is wrong (a road closed for repairs that nobody marked), the "fastest" route is wrong too. With both bridges blocked, every method correctly reports that <b>no route exists</b>. It cannot invent a road.</span>
+        <span lang="bn">অনুসন্ধান শুধু তাকে দেওয়া মানচিত্রটুকুই জানে। মানচিত্র ভুল হলে (মেরামতের জন্য বন্ধ রাস্তা কেউ চিহ্নিত না করলে) "দ্রুততম" পথও ভুল হবে। দুটি সেতু বন্ধ হলে সব পদ্ধতিই ঠিকভাবে জানায় <b>কোনো পথ নেই</b>। নতুন রাস্তা সে বানাতে পারে না।</span>
       </p>
     </div>
     <div class="callout lesson">
       <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
-      <p style="margin:0">
-        <span lang="en"><b>Intelligent behaviour does not always need data, neural networks or an LLM.</b> A* finds the fastest route while exploring far fewer places than Dijkstra, because a human gave it a good rule of thumb (straight-line distance to the goal). The same idea powers navigation apps and vehicle routing.</span>
-        <span lang="bn"><b>বুদ্ধিমান আচরণের জন্য সবসময় ডেটা, নিউরাল নেটওয়ার্ক বা LLM লাগে না।</b> A* দ্রুততম পথ খুঁজে পায় এবং Dijkstra-র চেয়ে অনেক কম জায়গা যাচাই করে, কারণ মানুষ তাকে একটি ভালো আন্দাজের নিয়ম দিয়েছে (লক্ষ্য পর্যন্ত সরাসরি দূরত্ব)। নেভিগেশন অ্যাপ ও গাড়ির রুট পরিকল্পনা একই ধারণায় চলে।</span>
+      <p style="margin:.3em 0 0">
+        <span lang="en"><b>Intelligent behaviour does not always need data, neural networks or an LLM.</b> 🎯 A* finds the fastest route while checking far fewer places than 🧭 Dijkstra, because a person gave it a good rule of thumb: "how far is the station from here?" The same idea powers navigation apps and vehicle routing.</span>
+        <span lang="bn"><b>বুদ্ধিমান আচরণের জন্য সবসময় ডেটা, নিউরাল নেটওয়ার্ক বা LLM লাগে না।</b> 🎯 A* দ্রুততম পথ খুঁজে পায় এবং 🧭 Dijkstra-র চেয়ে অনেক কম জায়গা যাচাই করে, কারণ মানুষ তাকে একটি ভালো আন্দাজের নিয়ম দিয়েছে: "এখান থেকে স্টেশন কত দূরে?" নেভিগেশন অ্যাপ ও গাড়ির রুট পরিকল্পনা একই ধারণায় চলে।</span>
       </p>
     </div>
   </div>
@@ -99,10 +209,11 @@
 <script>
 LAB.header({ home: '../index.html', family: ['Classical AI · search', 'ক্লাসিক্যাল এআই · অনুসন্ধান'] });
 
+/* ---------------- City model ---------------- */
 var W = 33, H = 21;
 var ROAD = 0, BUILDING = 1, WATER = 2, BRIDGE = 3, CONGESTED = 4, BLOCKED = 5;
-var grid, start, goal, result = null, anim = null, mode = 'block', results = {};
 var BRIDGES_X = [4, 24];
+var grid, start, goal, original = {};
 
 function buildCity() {
   grid = [];
@@ -112,14 +223,15 @@ function buildCity() {
     grid.push(row);
   }
   for (var x = 0; x < W; x++) for (var y = 9; y <= 11; y++) grid[y][x] = BRIDGES_X.indexOf(x) >= 0 ? BRIDGE : WATER;
-  // congested market district (south side) and a busy road (north side)
+  // jammed market district (south side) and a busy road (north side)
   for (var y = 13; y <= 19; y++) for (var x = 4; x < W; x++) if (grid[y][x] === ROAD) grid[y][x] = CONGESTED;
   for (var x = 0; x <= 12; x++) if (grid[4][x] === ROAD) grid[4][x] = CONGESTED;
-  start = { x: 0, y: 0 }; goal = { x: 32, y: 20 };
+  start = { x: 0, y: 0 }; goal = { x: 32, y: 20 }; original = {};
 }
 function cost(t) { return t === CONGESTED ? 4 : 1; }
 function passable(x, y) { return x >= 0 && y >= 0 && x < W && y < H && [ROAD, BRIDGE, CONGESTED].indexOf(grid[y][x]) >= 0; }
 
+/* ---------------- Search (unchanged logic) ---------------- */
 function search(alg) {
   var key = function (x, y) { return y * W + x; };
   var h = function (x, y) { return Math.abs(x - goal.x) + Math.abs(y - goal.y); };
@@ -149,12 +261,201 @@ function search(alg) {
   }
   var gk = key(goal.x, goal.y), path = [];
   if (closed[gk]) { for (var k = gk; k != null; k = prev[k]) path.unshift(k); }
-  var travel = 0;
-  for (var i = 1; i < path.length; i++) travel += cost(grid[Math.floor(path[i] / W)][path[i] % W]);
-  return { alg: alg, order: order, path: path, travel: travel, found: path.length > 0 };
+  var travel = 0, jam = 0, clear = 0, cum = [0];
+  for (var i = 1; i < path.length; i++) {
+    var c = cost(grid[Math.floor(path[i] / W)][path[i] % W]);
+    travel += c; cum.push(travel);
+    if (c > 1) jam++; else clear++;
+  }
+  return { alg: alg, order: order, path: path, travel: travel, jam: jam, clear: clear, cum: cum, found: path.length > 0 };
 }
 
+/* ---------------- Drivers (algorithms) ---------------- */
+var ALGS = ['bfs', 'dijkstra', 'astar', 'greedy'];
+var INFO = {
+  bfs: { ico: '🌊', name: 'BFS', nick: ['The Ripple', 'ঢেউ'],
+    how: ['Spreads out one block at a time in every direction, like a ripple. Counts blocks, ignores traffic.', 'ঢেউয়ের মতো সব দিকে এক ব্লক করে ছড়ায়। ব্লক গোনে, যানজট দেখে না।'] },
+  dijkstra: { ico: '🧭', name: 'Dijkstra', nick: ['The Careful Planner', 'সতর্ক পরিকল্পনাকারী'],
+    how: ['Always continues the quickest trip found so far. Guaranteed fastest, but checks almost everywhere.', 'সবসময় এ পর্যন্ত পাওয়া সবচেয়ে কম সময়ের পথটি এগিয়ে নেয়। দ্রুততম নিশ্চিত, তবে প্রায় সব জায়গা যাচাই করে।'] },
+  astar: { ico: '🎯', name: 'A*', nick: ['The Smart Local', 'অভিজ্ঞ স্থানীয় চালক'],
+    how: ['Time so far + a guess of the distance left to the station. Fastest route with far less checking.', 'এ পর্যন্ত সময় + স্টেশন পর্যন্ত বাকি দূরত্বের আন্দাজ। অনেক কম যাচাই করেই দ্রুততম পথ।'] },
+  greedy: { ico: '🏃', name: 'Greedy', nick: ['The Impatient Driver', 'অধৈর্য চালক'],
+    how: ['Only asks "which way gets me closer to the station?" Decides fast, but can drive into a jam.', 'শুধু ভাবে "কোন দিকে গেলে স্টেশনের কাছে যাব?" দ্রুত সিদ্ধান্ত নেয়, কিন্তু যানজটে ঢুকে পড়তে পারে।'] }
+};
+function algLabel(a) { return INFO[a].ico + ' ' + INFO[a].name; }
+
+/* ---------------- Map drawing ---------------- */
 var canvas = document.getElementById('map'), ctx = canvas.getContext('2d'), cell = 20;
+var result = null, results = {}, ref = null, mode = 'block', hover = null;
+var view = { phase: 'idle', shown: 0, truck: null }; // phase: idle | search | drive | done
+
+// Landmarks for each 3×3 city block, row by row (north: homes & services, south: market)
+var LANDMARKS = [
+  '🏠', '🏫', '🏠', '🕌', '🏢', '🏠', '🏥', '🏠',
+  '🏠', '🌳', '🏢', '🏠', '🏠', '🏫', '🌳', '🏠',
+  '🏪', '🛒', '🏪', '🏬', '🏪', '🛒', '🏪', '🏬',
+  '🏪', '🏠', '🛒', '🏪', '🏠', '🏪', '🛒', '🏭'
+];
+var BLOCK_ROWS = [1, 5, 13, 17];
+var CAR_COLORS = ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#f8fafc', '#a855f7'];
+var EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+
+function rr(c, x, y, w, h, r) {
+  c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+function pill(c, cs, text, px, py, opt) {
+  opt = opt || {};
+  var fs = Math.max(11, Math.round(cs * .62));
+  c.font = (opt.bold ? '700 ' : '600 ') + fs + 'px ' + getComputedStyle(document.body).fontFamily;
+  var tw = c.measureText(text).width, ph = fs * 1.55, pw = tw + fs;
+  var x = px - pw / 2, y = py - ph / 2;
+  x = Math.max(2, Math.min(W * cs - pw - 2, x)); y = Math.max(2, Math.min(H * cs - ph - 2, y));
+  c.globalAlpha = .92; c.fillStyle = opt.bg || LAB.css('--surface'); rr(c, x, y, pw, ph, ph / 2); c.fill(); c.globalAlpha = 1;
+  if (opt.border) { c.strokeStyle = opt.border; c.lineWidth = 2; c.stroke(); }
+  c.fillStyle = opt.fg || LAB.css('--text'); c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(text, x + pw / 2, y + ph / 2 + 1);
+}
+
+function drawMap(c, cs, o) {
+  o = o || {};
+  var small = !!o.small, C = {};
+  ['--m-ground', '--m-block', '--m-block-edge', '--m-park', '--m-road', '--m-dash', '--m-jam', '--m-water', '--m-wave',
+   '--m-bridge', '--m-rail', '--m-explore', '--m-route', '--m-casing'].forEach(function (k) { C[k] = LAB.css(k); });
+
+  c.fillStyle = C['--m-ground']; c.fillRect(0, 0, W * cs, H * cs);
+
+  // city blocks with landmarks
+  var bi = 0;
+  BLOCK_ROWS.forEach(function (by) {
+    for (var bx = 1; bx < W - 1; bx += 4, bi++) {
+      var lm = LANDMARKS[bi], inset = Math.max(1, cs * .18);
+      c.fillStyle = lm === '🌳' ? C['--m-park'] : C['--m-block'];
+      rr(c, bx * cs + inset, by * cs + inset, 3 * cs - 2 * inset, 3 * cs - 2 * inset, Math.max(2, cs * .35)); c.fill();
+      if (!small) {
+        c.strokeStyle = C['--m-block-edge']; c.lineWidth = 1; c.stroke();
+        c.font = Math.round(cs * 1.55) + 'px ' + EMOJI_FONT; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(lm, (bx + 1.5) * cs, (by + 1.6) * cs);
+      }
+    }
+  });
+
+  // roads, jams, water, bridges, blockades
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+    var t = grid[y][x], px = x * cs, py = y * cs;
+    if (t === BUILDING) continue;
+    if (t === WATER) {
+      c.fillStyle = C['--m-water']; c.fillRect(px, py, cs, cs);
+      if (!small && (x + y) % 3 === 0) {
+        c.strokeStyle = C['--m-wave']; c.lineWidth = 1.5; c.beginPath();
+        c.moveTo(px + cs * .15, py + cs * .55); c.quadraticCurveTo(px + cs * .35, py + cs * .3, px + cs * .55, py + cs * .55);
+        c.quadraticCurveTo(px + cs * .75, py + cs * .8, px + cs * .95, py + cs * .55); c.stroke();
+      }
+      continue;
+    }
+    var base = t === BLOCKED ? (original[y * W + x] != null ? original[y * W + x] : ROAD) : t;
+    if (base === BRIDGE) {
+      c.fillStyle = C['--m-bridge']; c.fillRect(px, py, cs, cs);
+      if (!small) {
+        c.strokeStyle = C['--m-rail']; c.lineWidth = 1;
+        for (var p = 1; p < 4; p++) { c.beginPath(); c.moveTo(px, py + p * cs / 4); c.lineTo(px + cs, py + p * cs / 4); c.stroke(); }
+      }
+      c.fillStyle = C['--m-rail']; var rw = Math.max(1.5, cs * .14);
+      c.fillRect(px - rw, py, rw, cs); c.fillRect(px + cs, py, rw, cs);
+    } else {
+      c.fillStyle = base === CONGESTED ? C['--m-jam'] : C['--m-road']; c.fillRect(px, py, cs, cs);
+      if (!small) {
+        var horiz = y % 4 === 0 && x % 4 !== 0, vert = x % 4 === 0 && y % 4 !== 0;
+        if (base === CONGESTED && (x * 7 + y * 3) % 3 === 0 && (horiz || vert)) {
+          // a little stuck car
+          c.fillStyle = CAR_COLORS[(x * 5 + y) % CAR_COLORS.length];
+          var cw = horiz ? cs * .6 : cs * .38, ch = horiz ? cs * .38 : cs * .6;
+          rr(c, px + (cs - cw) / 2, py + (cs - ch) / 2, cw, ch, cs * .1); c.fill();
+          c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1; c.stroke();
+        } else if (horiz || vert) {
+          c.strokeStyle = C['--m-dash']; c.lineWidth = Math.max(1, cs * .08);
+          c.beginPath();
+          if (horiz) { c.moveTo(px + cs * .25, py + cs / 2); c.lineTo(px + cs * .75, py + cs / 2); }
+          else { c.moveTo(px + cs / 2, py + cs * .25); c.lineTo(px + cs / 2, py + cs * .75); }
+          c.stroke();
+        }
+      }
+    }
+    if (t === BLOCKED) {
+      c.save(); c.beginPath(); c.rect(px, py, cs, cs); c.clip();
+      c.fillStyle = '#ffffff'; c.fillRect(px, py, cs, cs);
+      c.strokeStyle = '#dc2626'; c.lineWidth = cs * .22;
+      for (var s = -cs; s < cs * 2; s += cs * .5) { c.beginPath(); c.moveTo(px + s, py + cs); c.lineTo(px + s + cs, py); c.stroke(); }
+      c.restore();
+      c.strokeStyle = '#7f1d1d'; c.lineWidth = 1; c.strokeRect(px + .5, py + .5, cs - 1, cs - 1);
+    }
+  }
+
+  // places the algorithm has checked
+  var r = o.result, phase = o.phase || 'done';
+  if (r) {
+    var n = o.shown == null ? r.order.length : o.shown;
+    var wave = Math.max(6, (o.speed || 6) * 4);
+    c.fillStyle = C['--m-explore'];
+    for (var i = 0; i < n; i++) {
+      var k = r.order[i];
+      c.globalAlpha = phase === 'search' && i >= n - wave ? .8 : .42;
+      c.fillRect((k % W) * cs, Math.floor(k / W) * cs, cs, cs);
+    }
+    c.globalAlpha = 1;
+
+    // the "distance guess" used by A* and Greedy, while they search
+    if (!small && phase === 'search' && (r.alg === 'astar' || r.alg === 'greedy')) {
+      c.save(); c.setLineDash([cs * .4, cs * .3]); c.strokeStyle = LAB.css('--accent-2'); c.lineWidth = 2;
+      c.beginPath(); c.moveTo((start.x + .5) * cs, (start.y + .5) * cs); c.lineTo((goal.x + .5) * cs, (goal.y + .5) * cs); c.stroke();
+      c.restore();
+      pill(c, cs, LAB.t('📏 distance guess', '📏 দূরত্বের আন্দাজ'), (start.x + goal.x + 1) / 2 * cs, (start.y + goal.y + 1) / 2 * cs - cs, { border: LAB.css('--accent-2') });
+    }
+
+    // chosen route
+    if (n >= r.order.length && r.path.length && phase !== 'search') {
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      [[C['--m-casing'], small ? .75 : .62], [C['--m-route'], small ? .45 : .38]].forEach(function (s) {
+        c.strokeStyle = s[0]; c.lineWidth = Math.max(small ? 2 : 4, cs * s[1]);
+        c.beginPath();
+        r.path.forEach(function (k, i) { var px = (k % W + .5) * cs, py = (Math.floor(k / W) + .5) * cs; i ? c.lineTo(px, py) : c.moveTo(px, py); });
+        c.stroke();
+      });
+    }
+  }
+
+  // hover highlight for editing
+  if (o.hover) {
+    c.strokeStyle = mode === 'block' ? '#dc2626' : LAB.css('--accent'); c.lineWidth = 2.5;
+    c.strokeRect(o.hover.x * cs + 1, o.hover.y * cs + 1, cs - 2, cs - 2);
+  }
+
+  // area labels
+  if (!small && cs >= 12) {
+    pill(c, cs, LAB.t('≈ Canal ≈', '≈ খাল ≈'), 14.5 * cs, 10.5 * cs, { bg: C['--m-wave'] });
+    pill(c, cs, LAB.t('← West bridge', '← পশ্চিম সেতু'), 8 * cs, 10.5 * cs, { bg: C['--m-wave'] });
+    pill(c, cs, LAB.t('East bridge →', 'পূর্ব সেতু →'), 20.5 * cs, 10.5 * cs, { bg: C['--m-wave'] });
+    pill(c, cs, LAB.t('🚗 Market area: traffic jams', '🚗 বাজার এলাকা: যানজট'), 18.5 * cs, 16.5 * cs, { bg: C['--m-jam'] });
+    pill(c, cs, LAB.t('🚗 Busy road', '🚗 ব্যস্ত রাস্তা'), 6.5 * cs, 4.5 * cs, { bg: C['--m-jam'] });
+  }
+
+  // depot, station and truck
+  var tp = o.truck || start, ef = EMOJI_FONT;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  if (!small) {
+    c.font = Math.round(cs * 1.5) + 'px ' + ef; c.fillText('🏁', (goal.x + .5) * cs, (goal.y + .4) * cs);
+    var gAbove = goal.y > H / 2;
+    pill(c, cs, LAB.t('Transfer station', 'ট্রান্সফার স্টেশন'), (goal.x + .5) * cs, (goal.y + (gAbove ? -1.1 : 1.6)) * cs, { bold: true });
+    var sBelow = start.y < H / 2;
+    pill(c, cs, LAB.t('Depot', 'ডিপো'), (start.x + .5) * cs, (start.y + (sBelow ? 1.6 : -1.1)) * cs, { bold: true });
+    c.font = Math.round(cs * 1.5) + 'px ' + ef; c.fillText('🚛', (tp.x + .5) * cs, (tp.y + .5) * cs);
+  } else {
+    c.font = Math.round(cs * 2.4) + 'px ' + ef;
+    c.fillText('🏁', (goal.x + .5) * cs, (goal.y + .3) * cs);
+    c.fillText('🚛', (start.x + .9) * cs, (start.y + .9) * cs);
+  }
+}
+
 function resize() {
   var w = canvas.parentElement.clientWidth - 36;
   cell = Math.max(8, Math.floor(w / W));
@@ -162,83 +463,182 @@ function resize() {
   canvas.width = cell * W * dpr; canvas.height = cell * H * dpr;
   canvas.style.width = cell * W + 'px'; canvas.style.height = cell * H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  draw();
+  draw(); renderRace();
 }
-function draw(shown) {
-  var col = {}; [ROAD, BUILDING, WATER, BRIDGE, CONGESTED, BLOCKED].forEach(function (t) {
-    col[t] = LAB.css(['--road', '--building', '--water', '--road', '--congested', '--blocked'][t]);
-  });
-  ctx.fillStyle = LAB.css('--surface-2'); ctx.fillRect(0, 0, W * cell, H * cell);
-  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
-    var t = grid[y][x];
-    ctx.fillStyle = col[t];
-    if (t === BUILDING) ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
-    else ctx.fillRect(x * cell, y * cell, cell, cell);
-    if (t === BRIDGE) { ctx.strokeStyle = LAB.css('--muted'); ctx.lineWidth = 1; ctx.strokeRect(x * cell + 1.5, y * cell + .5, cell - 3, cell - 1); }
-  }
-  if (result) {
-    var n = shown == null ? result.order.length : shown;
-    ctx.fillStyle = LAB.css('--accent'); ctx.globalAlpha = .45;
-    for (var i = 0; i < n; i++) { var k = result.order[i]; ctx.fillRect((k % W) * cell, Math.floor(k / W) * cell, cell, cell); }
-    ctx.globalAlpha = 1;
-    if (n >= result.order.length && result.path.length) {
-      ctx.strokeStyle = LAB.css('--accent-2'); ctx.lineWidth = Math.max(3, cell * .35); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.beginPath();
-      result.path.forEach(function (k, i) { var px = (k % W + .5) * cell, py = (Math.floor(k / W) + .5) * cell; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
-      ctx.stroke();
-    }
-  }
-  ctx.font = Math.round(cell * 1.05) + 'px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('🚛', (start.x + .5) * cell, (start.y + .55) * cell);
-  ctx.fillText('🏁', (goal.x + .5) * cell, (goal.y + .55) * cell);
+function draw() {
+  drawMap(ctx, cell, { result: result, shown: view.shown, phase: view.phase, truck: view.truck, hover: hover, speed: +speedEl.value });
 }
 
-var NAMES = { bfs: 'BFS', dijkstra: 'Dijkstra', astar: 'A*', greedy: 'Greedy' };
-var DESC = {
-  bfs: ['Breadth-first: expands evenly in all directions, counts streets, ignores congestion.', 'ব্রেডথ-ফার্স্ট: সব দিকে সমানভাবে ছড়ায়, রাস্তার সংখ্যা গোনে, যানজট উপেক্ষা করে।'],
-  dijkstra: ['Dijkstra: always expands the place with the lowest travel time so far. Guaranteed fastest, but explores a lot.', 'Dijkstra: সবসময় এখন পর্যন্ত সবচেয়ে কম সময়ের জায়গা থেকে খোঁজে। দ্রুততম পথ নিশ্চিত, তবে অনেক জায়গা খোঁজে।'],
-  astar: ['A*: travel time so far + estimated distance to goal. Fastest route with much less exploring.', 'A*: এ পর্যন্ত যাত্রার সময় + লক্ষ্য পর্যন্ত আনুমানিক দূরত্ব। কম খুঁজেই দ্রুততম পথ।'],
-  greedy: ['Greedy: only looks at distance to the goal. Fast to decide, but may pick a slow route.', 'Greedy: শুধু লক্ষ্য পর্যন্ত দূরত্ব দেখে। দ্রুত সিদ্ধান্ত নেয়, কিন্তু ধীর পথ বেছে নিতে পারে।']
-};
+/* ---------------- Narration ---------------- */
+var speedEl = document.getElementById('speed');
+function $(id) { return document.getElementById(id); }
+function narrate(icon, html) { $('n-icon').textContent = icon; $('n-main').innerHTML = html; }
+function idleNarration() {
+  narrate('👉', LAB.bi('Pick a driver on the right. The computer will check places one by one (teal) until it reaches the station, then the truck drives the route it chose (purple).',
+    'ডান পাশ থেকে একজন চালক বেছে নিন। কম্পিউটার একে একে জায়গা যাচাই করবে (সবুজ-নীল) যতক্ষণ না স্টেশনে পৌঁছায়, তারপর গাড়িটি তার বেছে নেওয়া পথে (বেগুনি) চলবে।'));
+  $('s-exp').textContent = '–'; $('s-cost').textContent = '–'; $('n-formula').innerHTML = ''; $('n-insight').innerHTML = ''; $('n-insight').className = 'insight';
+}
+function minutes(n) { return n + ' <small>' + LAB.bi('min', 'মিনিট') + '</small>'; }
+
+function finishNarration(r) {
+  var I = INFO[r.alg], nick = LAB.bi(I.nick[0], I.nick[1]);
+  var ins = $('n-insight');
+  if (!r.found) {
+    narrate('🚫', LAB.bi('No route exists.', 'কোনো পথ নেই।') + ' <span style="font-weight:400">' +
+      LAB.bi(algLabel(r.alg) + ' checked every reachable place (' + r.order.length + ') and proved there is no way across. A computer cannot invent a road.',
+        algLabel(r.alg) + ' পৌঁছানো যায় এমন সব জায়গা (' + r.order.length + 'টি) যাচাই করে প্রমাণ করেছে যে পার হওয়ার কোনো উপায় নেই। কম্পিউটার নতুন রাস্তা বানাতে পারে না।') + '</span>');
+    $('s-cost').textContent = '—'; $('n-formula').innerHTML = ''; ins.innerHTML = ''; return;
+  }
+  narrate('✅', LAB.bi(algLabel(r.alg) + ' (' + I.nick[0] + ') found a route: <b>' + r.travel + ' min</b> trip, after checking <b>' + r.order.length + '</b> places.',
+    algLabel(r.alg) + ' (' + I.nick[1] + ') একটি পথ পেয়েছে: <b>' + r.travel + ' মিনিটের</b> যাত্রা, <b>' + r.order.length + 'টি</b> জায়গা যাচাই করে।'));
+  $('s-cost').innerHTML = minutes(r.travel);
+  $('n-formula').innerHTML =
+    '<span class="chip clear">' + LAB.bi(r.clear + ' clear block' + (r.clear === 1 ? '' : 's') + ' × 1 min', r.clear + ' ফাঁকা ব্লক × ১ মিনিট') + '</span> + ' +
+    '<span class="chip jam">' + LAB.bi(r.jam + ' jammed block' + (r.jam === 1 ? '' : 's') + ' × 4 min', r.jam + ' যানজটের ব্লক × ৪ মিনিট') + '</span> = ' +
+    '<span class="chip total">' + LAB.bi(r.travel + ' min', r.travel + ' মিনিট') + '</span>';
+
+  var best = ref && ref.found ? ref.travel : r.travel;
+  if (r.travel === best) {
+    var extra = '';
+    if (r.alg !== 'dijkstra' && ref) {
+      var diff = Math.round((1 - r.order.length / ref.order.length) * 100);
+      if (diff > 0) extra = ' ' + LAB.bi('And it checked <b>' + diff + '% fewer places</b> than 🧭 Dijkstra, the careful planner.', 'আর এটি 🧭 Dijkstra-র চেয়ে <b>' + diff + '% কম জায়গা</b> যাচাই করেছে।');
+      else if (diff < 0) extra = ' ' + LAB.bi('But it checked <b>' + (-diff) + '% more places</b> than 🧭 Dijkstra.', 'তবে এটি 🧭 Dijkstra-র চেয়ে <b>' + (-diff) + '% বেশি জায়গা</b> যাচাই করেছে।');
+    }
+    ins.className = 'insight good';
+    ins.innerHTML = '🏆 ' + LAB.bi('This is the <b>fastest possible trip</b>.', 'এটাই <b>সম্ভাব্য দ্রুততম যাত্রা</b>।') + extra;
+  } else {
+    var why = r.alg === 'bfs'
+      ? LAB.bi('🌊 BFS counts <b>blocks, not minutes</b>, so a short road through a jam looks just as good to it.', '🌊 BFS <b>মিনিট নয়, ব্লক</b> গোনে, তাই যানজটের ভেতর দিয়ে ছোট পথও তার কাছে সমান ভালো মনে হয়।')
+      : r.alg === 'greedy'
+        ? LAB.bi('🏃 Greedy only heads <b>toward the station</b>, so it drove straight into the traffic jam.', '🏃 Greedy শুধু <b>স্টেশনের দিকে</b> ছোটে, তাই সোজা যানজটে ঢুকে পড়েছে।')
+        : '';
+    ins.className = 'insight bad';
+    ins.innerHTML = '⚠️ ' + LAB.bi('<b>' + (r.travel - best) + ' min slower</b> than the fastest possible trip (' + best + ' min). ',
+      'সম্ভাব্য দ্রুততম যাত্রার (' + best + ' মিনিট) চেয়ে <b>' + (r.travel - best) + ' মিনিট ধীর</b>। ') + why;
+  }
+}
+
+/* ---------------- Running a search ---------------- */
+var anim = null;
+function stopAnim() { if (anim) cancelAnimationFrame(anim); anim = null; }
 function run(alg) {
-  if (anim) cancelAnimationFrame(anim);
+  stopAnim();
+  if (!ref) ref = search('dijkstra');
   result = search(alg); results[alg] = result;
-  var shown = 0;
-  document.getElementById('s-cost').textContent = '…';
-  document.getElementById('status').innerHTML = LAB.bi(DESC[alg][0], DESC[alg][1]);
+  view = { phase: 'search', shown: 0, truck: null };
+  document.querySelectorAll('.driver').forEach(function (d) { d.classList.toggle('sel', d.dataset.alg === alg); });
+  var I = INFO[alg];
+  narrate('🔍', LAB.bi(algLabel(alg) + ' is searching… <span style="font-weight:400">' + I.how[0] + '</span>', algLabel(alg) + ' খুঁজছে… <span style="font-weight:400">' + I.how[1] + '</span>'));
+  $('s-cost').textContent = '…'; $('n-formula').innerHTML = ''; $('n-insight').innerHTML = ''; $('n-insight').className = 'insight';
+  renderRace();
+  var r = result;
   (function step() {
-    shown = Math.min(result.order.length, shown + +document.getElementById('speed').value);
-    draw(shown);
-    document.getElementById('s-exp').textContent = shown;
-    if (shown < result.order.length) { anim = requestAnimationFrame(step); return; }
-    anim = null;
-    document.getElementById('s-cost').textContent = result.found ? result.travel + ' min' : '—';
-    if (!result.found) document.getElementById('status').innerHTML = '<b>' + LAB.bi('No route exists. The algorithm proved it by exploring every reachable place.', 'কোনো পথ নেই। পৌঁছানো যায় এমন সব জায়গা খুঁজে অ্যালগরিদম তা প্রমাণ করেছে।') + '</b>';
-    renderCmp(alg);
+    view.shown = Math.min(r.order.length, view.shown + +speedEl.value);
+    $('s-exp').textContent = view.shown;
+    if (view.shown < r.order.length) { draw(); anim = requestAnimationFrame(step); return; }
+    if (!r.found) { view.phase = 'done'; draw(); finishNarration(r); renderRace(); anim = null; return; }
+    // the truck drives the chosen route
+    view.phase = 'drive';
+    narrate('🚛', LAB.bi('Route found! The truck is driving it…', 'পথ পাওয়া গেছে! গাড়ি চলছে…'));
+    var t0 = performance.now(), dur = Math.min(3500, Math.max(1200, r.path.length * 40));
+    (function drive(now) {
+      var p = Math.min(1, (now - t0) / dur), f = p * (r.path.length - 1), i = Math.floor(f), j = Math.min(i + 1, r.path.length - 1), u = f - i;
+      var a = r.path[i], b = r.path[j];
+      view.truck = { x: (a % W) * (1 - u) + (b % W) * u, y: Math.floor(a / W) * (1 - u) + Math.floor(b / W) * u };
+      $('s-cost').innerHTML = minutes(Math.round(r.cum[i] + (r.cum[j] - r.cum[i]) * u));
+      draw();
+      if (p < 1) { anim = requestAnimationFrame(drive); return; }
+      view.phase = 'done'; anim = null;
+      finishNarration(r); renderRace();
+    })(t0);
   })();
 }
-function renderCmp(cur) {
-  var best = Infinity;
-  Object.keys(results).forEach(function (a) { if (results[a].found) best = Math.min(best, results[a].travel); });
-  var h = '<tr><th></th><th>' + LAB.bi('Explored', 'যাচাই') + '</th><th>' + LAB.bi('Travel time', 'সময়') + '</th><th>' + LAB.bi('Fastest?', 'দ্রুততম?') + '</th></tr>';
-  ['bfs', 'dijkstra', 'astar', 'greedy'].forEach(function (a) {
-    var r = results[a];
-    h += '<tr class="' + (a === cur ? 'cur' : '') + '"><td>' + NAMES[a] + '</td><td>' + (r ? r.order.length : '–') + '</td><td>' +
-      (r ? (r.found ? r.travel + ' min' : '—') : '–') + '</td><td>' + (r && r.found ? (r.travel === best ? '✅' : '❌') : '') + '</td></tr>';
-  });
-  document.getElementById('cmp').innerHTML = h;
-}
-function invalidate() { result = null; results = {}; renderCmp(); document.getElementById('s-exp').textContent = '–'; document.getElementById('s-cost').textContent = '–'; document.getElementById('status').textContent = ''; draw(); }
 
+function invalidate() {
+  stopAnim();
+  result = null; results = {}; ref = null; view = { phase: 'idle', shown: 0, truck: null };
+  document.querySelectorAll('.driver').forEach(function (d) { d.classList.remove('sel'); });
+  idleNarration(); renderRace(); draw();
+}
+
+/* ---------------- Race: all four side by side ---------------- */
+function renderRace() {
+  var el = $('race');
+  var done = ALGS.filter(function (a) { return results[a] && (results[a] !== result || view.phase === 'done' || view.phase === 'idle'); });
+  var maxExp = 1, maxT = 1, best = Infinity;
+  done.forEach(function (a) { var r = results[a]; maxExp = Math.max(maxExp, r.order.length); if (r.found) { maxT = Math.max(maxT, r.travel); best = Math.min(best, r.travel); } });
+  if (ref && ref.found) best = ref.travel;
+  el.innerHTML = ALGS.map(function (a) {
+    var I = INFO[a], r = done.indexOf(a) >= 0 ? results[a] : null;
+    var cls = r ? (r.found ? (r.travel === best ? 'best' : 'slow') : '') : '';
+    var body;
+    if (!r) body = '<div class="empty">' + (results[a] ? LAB.bi('⏳ Running on the big map…', '⏳ বড় মানচিত্রে চলছে…') : LAB.bi('Not run yet', 'এখনো চালানো হয়নি')) + '</div>';
+    else body = '<canvas data-mini="' + a + '"></canvas>' +
+      '<div class="mbar eff"><span>' + LAB.bi('Checked', 'যাচাই') + '</span><div class="track"><div class="fill" style="width:' + (r.order.length / maxExp * 100).toFixed(1) + '%"></div></div><b>' + r.order.length + '</b></div>' +
+      '<div class="mbar time"><span>' + LAB.bi('Trip', 'যাত্রা') + '</span><div class="track"><div class="fill" style="width:' + (r.found ? r.travel / maxT * 100 : 0).toFixed(1) + '%"></div></div><b>' + (r.found ? LAB.bi(r.travel + ' min', r.travel + ' মি.') : '—') + '</b></div>' +
+      '<div class="verdict">' + (!r.found ? LAB.bi('🚫 No route', '🚫 কোনো পথ নেই') : r.travel === best ? LAB.bi('✅ Fastest trip', '✅ দ্রুততম যাত্রা') : LAB.bi('⚠️ ' + (r.travel - best) + ' min slower', '⚠️ ' + (r.travel - best) + ' মিনিট ধীর')) + '</div>';
+    return '<div class="rc ' + cls + '"><div class="rc-head"><span class="ico">' + I.ico + '</span>' + I.name +
+      '<small class="muted" style="font-weight:500;font-size:.78rem">· ' + LAB.bi(I.nick[0], I.nick[1]) + '</small></div>' + body + '</div>';
+  }).join('');
+  el.querySelectorAll('canvas[data-mini]').forEach(function (cv) {
+    var w = cv.parentElement.clientWidth - 24, cs = Math.max(3, w / W), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(cs * W * dpr); cv.height = Math.round(cs * H * dpr);
+    cv.style.height = (cs * H) + 'px';
+    var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawMap(c, cs, { result: results[cv.dataset.mini], small: true, phase: 'done' });
+  });
+}
+$('b-all').onclick = function () {
+  stopAnim();
+  ref = search('dijkstra');
+  ALGS.forEach(function (a) { results[a] = search(a); });
+  run('astar');
+  renderRace();
+  $('race').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+
+/* ---------------- Driver cards & missions ---------------- */
+$('drivers').innerHTML = ALGS.map(function (a) {
+  var I = INFO[a];
+  return '<button class="driver" data-alg="' + a + '"><span class="ico">' + I.ico + '</span><span><span class="top"><span class="nm">' + I.name +
+    '</span><span class="nick">' + LAB.bi(I.nick[0], I.nick[1]) + '</span><span class="go">' + LAB.bi('▶ Run', '▶ চালান') +
+    '</span></span><span class="how" style="display:block">' + LAB.bi(I.how[0], I.how[1]) + '</span></span></button>';
+}).join('');
+document.querySelectorAll('.driver').forEach(function (b) { b.onclick = function () { markMission(b.dataset.alg); run(b.dataset.alg); }; });
+
+function blockBridge(bx) { for (var y = 9; y <= 11; y++) if (grid[y][bx] === BRIDGE) { original[y * W + bx] = BRIDGE; grid[y][bx] = BLOCKED; } }
+function freshMap() { buildCity(); invalidate(); }
+var MISSIONS = [
+  { id: 'bfs', en: 'Run 🌊 <b>BFS</b>. Does its route avoid the jammed market roads?', bn: '🌊 <b>BFS</b> চালান। এর পথ কি বাজারের যানজট এড়ায়?', act: function () { run('bfs'); } },
+  { id: 'dijkstra', en: 'Run 🧭 <b>Dijkstra</b>. Is the trip faster? How much did it check?', bn: '🧭 <b>Dijkstra</b> চালান। যাত্রা কি দ্রুত হলো? কতটা যাচাই করল?', act: function () { run('dijkstra'); } },
+  { id: 'astar', en: 'Run 🎯 <b>A*</b>. Same trip time, but how much less checking?', bn: '🎯 <b>A*</b> চালান। একই যাত্রার সময়, কিন্তু কত কম যাচাই?', act: function () { run('astar'); } },
+  { id: 'greedy', en: 'Run 🏃 <b>Greedy</b>. Why is its trip slower?', bn: '🏃 <b>Greedy</b> চালান। এর যাত্রা ধীর কেন?', act: function () { run('greedy'); } },
+  { id: 'west', en: '🚧 <b>Close the west bridge</b> for repairs. What does A* do now?', bn: '🚧 মেরামতের জন্য <b>পশ্চিম সেতু বন্ধ</b> করুন। A* এখন কী করে?', act: function () { buildCity(); blockBridge(4); invalidate(); run('astar'); } },
+  { id: 'both', en: '🚧🚧 <b>Close both bridges</b>. Can any method find a way?', bn: '🚧🚧 <b>দুটি সেতুই বন্ধ</b> করুন। কোনো পদ্ধতি কি পথ পাবে?', act: function () { buildCity(); blockBridge(4); blockBridge(24); invalidate(); run('astar'); } }
+];
+var doneMissions = {};
+function markMission(id) { doneMissions[id] = true; renderMissions(); }
+function renderMissions() {
+  $('missions').innerHTML = MISSIONS.map(function (m, i) {
+    return '<li class="' + (doneMissions[m.id] ? 'done' : '') + '"><span class="num">' + (doneMissions[m.id] ? '✓' : i + 1) + '</span><span>' +
+      LAB.bi(m.en, m.bn) + '</span><button class="btn" data-m="' + i + '">▶</button></li>';
+  }).join('');
+  document.querySelectorAll('[data-m]').forEach(function (b) {
+    b.onclick = function () { var m = MISSIONS[+b.dataset.m]; markMission(m.id); m.act(); };
+  });
+}
+
+/* ---------------- Editing the map ---------------- */
 var painting = null;
 function cellAt(e) { var r = canvas.getBoundingClientRect(); return { x: Math.floor((e.clientX - r.left) / (r.width / W)), y: Math.floor((e.clientY - r.top) / (r.height / H)) }; }
+function inside(c) { return c.x >= 0 && c.y >= 0 && c.x < W && c.y < H; }
+function isEnd(c) { return (c.x === start.x && c.y === start.y) || (c.x === goal.x && c.y === goal.y); }
 canvas.addEventListener('pointerdown', function (e) {
-  var c = cellAt(e); if (c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) return;
+  var c = cellAt(e); if (!inside(c)) return;
   var t = grid[c.y][c.x];
   if (mode === 'block') {
-    if (t === BUILDING || t === WATER) return;
-    if ((c.x === start.x && c.y === start.y) || (c.x === goal.x && c.y === goal.y)) return;
+    if (t === BUILDING || t === WATER || isEnd(c)) return;
     painting = t === BLOCKED ? 'unblock' : 'block';
     paint(c); canvas.setPointerCapture(e.pointerId);
   } else if (passable(c.x, c.y)) {
@@ -246,30 +646,35 @@ canvas.addEventListener('pointerdown', function (e) {
     invalidate();
   }
 });
-canvas.addEventListener('pointermove', function (e) { if (painting) paint(cellAt(e)); });
+canvas.addEventListener('pointermove', function (e) {
+  var c = cellAt(e);
+  if (painting) { paint(c); return; }
+  var t = inside(c) ? grid[c.y][c.x] : -1;
+  var ok = mode === 'block' ? (t !== -1 && t !== BUILDING && t !== WATER && !isEnd(c)) : inside(c) && passable(c.x, c.y);
+  var nh = ok ? c : null;
+  if ((nh && hover && nh.x === hover.x && nh.y === hover.y) || (!nh && !hover)) return;
+  hover = nh; canvas.style.cursor = ok ? 'pointer' : 'crosshair';
+  if (!anim) draw();
+});
+canvas.addEventListener('pointerleave', function () { hover = null; if (!anim) draw(); });
 window.addEventListener('pointerup', function () { painting = null; });
-var original = {};
 function paint(c) {
-  if (c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) return;
+  if (!inside(c) || isEnd(c)) return;
   var k = c.y * W + c.x, t = grid[c.y][c.x];
-  if ((c.x === start.x && c.y === start.y) || (c.x === goal.x && c.y === goal.y)) return;
   if (painting === 'block' && [ROAD, BRIDGE, CONGESTED].indexOf(t) >= 0) { original[k] = t; grid[c.y][c.x] = BLOCKED; invalidate(); }
   if (painting === 'unblock' && t === BLOCKED) { grid[c.y][c.x] = original[k] != null ? original[k] : ROAD; invalidate(); }
 }
 document.querySelectorAll('[data-mode]').forEach(function (b) {
   b.onclick = function () { mode = b.dataset.mode; document.querySelectorAll('[data-mode]').forEach(function (o) { o.classList.toggle('on', o === b); }); };
 });
-document.querySelectorAll('[data-alg]').forEach(function (b) { b.onclick = function () { run(b.dataset.alg); }; });
-function blockBridge(bx) { for (var y = 9; y <= 11; y++) if (grid[y][bx] === BRIDGE) { original[y * W + bx] = BRIDGE; grid[y][bx] = BLOCKED; } }
-document.getElementById('b-one').onclick = function () { blockBridge(4); invalidate(); run('astar'); };
-document.getElementById('b-both').onclick = function () { blockBridge(4); blockBridge(24); invalidate(); run('astar'); };
-document.getElementById('b-reset').onclick = function () { buildCity(); original = {}; invalidate(); };
+$('b-reset').onclick = freshMap;
 
-buildCity(); renderCmp();
+/* ---------------- Boot ---------------- */
+buildCity(); renderMissions(); idleNarration();
 window.addEventListener('resize', resize);
 document.addEventListener('labresize', resize);
-document.addEventListener('themechange', function () { draw(); });
-LAB.onLang(function () { renderCmp(); });
+document.addEventListener('themechange', function () { draw(); renderRace(); });
+LAB.onLang(function () { draw(); renderRace(); if (result && view.phase === 'done') finishNarration(result); });
 resize();
 </script>
 </body>

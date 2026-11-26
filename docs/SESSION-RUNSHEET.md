@@ -110,10 +110,10 @@ Follow the steps under Experiment 7 on the home page.
 
 ### 8. Traffic signal (offline)
 1. **Watch both** before training. The untrained agent never switches, and the side road piles up.
-2. **Train 30 rush hours**: the curve drops below the fixed timer (about 5 s vs 13 s average wait).
-3. **Watch both** again, and show the strategy table (K/S).
-4. Point at the **safety rules** box. The agent can never shorten a green or skip yellow.
-5. **Break it:** choose *"main road only"* as the reward and train. The side road waits forever.
+2. Click **Train 30 episodes**. Each point tests the current policy on the same 12 traffic runs, which are separate from training. Compare wait, the share of cars that cleared, and the number of runs in which the agent had less wait than the demand-adjusted timer.
+3. **Watch both** again and select a cell in the strategy table (K/S) to inspect both Q-values and how often each action was tried.
+4. Point at the **safety rules** box. Both controllers enforce the 6 s minimum green, 3 s yellow, and 1 s all-red clearance.
+5. Choose **Main road only (N–S)** and train again. Compare the East–West delay and the share of cars that cleared.
    Ask: "Who decides the reward in a real city?"
 
 ### 9. Next-word prediction (offline)

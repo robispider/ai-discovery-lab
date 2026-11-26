@@ -3,17 +3,289 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Waste Demand Regression</title>
+<title>Waste Demand Regression — City Corporation Fleet Planner</title>
 <link rel="stylesheet" href="../assets/lab.css">
 <style>
-  #plot .pt { fill: var(--accent); opacity: .65; }
-  #plot .pt.out { fill: var(--yes); opacity: .9; }
-  #plot .fit { stroke: var(--accent-2); stroke-width: 3.5; }
-  #plot .res { stroke: var(--yes); stroke-width: 1; opacity: .55; }
-  #plot .nodata { fill: var(--accent-2-soft); opacity: .6; }
-  #plot .newpt { fill: var(--accent-2); stroke: var(--surface); stroke-width: 2; }
-  .check { display: flex; gap: 10px; align-items: center; cursor: pointer; }
-  .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+  /* ---------- ward street-scene palette (page-local, light & dark themes, matching tree.html) ---------- */
+  :root {
+    --s-sky1: #8bc1e3; --s-sky2: #eef4f7; --s-sun: #fbbf24; --s-cloud: #ffffff;
+    --s-ground: #c8beaa; --s-side: #ddd5c5; --s-road: #555e6c; --s-dash: #f8fafc;
+    --s-wall: #f0e4ce; --s-wall2: #d9c8aa; --s-win: #7ca8c9; --s-edge: #8c7b60; --s-tank: #1f2937;
+    --s-shutter: #9ca3af; --s-awning1: #c2410c; --s-awning2: #0f766e; --s-awning3: #b45309;
+    --s-sts: #0f766e; --s-sts-wall: #e2ebe8; --s-waste: #6b635b; --s-waste-hi: #9a9086;
+    --s-truck: #0f766e; --s-truck-d: #115e59; --s-cab: #f59e0b; --s-glass: #dbeafe;
+    --s-pole: #57534e; --s-wire: #374151; --s-tree: #4d7c0f;
+    --c-warn-bg: rgba(194,65,12,.11); --c-warn-stripe: rgba(194,65,12,.18);
+    --c-ghost: #94a3b8; --c-grid: #e3ded2; --c-tooltip: #ffffff;
+  }
+  :root[data-theme="dark"] {
+    --s-sky1: #0c1726; --s-sky2: #1f2d42; --s-sun: #fcd34d; --s-cloud: #3f4f66;
+    --s-ground: #373c46; --s-side: #474d59; --s-road: #2b323d; --s-dash: #94a3b8;
+    --s-wall: #434b5c; --s-wall2: #353c4b; --s-win: #fcd34d; --s-edge: #242a35; --s-tank: #0b0f14;
+    --s-shutter: #64748b; --s-awning1: #fb923c; --s-awning2: #2dd4bf; --s-awning3: #f59e0b;
+    --s-sts: #14b8a6; --s-sts-wall: #243339; --s-waste: #575049; --s-waste-hi: #7c736a;
+    --s-truck: #14b8a6; --s-truck-d: #0f766e; --s-cab: #fbbf24; --s-glass: #1e3a5f;
+    --s-pole: #78716c; --s-wire: #9ca3af; --s-tree: #65a30d;
+    --c-warn-bg: rgba(251,146,60,.12); --c-warn-stripe: rgba(251,146,60,.22);
+    --c-ghost: #64748b; --c-grid: #293241; --c-tooltip: #1b212b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --s-sky1: #0c1726; --s-sky2: #1f2d42; --s-sun: #fcd34d; --s-cloud: #3f4f66;
+      --s-ground: #373c46; --s-side: #474d59; --s-road: #2b323d; --s-dash: #94a3b8;
+      --s-wall: #434b5c; --s-wall2: #353c4b; --s-win: #fcd34d; --s-edge: #242a35; --s-tank: #0b0f14;
+      --s-shutter: #64748b; --s-awning1: #fb923c; --s-awning2: #2dd4bf; --s-awning3: #f59e0b;
+      --s-sts: #14b8a6; --s-sts-wall: #243339; --s-waste: #575049; --s-waste-hi: #7c736a;
+      --s-truck: #14b8a6; --s-truck-d: #0f766e; --s-cab: #fbbf24; --s-glass: #1e3a5f;
+      --s-pole: #78716c; --s-wire: #9ca3af; --s-tree: #65a30d;
+      --c-warn-bg: rgba(251,146,60,.12); --c-warn-stripe: rgba(251,146,60,.22);
+      --c-ghost: #64748b; --c-grid: #293241; --c-tooltip: #1b212b;
+    }
+  }
+
+  section { margin-top: 18px; }
+  .cycle > span span { border: 0; padding: 0; background: none; border-radius: 0; }
+  .sec-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sec-h h2 { margin: 0; }
+  .sec-h .spacer { flex: 1; }
+  .tag { font-size: .75rem; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); font-weight: 600; }
+
+  /* ---------- ① hero: animated ward morning scene ---------- */
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+  @media (max-width: 920px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+  .scene { position: relative; border-radius: 12px; overflow: hidden; container-type: inline-size; background: var(--s-sky2); }
+  .scene svg { width: 100%; height: auto; display: block; }
+  .scene .sky-a { stop-color: var(--s-sky1); } .scene .sky-b { stop-color: var(--s-sky2); }
+  #sun circle { fill: var(--s-sun); }
+  #sun line { stroke: var(--s-sun); stroke-width: 3; stroke-linecap: round; }
+  .cloud { animation: drift 42s ease-in-out infinite alternate; }
+  .cloud.c2 { animation-duration: 55s; animation-delay: -18s; }
+  .cloud ellipse { fill: var(--s-cloud); opacity: .9; }
+  @keyframes drift { from { transform: translateX(-36px); } to { transform: translateX(52px); } }
+  .ground { fill: var(--s-ground); } .side { fill: var(--s-side); }
+  .road { fill: var(--s-road); }
+  .dash { stroke: var(--s-dash); stroke-width: 2.5; stroke-dasharray: 20 16; animation: roadmove 1.1s linear infinite; }
+  @keyframes roadmove { to { stroke-dashoffset: -36; } }
+  .wall { fill: var(--s-wall); stroke: var(--s-edge); } .wall2 { fill: var(--s-wall2); stroke: var(--s-edge); }
+  .win { fill: var(--s-win); } .tank { fill: var(--s-tank); } .shutter { fill: var(--s-shutter); }
+  .pole { fill: var(--s-pole); } .wire { stroke: var(--s-wire); stroke-width: 1.2; fill: none; opacity: .75; }
+  .sts-wall { fill: var(--s-sts-wall); stroke: var(--s-sts); stroke-width: 2.5; }
+  .sts-roof { fill: var(--s-sts); }
+  .waste-mound { fill: var(--s-waste); transition: d .35s; }
+  .waste-hi { fill: var(--s-waste-hi); }
+  .s-label { font: 700 13px var(--font); fill: var(--text); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  .bldg-g { transition: opacity .45s, transform .55s cubic-bezier(.3, 1.3, .5, 1); transform-origin: bottom center; }
+  .shop-g { transition: opacity .45s; }
+  .overflow-g { transition: opacity .4s; }
+  .caution-bar { opacity: 0; transition: opacity .4s; }
+  .caution-bar.on { opacity: 1; }
+  .ex-puff { fill: var(--muted); opacity: .35; animation: puff 1.2s ease-out infinite; }
+  @keyframes puff { from { transform: translate(0, 0) scale(.6); opacity: .45; } to { transform: translate(-22px, -12px) scale(1.6); opacity: 0; } }
+
+  /* Floating forecast chip (matching tree.html) */
+  .forecast {
+    position: absolute; right: 10px; top: 10px; display: flex; gap: 9px; align-items: center; max-width: 56%;
+    background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; padding: 7px 12px 8px; box-shadow: var(--shadow);
+    transition: border-color .4s;
+  }
+  .forecast.warn { border-color: var(--accent-2); }
+  .forecast.bad { border-color: var(--yes); }
+  .forecast .av { font-size: 1.7rem; line-height: 1; }
+  .forecast .k { font-size: .72rem; color: var(--muted); }
+  .forecast .v { font-weight: 800; font-size: .98rem; line-height: 1.25; font-variant-numeric: tabular-nums; }
+  .meter { height: 7px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin-top: 4px; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 4px; transition: width .6s, background .4s; }
+  .forecast.warn .meter i { background: var(--accent-2); }
+  .forecast.bad .meter i { background: var(--yes); }
+
+  /* Cartoon speech bubbles over characters (exact tree.html signature) */
+  .bubble {
+    position: absolute; max-width: 34%; padding: 7px 11px; border-radius: 14px; font-size: .8rem; line-height: 1.3;
+    background: var(--surface); color: var(--text); border: 2px solid var(--text); box-shadow: var(--shadow);
+    transform: translateX(-24px);
+  }
+  .bubble::after {
+    content: ""; position: absolute; left: 18px; bottom: -11px; width: 14px; height: 14px; background: var(--surface);
+    border-right: 2px solid var(--text); border-bottom: 2px solid var(--text); transform: skewX(28deg) rotate(45deg) scale(.8);
+  }
+  .bubble.right-tail::after { left: auto; right: 20px; transform: skewX(-28deg) rotate(45deg) scale(.8); }
+  .bubble .who { display: block; font-size: .68rem; font-weight: 700; color: var(--muted); }
+  .pop { animation: pop .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+  @keyframes pop { from { opacity: 0; transform: translateX(-24px) scale(.75); } to { opacity: 1; transform: translateX(-24px) scale(1); } }
+  @container (max-width: 520px) {
+    .bubble { font-size: .68rem; max-width: 44%; padding: 5px 8px; }
+    #bub-drv { display: none; }
+    .forecast { padding: 4px 8px; } .forecast .av { font-size: 1.2rem; } .forecast .v { font-size: .8rem; }
+  }
+
+  /* Hero controls */
+  .clue { margin-bottom: 12px; }
+  .clue .top { display: flex; align-items: baseline; gap: 6px; font-size: .92rem; }
+  .clue .ico { font-size: 1.25rem; }
+  .clue .nm { font-weight: 700; }
+  .clue .val { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .clue .word { font-size: .8rem; color: var(--muted); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .seg .btn { font-size: .84rem; padding: 7px 8px; }
+  .seg .btn.on { background: var(--accent-soft); outline: 2px solid var(--accent); font-weight: 600; }
+  .mini-ops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+  .mini-op { background: var(--surface-2); border-radius: 9px; padding: 6px 8px; text-align: center; }
+  .mini-op .k { font-size: .7rem; color: var(--muted); }
+  .mini-op .v { font-size: 1.02rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .presets { display: grid; gap: 6px; margin-top: 10px; }
+  .presets .btn { text-align: left; font-size: .84rem; padding: 7px 10px; }
+  .presets .btn.active { border-color: var(--accent-2); background: var(--accent-2-soft); font-weight: 600; }
+
+  /* ---------- narrator bubbles (exact tree.html pattern) ---------- */
+  .talk { display: flex; gap: 10px; align-items: flex-start; }
+  .talk .avatar {
+    flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 1.55rem;
+    background: var(--accent-soft); border: 2px solid var(--accent);
+  }
+  .talk .avatar.person { background: var(--accent-2-soft); border-color: var(--accent-2); }
+  .talk .say {
+    position: relative; flex: 1; background: var(--surface); border: 2px solid var(--border); border-radius: 14px;
+    padding: 9px 13px; font-size: .96rem; min-height: 46px;
+  }
+  .talk .say::before {
+    content: ""; position: absolute; left: -9px; top: 14px; width: 14px; height: 14px; background: var(--surface);
+    border-left: 2px solid var(--border); border-bottom: 2px solid var(--border); transform: rotate(45deg);
+  }
+  .talk .say.pop { animation: sayin .4s ease both; }
+  @keyframes sayin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .talk .who { font-size: .72rem; font-weight: 700; color: var(--muted); display: block; }
+  .talk + .talk { margin-top: 10px; }
+  .q-chip { display: inline-block; padding: 1px 9px; border-radius: 99px; background: var(--accent-2-soft); font-weight: 700; font-family: ui-monospace, Consolas, monospace; font-size: .88rem; }
+  .yes-t { color: var(--yes); font-weight: 700; } .ok-t { color: var(--ok); font-weight: 700; } .warn-t { color: var(--accent-2); font-weight: 700; }
+
+  /* ---------- ② explore: stamped ward cards + animated seesaw explainer ---------- */
+  .recs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 560px) { .recs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .rec {
+    position: relative; border: 2px solid var(--border); border-radius: 12px; padding: 8px 10px 36px; background: var(--surface);
+    font-size: .81rem; overflow: hidden; animation: cardin .45s both;
+  }
+  @keyframes cardin { from { opacity: 0; transform: translateY(10px) rotate(-2deg); } to { opacity: 1; transform: none; } }
+  .rec .h { font-size: .74rem; color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rec .cl { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stamp {
+    position: absolute; right: 8px; bottom: 6px; font-weight: 800; font-size: .72rem; padding: 2px 8px; border-radius: 6px;
+    border: 2px solid var(--accent); color: var(--accent); background: var(--accent-soft);
+    transform: rotate(-5deg); animation: stamp .4s cubic-bezier(.3, 1.6, .5, 1) both; letter-spacing: .01em;
+  }
+  .stamp.mkt { color: var(--yes); border-color: var(--yes); background: var(--yes-soft); }
+  @keyframes stamp { from { opacity: 0; transform: rotate(-5deg) scale(2); } to { opacity: 1; transform: rotate(-5deg) scale(1); } }
+  .rec.bazaar-card { border-style: dashed; border-color: var(--yes); }
+  .rec .note { position: absolute; left: 8px; bottom: 7px; font-size: .68rem; font-weight: 700; color: var(--yes); }
+
+  /* Mini animated seesaw explainer (parallel to tree.html's .sorter) */
+  .seesaw-box { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
+  .seesaw-svg { width: 100%; height: auto; max-height: 155px; margin-top: 6px; }
+  .seesaw-line { stroke: var(--accent-2); stroke-width: 3.5; stroke-linecap: round; transform-origin: 150px 72px; animation: balance 5.5s ease-in-out infinite; }
+  @keyframes balance {
+    0%, 12% { transform: translateY(34px) rotate(14deg); }
+    32% { transform: translateY(8px) rotate(-6deg); }
+    52%, 86% { transform: translateY(0px) rotate(0deg); }
+    100% { transform: translateY(34px) rotate(14deg); }
+  }
+  .seesaw-err { stroke: var(--yes); stroke-width: 1.5; stroke-dasharray: 3 3; animation: errfade 5.5s ease-in-out infinite; }
+  @keyframes errfade { 0%, 15% { opacity: .95; } 52%, 86% { opacity: .18; } 100% { opacity: .95; } }
+
+  /* ---------- ③ train: interactive plot + hand-fit + loss curve ---------- */
+  #trainsec .talk { position: sticky; top: 56px; z-index: 6; background: var(--surface); padding: 6px 0; }
+  .train-grid { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 16px; align-items: start; margin-top: 10px; }
+  @media (max-width: 920px) { .train-grid { grid-template-columns: minmax(0, 1fr); } }
+  .plot-wrap { position: relative; }
+  #plot { width: 100%; height: auto; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); cursor: crosshair; touch-action: none; }
+  .plot-tip {
+    position: absolute; pointer-events: none; z-index: 5; background: var(--c-tooltip); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 8px 11px; font-size: .82rem; line-height: 1.38; box-shadow: 0 6px 20px rgba(0,0,0,.15);
+    max-width: 245px; transition: opacity .12s; opacity: 0;
+  }
+  .plot-tip.show { opacity: 1; }
+  .plot-tip .t-head { font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .plot-tip .t-tag { font-size: .72rem; padding: 1px 6px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font-weight: 600; }
+  .plot-tip .t-tag.mkt { background: var(--yes-soft); color: var(--yes); }
+
+  .legend { display: flex; gap: 8px 14px; flex-wrap: wrap; font-size: .82rem; color: var(--muted); margin-top: 8px; align-items: center; }
+  .legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+  .dot.ward { background: var(--accent); opacity: .8; }
+  .dot.mkt { background: var(--yes); box-shadow: 0 0 0 2px var(--yes-soft); }
+  .dot.new { background: var(--accent-2); border: 2px solid var(--surface); box-shadow: 0 0 0 2px var(--accent-2); }
+  .line-sw { width: 20px; height: 4px; border-radius: 2px; display: inline-block; background: var(--accent-2); }
+  .line-sw.ghost { background: transparent; border-top: 3px dashed var(--c-ghost); height: 0; }
+  .line-sw.err { width: 14px; height: 2px; background: var(--yes); }
+
+  .ctrl-card { background: var(--surface-2); border-radius: 12px; padding: 14px; }
+  .step-badge {
+    display: inline-flex; align-items: center; font-size: .78rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 99px; background: var(--surface); border: 1px solid var(--border); font-variant-numeric: tabular-nums;
+  }
+  .step-badge.running { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .step-badge.hand { background: var(--accent-2-soft); border-color: var(--accent-2); color: var(--accent-2); }
+  .check { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: .88rem; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .speed-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .82rem; color: var(--muted); }
+  #loss { margin-top: 8px; width: 100%; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); }
+
+  /* ---------- ④ evaluate: animated rings + 4 municipal tiles (exact tree.html layout) ---------- */
+  .eval { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .eval { grid-template-columns: minmax(0, 1fr); } }
+  .rings { display: flex; gap: 14px; justify-content: center; }
+  .ring { position: relative; width: 136px; text-align: center; }
+  .ring svg { width: 136px; height: 136px; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 12; }
+  .ring .bg { stroke: var(--surface-2); }
+  .ring .fg { stroke-linecap: round; stroke-dasharray: 314.16; stroke-dashoffset: 314.16; transition: stroke-dashoffset .85s cubic-bezier(.3, .8, .3, 1), stroke .4s; }
+  .ring.r2 .fg { stroke: var(--accent); }
+  .ring.r2.low .fg { stroke: var(--yes); }
+  .ring.tk .fg { stroke: var(--accent-2); }
+  .ring .v { position: absolute; top: 41px; left: 0; right: 0; font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .ring .k { font-size: .8rem; color: var(--muted); line-height: 1.3; }
+
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 520px) { .tiles { grid-template-columns: 1fr; } }
+  .tile { border-radius: 12px; padding: 10px 12px; border: 2px solid transparent; }
+  .tile.good { background: var(--accent-soft); }
+  .tile.bad { background: var(--accent-2-soft); }
+  .tile.worst { border-color: var(--yes); }
+  .tile.neutral { background: var(--surface-2); }
+  .tile .t { font-weight: 700; font-size: .9rem; }
+  .tile .n { font-size: 1.75rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px; }
+  .tile .n small { font-size: .8rem; color: var(--muted); font-weight: 600; }
+  .tile .d { font-size: .79rem; color: var(--muted); line-height: 1.3; }
+  .tile .tb { height: 6px; border-radius: 3px; background: rgba(127, 127, 127, .2); margin: 5px 0; overflow: hidden; }
+  .tile .tb i { display: block; height: 100%; background: var(--text); opacity: .55; transition: width .7s; }
+
+  /* ---------- ⑤ break it (exact tree.html cards + toggle switch + visual truck reality check) ---------- */
+  .bk { display: flex; flex-direction: column; }
+  .bk .big { font-size: 2.1rem; line-height: 1; }
+  .bk .btn { align-self: flex-start; margin-top: auto; }
+  .switch { display: flex; gap: 10px; align-items: center; cursor: pointer; font-size: .95rem; font-weight: 600; }
+  .switch input { appearance: none; width: 46px; height: 26px; border-radius: 99px; background: var(--border); position: relative; cursor: pointer; flex: none; transition: background .3s; }
+  .switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .3s; }
+  .switch input:checked { background: var(--yes); } .switch input:checked::after { left: 23px; }
+
+  .bazaar-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .bazaar-chip { font-size: .75rem; padding: 2px 8px; border-radius: 99px; background: var(--surface); border: 1px solid var(--yes); }
+  .fleet-grp { margin-top: 10px; background: var(--surface); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--border); }
+  .fleet-grp .gh { display: flex; justify-content: space-between; font-size: .86rem; font-weight: 700; gap: 8px; flex-wrap: wrap; }
+  .fleet-icons { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .tr-ic {
+    display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 26px; border-radius: 6px;
+    font-size: 1rem; animation: hsin .35s both; border: 1.5px solid transparent;
+  }
+  .tr-ic.ok { background: var(--accent-soft); border-color: var(--accent); }
+  .tr-ic.extra { background: var(--accent-2-soft); border-color: var(--accent-2); }
+  .tr-ic.miss { background: var(--yes-soft); border-color: var(--yes); border-style: dashed; }
+  @keyframes hsin { from { opacity: 0; transform: translateY(-8px) scale(.85); } }
+  .legend-t { font-size: .78rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .legend-t i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
+  }
 </style>
 </head>
 <body>
@@ -21,67 +293,329 @@
 <main class="wrap">
   <h1>4 · <span lang="en">Predict daily waste for a ward (regression)</span><span lang="bn">ওয়ার্ডের দৈনিক বর্জ্যের পূর্বাভাস (রিগ্রেশন)</span></h1>
   <p class="lead">
-    <span lang="en">AI can predict <b>numbers</b>, not just categories. Using 120 wards, the machine finds the line that best predicts tonnes of waste per day, so the city can plan trucks and staff for a new ward.</span>
-    <span lang="bn">এআই শুধু শ্রেণি নয়, <b>সংখ্যাও</b> অনুমান করতে পারে। ১২০টি ওয়ার্ডের তথ্য থেকে যন্ত্র এমন একটি রেখা খুঁজে বের করে যা দৈনিক কত টন বর্জ্য হবে তা সবচেয়ে ভালোভাবে অনুমান করে, যাতে নতুন ওয়ার্ডের জন্য গাড়ি ও কর্মী পরিকল্পনা করা যায়।</span>
+    <span lang="en">Every morning, the City Corporation Conservancy Department must decide how many <b>5-tonne compactor trucks</b> to send to each ward — too few leaves garbage piling up on the street; too many wastes fuel. In Experiment 3, AI predicted a category (flood / dry). Here, using <b>120 city wards</b>, AI learns a line that predicts an exact <b>number</b> (tonnes of waste per day).</span>
+    <span lang="bn">প্রতিদিন সকালে সিটি কর্পোরেশনের বর্জ্য ব্যবস্থাপনা বিভাগকে ঠিক করতে হয় প্রতিটি ওয়ার্ডে কয়টি <b>৫-টনের কম্প্যাক্টর গাড়ি</b> পাঠাবে — কম পাঠালে রাস্তায় ময়লা জমে, বেশি পাঠালে জ্বালানি অপচয় হয়। ৩ নম্বর পরীক্ষায় এআই শ্রেণি (পানি জমবে / শুকনো) অনুমান করেছিল। এখানে <b>১২০টি ওয়ার্ডের</b> তথ্য থেকে এআই এমন একটি রেখা শেখে যা সঠিক <b>সংখ্যা</b> (দৈনিক কত টন বর্জ্য) অনুমান করে।</span>
   </p>
+  <div id="cycle"></div>
 
-  <div class="main-side">
-    <div class="card">
-      <div class="row">
-        <span class="muted"><span lang="en">Predict from:</span><span lang="bn">যেটি থেকে অনুমান:</span></span>
-        <button class="btn on" data-x="pop"><span lang="en">Population</span><span lang="bn">জনসংখ্যা</span></button>
-        <button class="btn" data-x="biz"><span lang="en">Number of businesses</span><span lang="bn">ব্যবসাপ্রতিষ্ঠানের সংখ্যা</span></button>
-      </div>
-      <svg id="plot" class="chart" style="margin-top:10px"></svg>
-      <label class="check" style="margin-top:6px"><input type="checkbox" id="showres"> <span><span lang="en">Show prediction errors (red lines)</span><span lang="bn">অনুমানের ভুল দেখাও (লাল রেখা)</span></span></label>
+  <!-- ① + ⑥ : THE WARD MORNING STREET SCENE -->
+  <section>
+    <div class="sec-h">
+      <h2>① <span lang="en">Tomorrow morning in a newly annexed ward</span><span lang="bn">নতুন যুক্ত একটি ওয়ার্ডে আগামীকাল সকাল</span></h2>
+      <span class="tag">⑥ <span lang="en">live forecast from the learned line</span><span lang="bn">শেখা রেখার সরাসরি পূর্বাভাস</span></span>
     </div>
 
-    <div class="stack">
-      <div class="card">
-        <h3><span lang="en">Train</span><span lang="bn">শেখাই</span></h3>
-        <div class="row">
-          <button class="btn primary" id="gd">▶ <span lang="en">Learn step by step</span><span lang="bn">ধাপে ধাপে শেখো</span></button>
-          <button class="btn" id="ols"><span lang="en">Best fit instantly</span><span lang="bn">সরাসরি সেরা রেখা</span></button>
+    <div class="hero">
+      <div class="card" style="padding:10px">
+        <div class="scene" id="scene">
+          <svg id="ward-svg" viewBox="0 0 800 420" role="img" aria-label="Animated Bangladeshi City Corporation ward street in the morning: apartments, shops, Secondary Transfer Station with waste mound, and 5-tonne compactor trucks driving to the landfill."></svg>
+          <div class="forecast" id="forecast">
+            <span class="av">📏</span>
+            <div>
+              <div class="k"><span lang="en">The line's forecast</span><span lang="bn">রেখার পূর্বাভাস</span></div>
+              <div class="v" id="fc-v">–</div>
+              <div class="meter"><i id="fc-m"></i></div>
+            </div>
+          </div>
+          <div class="bubble right-tail" id="bub-sup"></div>
+          <div class="bubble" id="bub-drv"></div>
         </div>
-        <svg id="loss" style="margin-top:8px"></svg>
-        <p class="muted" style="font-size:.82rem;margin:0"><span lang="en">Average squared error while learning: it should go down.</span><span lang="bn">শেখার সময় গড় বর্গ-ভুল: এটি কমা উচিত।</span></p>
-      </div>
-      <div class="card">
-        <h3><span lang="en">Evaluate</span><span lang="bn">যাচাই</span></h3>
-        <div class="stats">
-          <div class="stat"><div class="k"><span lang="en">Average error</span><span lang="bn">গড় ভুল</span></div><div class="v" id="mae">–</div></div>
-          <div class="stat"><div class="k"><span lang="en">Variation explained (R²)</span><span lang="bn">ব্যাখ্যাকৃত তারতম্য (R²)</span></div><div class="v" id="r2">–</div></div>
+        <div class="talk" style="margin-top:10px">
+          <div class="avatar">📏</div>
+          <div class="say" id="say-hero"></div>
         </div>
-        <p id="eq" style="margin:.8em 0 0;font-size:.95rem"></p>
       </div>
-      <div class="card">
-        <h3><span lang="en">Use: plan for a new ward</span><span lang="bn">ব্যবহার: নতুন ওয়ার্ডের পরিকল্পনা</span></h3>
-        <label class="ctl"><span id="newlabel"></span><input type="range" id="newx" min="0" max="300" value="60"></label>
-        <div class="big-result" id="newy">–</div>
-        <p class="muted" id="newnote" style="font-size:.88rem;margin:0"></p>
-      </div>
-    </div>
-  </div>
 
-  <div class="grid2" style="margin-top:16px">
-    <div class="callout break">
-      <div class="label"><span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
-      <label class="check"><input type="checkbox" id="outliers"> <span><span lang="en">Add 5 market wards: few residents, huge waste</span><span lang="bn">৫টি বাজার-ওয়ার্ড যোগ করুন: বাসিন্দা কম, বর্জ্য বিপুল</span></span></label>
-      <p style="margin:.6em 0 0"><span lang="en">Then press "Best fit" again: a few unusual wards pull the whole line. Also move the new-ward slider far to the right: the model happily predicts for wards far larger than any it has seen.</span>
-      <span lang="bn">তারপর আবার "সরাসরি সেরা রেখা" চাপুন: অল্প কয়েকটি ব্যতিক্রমী ওয়ার্ড পুরো রেখাকে টেনে সরিয়ে দেয়। নতুন ওয়ার্ডের স্লাইডার অনেক ডানে সরান: মডেল এমন বড় ওয়ার্ডের জন্যও অনুমান দেয় যা সে কখনো দেখেনি।</span></p>
+      <div class="card">
+        <h3 style="margin-bottom:.65em"><span lang="en">Change the new ward's clues</span><span lang="bn">নতুন ওয়ার্ডের তথ্য বদলান</span></h3>
+        <div class="seg" id="seg-x">
+          <button class="btn on" data-x="pop">👥 <span lang="en">Population</span><span lang="bn">জনসংখ্যা</span></button>
+          <button class="btn" data-x="biz">🏪 <span lang="en">Shops &amp; biz</span><span lang="bn">দোকানপাট</span></button>
+        </div>
+
+        <div class="clue">
+          <div class="top">
+            <span class="ico" id="clue-ico">👥</span>
+            <span class="nm" id="clue-nm"></span>
+            <span class="val" id="clue-val"></span>
+          </div>
+          <input type="range" id="newx" min="10" max="260" value="60" aria-label="New ward size">
+          <div class="word" id="clue-word"></div>
+        </div>
+
+        <div class="mini-ops">
+          <div class="mini-op"><div class="k">🚛 <span lang="en">Trucks</span><span lang="bn">গাড়ি</span></div><div class="v" id="m-trucks">–</div></div>
+          <div class="mini-op"><div class="k">👷 <span lang="en">Crew</span><span lang="bn">কর্মী</span></div><div class="v" id="m-crew">–</div></div>
+          <div class="mini-op"><div class="k">💰 <span lang="en">Daily BDT</span><span lang="bn">দৈনিক খরচ</span></div><div class="v" id="m-cost">–</div></div>
+        </div>
+
+        <div class="presets">
+          <span class="muted" style="font-size:.8rem"><span lang="en">Try a City Corporation scenario:</span><span lang="bn">একটি সিটি কর্পোরেশন দৃশ্য বেছে নিন:</span></span>
+          <div id="preset-btns" style="display:grid;gap:6px"></div>
+        </div>
+
+        <button class="btn primary" id="walk" style="margin-top:12px;width:100%">▶ <span lang="en">Show me how the line calculates this</span><span lang="bn">রেখাটি কীভাবে এই হিসাব করল দেখাও</span></button>
+      </div>
     </div>
-    <div class="callout lesson">
-      <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
-      <p style="margin:0"><span lang="en"><b>Regression predicts quantities</b>: waste, transport demand, school enrolment. Learning means repeatedly adjusting the line to reduce the error. <b>Correlation is not causation</b>: number of businesses also predicts waste well, but that does not tell us what causes waste or what policy will reduce it.</span>
-      <span lang="bn"><b>রিগ্রেশন পরিমাণ অনুমান করে</b>: বর্জ্য, পরিবহনের চাহিদা, স্কুলে ভর্তি। শেখা মানে ভুল কমাতে বারবার রেখাটি সমন্বয় করা। <b>সম্পর্ক মানেই কারণ নয়</b>: ব্যবসার সংখ্যা দিয়েও বর্জ্য ভালোভাবে অনুমান করা যায়, কিন্তু তাতে বোঝা যায় না বর্জ্য কেন হয় বা কোন নীতি তা কমাবে।</span></p>
+  </section>
+
+  <!-- ② EXPLORE THE DATA: WARD REGISTER CARDS + MINI SEESAW EXPLAINER -->
+  <section class="card">
+    <div class="sec-h">
+      <h2>② <span lang="en">Explore the data: the City Corporation ward register</span><span lang="bn">ডেটা দেখি: সিটি কর্পোরেশনের ওয়ার্ড রেজিস্টার</span></h2>
+      <span class="spacer"></span>
+      <button class="btn small" id="shuffle">🔀 <span lang="en">Show 6 other wards</span><span lang="bn">অন্য ৬টি ওয়ার্ড দেখাও</span></button>
+      <button class="btn small" id="csv">⬇ <span lang="en">CSV (for Orange)</span><span lang="bn">CSV (Orange-এর জন্য)</span></button>
     </div>
+
+    <div class="talk">
+      <div class="avatar">📏</div>
+      <div class="say">
+        <span lang="en">Each card is one ward from our City Corporation conservancy log: how many residents live there, how many shops operate, and how many <b>tonnes of waste</b> our trucks weighed on the landfill scale. I'll study all <b>120 wards</b> to find one straight-line rule.</span>
+        <span lang="bn">প্রতিটি কার্ড আমাদের সিটি কর্পোরেশনের বর্জ্য খাতার একটি ওয়ার্ড: সেখানে কত বাসিন্দা থাকেন, কয়টি দোকান আছে, আর ল্যান্ডফিলের ওজনযন্ত্রে দৈনিক কত <b>টন বর্জ্য</b> মাপা হয়েছে। আমি সব <b>১২০টি ওয়ার্ড</b> পড়ে একটি সরলরেখার নিয়ম বের করব।</span>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:14px;align-items:start">
+      <div>
+        <div class="recs" id="recs"></div>
+        <p class="muted" id="counts" style="font-size:.84rem;margin:.65em 0 0"></p>
+      </div>
+      <div class="seesaw-box">
+        <div class="label"><span lang="en">How does a line learn?</span><span lang="bn">রেখাটি শেখে কীভাবে?</span></div>
+        <p style="font-size:.88rem;margin:.35em 0 0">
+          <span lang="en">Imagine an elastic spring between every ward dot and the line. <b>Red springs</b> pull the line up; <b>blue springs</b> pull it down. Step by step, the AI tilts and shifts the line until the total pull (squared error) is as small as possible.</span>
+          <span lang="bn">ভাবুন প্রতিটি ওয়ার্ড বিন্দু ও রেখার মাঝে একটি ইলাস্টিক স্প্রিং আছে। <b>লাল স্প্রিং</b> রেখাকে ওপরে টানে; <b>নীল স্প্রিং</b> নিচে টানে। ধাপে ধাপে এআই রেখাটি কাত করে ও সরায় যতক্ষণ না মোট টান (বর্গ-ভুল) সর্বনিম্ন হয়।</span>
+        </p>
+        <svg class="seesaw-svg" viewBox="0 0 300 130" aria-label="Animated diagram showing a regression line tilting into balance between ward dots">
+          <line x1="26" y1="110" x2="282" y2="110" stroke="var(--border)" stroke-width="1.5"/>
+          <line x1="26" y1="14" x2="26" y2="110" stroke="var(--border)" stroke-width="1.5"/>
+          <line class="seesaw-err" x1="56" y1="96" x2="56" y2="108"/>
+          <line class="seesaw-err" x1="94" y1="84" x2="94" y2="100"/>
+          <line class="seesaw-err" x1="138" y1="68" x2="138" y2="82"/>
+          <line class="seesaw-err" x1="184" y1="54" x2="184" y2="66"/>
+          <line class="seesaw-err" x1="226" y1="40" x2="226" y2="54"/>
+          <line class="seesaw-err" x1="262" y1="26" x2="262" y2="38"/>
+          <line class="seesaw-line" x1="34" y1="104" x2="276" y2="24"/>
+          <circle cx="56" cy="96" r="4.5" fill="var(--accent)"/>
+          <circle cx="76" cy="94" r="4.5" fill="var(--accent)"/>
+          <circle cx="94" cy="84" r="4.5" fill="var(--accent)"/>
+          <circle cx="118" cy="76" r="4.5" fill="var(--accent)"/>
+          <circle cx="138" cy="68" r="4.5" fill="var(--accent)"/>
+          <circle cx="162" cy="64" r="4.5" fill="var(--accent)"/>
+          <circle cx="184" cy="54" r="4.5" fill="var(--accent)"/>
+          <circle cx="206" cy="48" r="4.5" fill="var(--accent)"/>
+          <circle cx="226" cy="40" r="4.5" fill="var(--accent)"/>
+          <circle cx="246" cy="36" r="4.5" fill="var(--accent)"/>
+          <circle cx="262" cy="26" r="4.5" fill="var(--accent)"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ TRAIN: WATCH THE LINE LEARN + TRY BY HAND -->
+  <section class="card" id="trainsec">
+    <div class="sec-h">
+      <h2>③ <span lang="en">Train: watch the line learn (or try fitting it by hand!)</span><span lang="bn">শেখাই: রেখাটির শেখা দেখুন (বা নিজে হাতে বসান!)</span></h2>
+      <span class="spacer"></span>
+      <span class="step-badge" id="step-badge"></span>
+    </div>
+
+    <div class="talk">
+      <div class="avatar">📏</div>
+      <div class="say" id="say-train"></div>
+    </div>
+
+    <div class="train-grid">
+      <div>
+        <div class="plot-wrap">
+          <canvas id="plot" width="760" height="410" aria-label="Interactive scatter plot of 120 city wards with animated regression line, error pulls, and draggable handles"></canvas>
+          <div class="plot-tip" id="tip"></div>
+        </div>
+        <div class="legend">
+          <span><i class="dot ward"></i><span lang="en">120 City Wards (hover/click)</span><span lang="bn">১২০টি সিটি ওয়ার্ড (হোভার/ক্লিক)</span></span>
+          <span><i class="dot mkt"></i><span lang="en">Wholesale Bazaars</span><span lang="bn">পাইকারি বাজার</span></span>
+          <span><i class="line-sw"></i><span lang="en">Learned rule</span><span lang="bn">শেখা নিয়ম</span></span>
+          <span id="leg-ghost" class="hidden"><i class="line-sw ghost"></i><span lang="en">Residential-only rule</span><span lang="bn">বাজার ছাড়া নিয়ম</span></span>
+          <span><i class="dot new"></i><span lang="en">New ward (drag on chart!)</span><span lang="bn">নতুন ওয়ার্ড (চার্টে টানুন!)</span></span>
+          <span><i class="line-sw err"></i><span lang="en">Error pull</span><span lang="bn">ভুলের টান</span></span>
+        </div>
+      </div>
+
+      <div class="ctrl-card">
+        <div class="row" style="gap:6px">
+          <button class="btn primary" id="gd" style="flex:1">▶ <span lang="en">Watch it learn</span><span lang="bn">শেখা দেখুন</span></button>
+          <button class="btn" id="ols">⚡ <span lang="en">Best fit</span><span lang="bn">সেরা রেখা</span></button>
+        </div>
+        <div class="row" style="margin-top:8px;gap:6px">
+          <button class="btn" id="hand" style="flex:1">✋ <span lang="en">Try by hand (drag line!)</span><span lang="bn">নিজে হাতে রেখা টানুন</span></button>
+        </div>
+
+        <label class="speed-row">
+          <span>🐢</span>
+          <input type="range" id="speed" min="1" max="5" value="3" aria-label="Learning speed">
+          <span>🐇</span>
+        </label>
+
+        <label class="check" style="margin-top:10px">
+          <input type="checkbox" id="showres" checked>
+          <span><span lang="en">Show error pulls (red = overflow, blue = idle trucks)</span><span lang="bn">ভুলের টান দেখাও (লাল = ময়লা জমা, নীল = খালি গাড়ি)</span></span>
+        </label>
+
+        <svg id="loss"></svg>
+        <p class="muted" style="font-size:.8rem;margin:4px 0 0" id="loss-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ④ EVALUATE: ANIMATED RINGS + 4 MUNICIPAL OUTCOME TILES -->
+  <section class="card" id="evalsec">
+    <div class="sec-h">
+      <h2>④ <span lang="en">Evaluate: how accurate is this rule for the City Corporation?</span><span lang="bn">যাচাই: সিটি কর্পোরেশনের জন্য এই নিয়মটি কতটা নির্ভুল?</span></h2>
+    </div>
+    <div class="eval">
+      <div>
+        <div class="rings">
+          <div class="ring r2" id="ring-r2-wrap">
+            <svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" id="ring-r2" cx="60" cy="60" r="50"/></svg>
+            <div class="v" id="acc-r2">–</div>
+            <div class="k">📊 <span lang="en">Pattern explained<br>(R² score)</span><span lang="bn">ব্যাখ্যাকৃত প্যাটার্ন<br>(R² স্কোর)</span></div>
+          </div>
+          <div class="ring tk">
+            <svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" id="ring-tk" cx="60" cy="60" r="50"/></svg>
+            <div class="v" id="acc-tk">–</div>
+            <div class="k">🚛 <span lang="en">Wards within<br>±1 truck (±5 t)</span><span lang="bn">±১ গাড়ির মধ্যে<br>সঠিক ওয়ার্ড (±৫ টন)</span></div>
+          </div>
+        </div>
+        <div class="talk" style="margin-top:12px">
+          <div class="avatar">📏</div>
+          <div class="say" id="say-eval"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="tiles">
+          <div class="tile good">
+            <div class="t">✅ <span lang="en">Spot-on dispatch</span><span lang="bn">নিখুঁত গাড়ি বরাদ্দ</span></div>
+            <div class="n" id="t-spot">–</div>
+            <div class="tb"><i id="tb-spot"></i></div>
+            <div class="d"><span lang="en">Within ±2.5 tonnes of actual waste: STS clears cleanly on schedule.</span><span lang="bn">আসল বর্জ্যের ±২.৫ টনের ভেতরে: সময়মতো STS পরিষ্কার থাকে।</span></div>
+          </div>
+          <div class="tile bad worst">
+            <div class="t">😱 <span lang="en">Under-planned (overflow!)</span><span lang="bn">কম অনুমান (ময়লা জমে!)</span></div>
+            <div class="n" id="t-under">–</div>
+            <div class="tb"><i id="tb-under"></i></div>
+            <div class="d"><span lang="en">Actual waste was &gt;2.5 t higher than predicted: uncollected garbage left on streets.</span><span lang="bn">আসল বর্জ্য অনুমানের চেয়ে ২.৫ টন বেশি: রাস্তায় ময়লা জমে থাকে।</span></div>
+          </div>
+          <div class="tile bad">
+            <div class="t">💸 <span lang="en">Over-planned (idle trucks)</span><span lang="bn">বেশি অনুমান (খালি গাড়ি)</span></div>
+            <div class="n" id="t-over">–</div>
+            <div class="tb"><i id="tb-over"></i></div>
+            <div class="d"><span lang="en">Predicted &gt;2.5 t too high: extra compactor trips burn municipal diesel unnecessarily.</span><span lang="bn">অনুমান ২.৫ টন বেশি: বাড়তি গাড়ির ট্রিপে অকারণে জ্বালানি খরচ।</span></div>
+          </div>
+          <div class="tile neutral">
+            <div class="t">📐 <span lang="en">Average gap &amp; city rule</span><span lang="bn">গড় ভুল ও শহরের নিয়ম</span></div>
+            <div class="n" id="t-mae">–</div>
+            <div class="d" id="t-rule" style="margin-top:4px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ BREAK IT: THREE CITY CORPORATION TRAPS -->
+  <section>
+    <div class="sec-h">
+      <h2>⑤ <span lang="en">Break it: three ways this model can mislead a City Corporation</span><span lang="bn">ভেঙে দেখি: এই মডেল যে তিনভাবে সিটি কর্পোরেশনকে বিভ্রান্ত করতে পারে</span></h2>
+      <span class="spacer"></span>
+      <button class="btn small" id="reset-all">↺ <span lang="en">Back to normal</span><span lang="bn">স্বাভাবিকে ফেরাও</span></button>
+    </div>
+
+    <div class="grid2">
+      <div class="callout break bk">
+        <div class="big">🚧📈</div>
+        <h3 style="margin-top:.4em"><span lang="en">A. Extrapolation: guessing beyond city records</span><span lang="bn">ক. ডেটার বাইরের অনুমান: রেকর্ডের বাইরে আন্দাজ</span></h3>
+        <p>
+          <span lang="en">All 120 recorded wards have fewer than 110k residents. If planners type in a proposed <b>210k Mega Township</b>, the straight line happily prints a number — even though the AI has never seen a ward that big!</span>
+          <span lang="bn">রেকর্ড করা ১২০টি ওয়ার্ডের সবগুলোতেই বাসিন্দা ১১০ হাজারের কম। পরিকল্পনাকারীরা যদি প্রস্তাবিত <b>২১০ হাজারের মেগা টাউনশিপ</b> বসান, সরলরেখা নির্দ্বিধায় একটি সংখ্যা দেয় — অথচ এআই এত বড় ওয়ার্ড কখনো দেখেনি!</span>
+        </p>
+        <button class="btn warn" id="try-a">🧪 <span lang="en">Try it: 210k mega township</span><span lang="bn">করে দেখুন: ২১০ হা. মেগা টাউনশিপ</span></button>
+      </div>
+
+      <div class="callout break bk">
+        <div class="big">🏪🤔</div>
+        <h3 style="margin-top:.4em"><span lang="en">B. Correlation ≠ causation</span><span lang="bn">খ. সম্পর্ক মানেই কারণ নয়</span></h3>
+        <p>
+          <span lang="en">Switch the predictor to <b>Shops &amp; businesses</b>. It predicts daily waste almost just as well — because busy wards have both more people and more shops. That does <i>not</i> mean closing shops will eliminate household waste!</span>
+          <span lang="bn">তথ্য বদলে <b>দোকানপাট</b> বেছে নিন। এটিও দৈনিক বর্জ্য প্রায় একই রকম ভালো অনুমান করে — কারণ ঘনবসতি ওয়ার্ডে মানুষ ও দোকান দুটোই বেশি। এর মানে এই <i>নয়</i> যে দোকান বন্ধ করলে বাসাবাড়ির বর্জ্য কমে যাবে!</span>
+        </p>
+        <button class="btn warn" id="try-b">🧪 <span lang="en">Try it: predict from shops</span><span lang="bn">করে দেখুন: দোকান থেকে অনুমান</span></button>
+      </div>
+    </div>
+
+    <!-- ⑤ C : FEATURED WHOLESALE BAZAAR OUTLIERS + REALITY CHECK -->
+    <div class="callout break" style="margin-top:16px">
+      <div class="grid2">
+        <div>
+          <div class="big" style="font-size:2.1rem">🏪🚛</div>
+          <h3 style="margin-top:.4em"><span lang="en">C. Outliers: 5 wholesale bazaars bend the whole city's rule</span><span lang="bn">গ. ব্যতিক্রমী ওয়ার্ড: ৫টি পাইকারি বাজার পুরো শহরের নিয়ম বাঁকিয়ে দেয়</span></h3>
+          <p>
+            <span lang="en">Wholesale bazaars like Karwan Bazar or Jatrabari Arat have <b>few night-time residents</b>, yet produce <b>76–88 tonnes of vegetable &amp; market waste daily</b>. Flip the switch and watch one straight line try to serve both!</span>
+            <span lang="bn">কারওয়ান বাজার বা যাত্রাবাড়ী আড়তের মতো পাইকারি বাজারে <b>রাতে বাসিন্দা কম</b>, কিন্তু দৈনিক <b>৭৬–৮৮ টন শাকসবজি ও বাজারের বর্জ্য</b> তৈরি হয়। সুইচটি চালু করে দেখুন একটি সরলরেখা দুটোই সামলাতে গেলে কী ঘটে!</span>
+          </p>
+          <label class="switch">
+            <input type="checkbox" id="outliers">
+            <span><span lang="en">Include <b>5 wholesale bazaar wards</b> in the training data</span><span lang="bn">প্রশিক্ষণের ডেটায় <b>৫টি পাইকারি বাজার-ওয়ার্ড</b> যোগ করুন</span></span>
+          </label>
+          <div class="bazaar-chips hidden" id="bazaar-chips"></div>
+          <div id="bazaar-talk" style="margin-top:14px"></div>
+        </div>
+
+        <div>
+          <b><span lang="en">Reality check: how many 5-tonne trucks does the AI send to ordinary residential wards?</span><span lang="bn">বাস্তবতা যাচাই: সাধারণ আবাসিক ওয়ার্ডে এআই কয়টি ৫-টনের গাড়ি পাঠাচ্ছে?</span></b>
+          <div class="legend-t">
+            <span><i style="background:var(--accent-soft);border:1.5px solid var(--accent)"></i><span lang="en">Needed truck</span><span lang="bn">প্রয়োজনীয় গাড়ি</span></span>
+            <span><i style="background:var(--accent-2-soft);border:1.5px solid var(--accent-2)"></i><span lang="en">Extra idle truck (wasted diesel)</span><span lang="bn">বাড়তি খালি গাড়ি (অপচয়)</span></span>
+            <span><i style="background:var(--yes-soft);border:1.5px dashed var(--yes)"></i><span lang="en">Missing truck (street overflow!)</span><span lang="bn">ঘাটতি গাড়ি (ময়লা জমে!)</span></span>
+          </div>
+          <div class="fleet-grp">
+            <div class="gh">
+              <span>🏘️ <span lang="en">Quiet residential ward (25k residents)</span><span lang="bn">ছোট আবাসিক ওয়ার্ড (২৫ হা. বাসিন্দা)</span></span>
+              <span id="rc-small"></span>
+            </div>
+            <div class="fleet-icons" id="tr-small"></div>
+          </div>
+          <div class="fleet-grp">
+            <div class="gh">
+              <span>🏙️ <span lang="en">Busy residential ward (100k residents)</span><span lang="bn">বড় আবাসিক ওয়ার্ড (১০০ হা. বাসিন্দা)</span></span>
+              <span id="rc-big"></span>
+            </div>
+            <div class="fleet-icons" id="tr-big"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="callout lesson" style="margin-top:16px">
+    <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
+    <p style="margin:0">
+      <span lang="en"><b>Regression predicts quantities</b> — tonnes of waste, water demand, holding-tax collection, or school enrolment. Learning means adjusting the line step by step to shrink prediction errors. But a City Corporation must watch three real traps: <b>(1) Outliers</b> (wholesale bazaars) need their own ward category instead of pulling one line off course; <b>(2) Extrapolation</b> far beyond recorded wards is only a guess; and <b>(3) Correlation is not causation</b> — predicting from shops works well, yet it does not tell us what policy will reduce waste.</span>
+      <span lang="bn"><b>রিগ্রেশন পরিমাণ অনুমান করে</b> — বর্জ্যের টন, পানির চাহিদা, হোল্ডিং ট্যাক্স আয় বা স্কুলে ভর্তি। শেখা মানে ভুল কমাতে ধাপে ধাপে রেখাটি সমন্বয় করা। তবে সিটি কর্পোরেশনকে তিনটি ঝুঁকি মনে রাখতে হবে: <b>(১) ব্যতিক্রমী ওয়ার্ড</b> (পাইকারি বাজার)-এর জন্য আলাদা শ্রেণি দরকার; <b>(২) ডেটার বাইরের অনুমান</b> কেবল আন্দাজ; এবং <b>(৩) সম্পর্ক মানেই কারণ নয়</b> — দোকানের সংখ্যা দিয়ে বর্জ্য অনুমান করা যায়, কিন্তু তাতে বোঝা যায় না কোন নীতি বর্জ্য কমাবে।</span>
+    </p>
   </div>
 </main>
 
 <script src="../assets/lab.js"></script>
 <script>
 LAB.header({ home: '../index.html', family: ['Machine learning · regression', 'মেশিন লার্নিং · রিগ্রেশন'], synthetic: true });
+LAB.cycle(document.getElementById('cycle'));
 var $ = function (id) { return document.getElementById(id); };
+var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- Deterministic 120-ward City Corporation data (same RNG stream as original!) ---------------- */
+var ZONES_EN = ['Mirpur', 'Uttara', 'Dhanmondi', 'Mohammadpur', 'Badda', 'Khilgaon', 'Rampura', 'Mugda', 'Jatrabari', 'Lalbagh', 'Wari', 'Tejgaon', 'Banani', 'Pallabi', 'Demra', 'Shyampur', 'Kamrangirchar', 'Sutrapur', 'Cantonment', 'Mohakhali'];
+var ZONES_BN = ['মিরপুর', 'উত্তরা', 'ধানমন্ডি', 'মোহাম্মদপুর', 'বাড্ডা', 'খিলগাঁও', 'রামপুরা', 'মুগদা', 'যাত্রাবাড়ী', 'লালবাগ', 'ওয়ারী', 'তেজগাঁও', 'বনানী', 'পল্লবী', 'ডেমরা', 'শ্যামপুর', 'কামরাঙ্গীরচর', 'সূত্রাপুর', 'ক্যান্টনমেন্ট', 'মহাখালী'];
 
 var BASE = (function () {
   var r = LAB.rng(7), out = [];
@@ -89,99 +623,1057 @@ var BASE = (function () {
     var pop = Math.round(15 + r() * 95);
     var biz = Math.round(pop * (6 + r() * 6) + LAB.gauss(r) * 40);
     var waste = Math.max(2, 2 + 0.45 * pop + 0.004 * (biz - pop * 9) + LAB.gauss(r) * 3.2);
-    out.push({ pop: pop, biz: Math.max(20, biz), waste: +waste.toFixed(1) });
+    var zi = i % ZONES_EN.length;
+    var denseBiz = biz / Math.max(1, pop) > 10.2;
+    out.push({
+      id: i + 1, pop: pop, biz: Math.max(20, biz), waste: +waste.toFixed(1),
+      nameEn: 'Ward #' + (i + 1) + ' · ' + ZONES_EN[zi],
+      nameBn: 'ওয়ার্ড #' + (i + 1) + ' · ' + ZONES_BN[zi],
+      typeEn: denseBiz ? 'Mixed commercial' : 'Residential',
+      typeBn: denseBiz ? 'মিশ্র বাণিজ্যিক' : 'আবাসিক'
+    });
   }
   return out;
 })();
-var OUT = [{ pop: 18, biz: 900, waste: 82 }, { pop: 22, biz: 1100, waste: 88 }, { pop: 26, biz: 950, waste: 76 }, { pop: 20, biz: 1000, waste: 79 }, { pop: 25, biz: 1050, waste: 85 }];
-var X = { pop: { en: 'Population (thousand)', bn: 'জনসংখ্যা (হাজার)', max: 120, sliderMax: 300 }, biz: { en: 'Number of businesses', bn: 'ব্যবসাপ্রতিষ্ঠানের সংখ্যা', max: 1400, sliderMax: 3000 } };
-var xk = 'pop', a = 0, b = 0, losses = [], timer = null;
 
-function data() { return $('outliers').checked ? BASE.concat(OUT.map(function (o) { return Object.assign({ out: 1 }, o); })) : BASE; }
-function mse(rows, A, B) { var s = 0; rows.forEach(function (d) { var e = d.waste - (A + B * d[xk]); s += e * e; }); return s / rows.length; }
-function ols() {
-  var rows = data(), n = rows.length, mx = 0, my = 0, sxy = 0, sxx = 0;
-  rows.forEach(function (d) { mx += d[xk]; my += d.waste; }); mx /= n; my /= n;
-  rows.forEach(function (d) { sxy += (d[xk] - mx) * (d.waste - my); sxx += (d[xk] - mx) * (d[xk] - mx); });
-  b = sxy / sxx; a = my - b * mx;
+var OUT = [
+  { id: 121, out: 1, pop: 18, biz: 900,  waste: 82, nameEn: 'Karwan Bazar',   nameBn: 'কারওয়ান বাজার',   typeEn: 'Wholesale bazaar', typeBn: 'পাইকারি বাজার' },
+  { id: 122, out: 1, pop: 22, biz: 1100, waste: 88, nameEn: 'Jatrabari Arat', nameBn: 'যাত্রাবাড়ী আড়ত', typeEn: 'Wholesale bazaar', typeBn: 'পাইকারি বাজার' },
+  { id: 123, out: 1, pop: 26, biz: 950,  waste: 76, nameEn: 'New Market',     nameBn: 'নিউ মার্কেট',     typeEn: 'Wholesale bazaar', typeBn: 'পাইকারি বাজার' },
+  { id: 124, out: 1, pop: 20, biz: 1000, waste: 79, nameEn: 'Krishi Market',  nameBn: 'কৃষি মার্কেট',    typeEn: 'Wholesale bazaar', typeBn: 'পাইকারি বাজার' },
+  { id: 125, out: 1, pop: 25, biz: 1050, waste: 85, nameEn: 'Chawkbazar',     nameBn: 'চকবাজার',         typeEn: 'Wholesale bazaar', typeBn: 'পাইকারি বাজার' }
+];
+
+var X = {
+  pop: {
+    ico: '👥', en: 'Population (thousand)', bn: 'জনসংখ্যা (হাজার)',
+    shortEn: 'population (k)', shortBn: 'জনসংখ্যা (হাজার)',
+    unitEn: 'k residents', unitBn: 'হাজার বাসিন্দা',
+    max: 120, min: 10, smax: 260, mult: 1,
+    word: function (v) {
+      return v < 30 ? ['quiet residential ward', 'শান্ত আবাসিক ওয়ার্ড']
+        : v < 65 ? ['typical city ward', 'সাধারণ সিটি ওয়ার্ড']
+        : v <= 108 ? ['dense inner-city ward', 'ঘনবসতিপূর্ণ শহরের ওয়ার্ড']
+        : ['⚠️ larger than any ward in city records!', '⚠️ শহরের রেকর্ডের যেকোনো ওয়ার্ডের চেয়ে বড়!'];
+    },
+    presets: [
+      { v: 35,  ico: '🏘️', en: 'Quiet residential ward (35k)', bn: 'শান্ত আবাসিক ওয়ার্ড (৩৫ হা.)' },
+      { v: 85,  ico: '🏙️', en: 'Dense city ward (85k)', bn: 'ঘনবসতিপূর্ণ সিটি ওয়ার্ড (৮৫ হা.)' },
+      { v: 210, ico: '🚧', en: 'Mega township (210k · outside records!)', bn: 'মেগা টাউনশিপ (২১০ হা. · রেকর্ডের বাইরে!)' }
+    ]
+  },
+  biz: {
+    ico: '🏪', en: 'Shops & businesses', bn: 'দোকান ও ব্যবসা',
+    shortEn: 'shops', shortBn: 'দোকানপাট',
+    unitEn: 'shops', unitBn: 'দোকান',
+    max: 1400, min: 10, smax: 280, mult: 10,
+    word: function (v) {
+      return v < 350 ? ['mostly homes, few corner shops', 'মূলত বাসাবাড়ি, অল্প দোকান']
+        : v < 800 ? ['mixed residential & market street', 'মিশ্র আবাসিক ও বাজার সড়ক']
+        : v <= 1284 ? ['busy commercial hub', 'ব্যস্ত বাণিজ্যিক এলাকা']
+        : ['⚠️ more shops than any recorded ward!', '⚠️ রেকর্ডের যেকোনো ওয়ার্ডের চেয়ে বেশি দোকান!'];
+    },
+    presets: [
+      { v: 30,  ico: '🏘️', en: 'Quiet ward (300 shops)', bn: 'আবাসিক ওয়ার্ড (৩০০ দোকান)' },
+      { v: 95,  ico: '🏬', en: 'Commercial hub (950 shops)', bn: 'বাণিজ্যিক এলাকা (৯৫০ দোকান)' },
+      { v: 230, ico: '🚧', en: 'Mega mall zone (2,300 · outside records!)', bn: 'মেগা বাণিজ্যিক জোন (২,৩০০ · বাইরে!)' }
+    ]
+  }
+};
+
+/* ---------------- State ---------------- */
+var xk = 'pop', a = 0, b = 0, losses = [], ghostLine = null;
+var gdState = null, gdStep = 0, MAX_STEPS = 60, animSnap = null;
+var handMode = false, dragHandle = null, dragNew = false;
+var hoveredPt = null, selectedPt = null;
+var walkAnim = null; // { t0, dur } animated "Show me how the line calculates this"
+var outlierAnimT = 1, lastOutChecked = false;
+var trainedOnceOnScroll = false;
+var cardRows = null;
+var simTime = 0, lastFrame = performance.now();
+
+// Smooth animated scene values (just like tree.html's `sc` object!)
+var sc = {
+  mound: 0.35, targetMound: 0.35,
+  vanX: 160,
+  trucks: [0, 0.25, 0.5, 0.75, 0.12, 0.62],
+  visTrucks: 6
+};
+
+/* ---------------- Math ---------------- */
+function data(inc) {
+  var use = inc == null ? $('outliers').checked : inc;
+  return use ? BASE.concat(OUT) : BASE;
 }
-function gd() {
-  if (timer) clearInterval(timer);
-  var rows = data(), n = rows.length, mx = 0, sx = 0;
-  rows.forEach(function (d) { mx += d[xk]; }); mx /= n;
-  rows.forEach(function (d) { sx += Math.pow(d[xk] - mx, 2); }); sx = Math.sqrt(sx / n);
-  var A = 0, B = 0, lr = 0.08, it = 0; losses = [];
-  a = 0; b = 0;
-  timer = setInterval(function () {
-    var ga = 0, gb = 0;
-    rows.forEach(function (d) { var z = (d[xk] - mx) / sx, e = A + B * z - d.waste; ga += e; gb += e * z; });
-    A -= lr * ga / n; B -= lr * gb / n;
-    b = B / sx; a = A - B * mx / sx;
-    losses.push(mse(rows, a, b));
-    draw();
-    if (++it >= 60) { clearInterval(timer); timer = null; }
-  }, 60);
+function isFitted() { return Math.abs(a) > 1e-6 || Math.abs(b) > 1e-6; }
+function getNewX() { return +$('newx').value * X[xk].mult; }
+function dataMax(rows) { var m = 0; for (var i = 0; i < rows.length; i++) if (rows[i][xk] > m) m = rows[i][xk]; return m; }
+function mse(rows, A, B) {
+  var s = 0;
+  for (var i = 0; i < rows.length; i++) { var e = rows[i].waste - (A + B * rows[i][xk]); s += e * e; }
+  return s / rows.length;
+}
+function computeOLS(rows, key) {
+  var k = key || xk, n = rows.length, mx = 0, my = 0, sxy = 0, sxx = 0;
+  for (var i = 0; i < n; i++) { mx += rows[i][k]; my += rows[i].waste; }
+  mx /= n; my /= n;
+  for (var j = 0; j < n; j++) { sxy += (rows[j][k] - mx) * (rows[j].waste - my); sxx += (rows[j][k] - mx) * (rows[j][k] - mx); }
+  var sl = sxy / sxx;
+  return { a: my - sl * mx, b: sl };
+}
+function evalStats(rows, A, B) {
+  var n = rows.length, mae = 0, my = 0, sst = 0, sse = 0, spot = 0, under = 0, over = 0, w1 = 0;
+  for (var i = 0; i < n; i++) my += rows[i].waste;
+  my /= n;
+  for (var j = 0; j < n; j++) {
+    var e = rows[j].waste - (A + B * rows[j][xk]); // + means actual > pred (under-planned)
+    mae += Math.abs(e); sse += e * e;
+    var dy = rows[j].waste - my; sst += dy * dy;
+    if (Math.abs(e) <= 5) w1++;
+    if (Math.abs(e) <= 2.5) spot++;
+    else if (e > 2.5) under++;
+    else over++;
+  }
+  return { n: n, mae: mae / n, r2: Math.max(0, 1 - sse / sst), mse: sse / n, w1: w1 / n, spot: spot, under: under, over: over };
 }
 
-function draw() {
-  var rows = data(), svg = $('plot'), W = 640, H = 360, P = { l: 48, r: 14, t: 12, b: 40 };
-  var nx = +$('newx').value * (xk === 'pop' ? 1 : 10);
-  var xmax = Math.max(X[xk].max, nx * 1.05), ymax = Math.max(100, a + b * xmax + 10);
-  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-  var xs = function (v) { return P.l + v / xmax * (W - P.l - P.r); }, ys = function (v) { return H - P.b - v / ymax * (H - P.t - P.b); };
-  var dmax = Math.max.apply(null, rows.map(function (d) { return d[xk]; }));
-  var h = '';
-  if (nx > dmax) h += '<rect class="nodata" x="' + xs(dmax) + '" y="' + P.t + '" width="' + (xs(xmax) - xs(dmax)) + '" height="' + (H - P.t - P.b) + '"/>' +
-    '<text x="' + (xs(dmax) + 6) + '" y="' + (P.t + 16) + '">' + LAB.t('no data here', 'এখানে কোনো ডেটা নেই') + '</text>';
-  for (var k = 0; k <= 4; k++) {
-    var yv = ymax * k / 4, xv = xmax * k / 4;
-    h += '<line class="axis" x1="' + P.l + '" x2="' + (W - P.r) + '" y1="' + ys(yv) + '" y2="' + ys(yv) + '" stroke-dasharray="' + (k ? '3 4' : '') + '"/>';
-    h += '<text x="' + (P.l - 6) + '" y="' + (ys(yv) + 4) + '" text-anchor="end">' + Math.round(yv) + '</text>';
-    h += '<text x="' + xs(xv) + '" y="' + (H - P.b + 16) + '" text-anchor="middle">' + Math.round(xv) + '</text>';
+/* ---------------- Narrator & Counter Helpers (from tree.html) ---------------- */
+function say(id, en, bn) {
+  var el = $(id), html = LAB.bi(en, bn);
+  if (el._html === html) return;
+  el._html = html; el.innerHTML = html;
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function setBubble(id, who, pair) {
+  var el = $(id), html = '<span class="who">' + who + '</span>' + LAB.bi(pair[0], pair[1]);
+  if (el._html === html) return;
+  el._html = html; el.innerHTML = html;
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function countTo(el, to, fmt, ms) {
+  var from = el._v == null ? to : el._v; el._v = to;
+  cancelAnimationFrame(el._raf);
+  if (REDUCED || Math.abs(to - from) < 0.01) { el.textContent = fmt(to); return; }
+  var t0 = performance.now(), dur = ms || 650;
+  function step(t) {
+    var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fmt(from + (to - from) * e);
+    if (k < 1) el._raf = requestAnimationFrame(step);
   }
-  h += '<text x="' + ((W + P.l) / 2) + '" y="' + (H - 4) + '" text-anchor="middle">' + LAB.t(X[xk].en, X[xk].bn) + '</text>';
-  h += '<text x="12" y="' + (H / 2) + '" text-anchor="middle" transform="rotate(-90 12 ' + (H / 2) + ')">' + LAB.t('waste (tonnes/day)', 'বর্জ্য (টন/দিন)') + '</text>';
-  var fitted = a !== 0 || b !== 0;
-  if ($('showres').checked && fitted) rows.forEach(function (d) { h += '<line class="res" x1="' + xs(d[xk]) + '" x2="' + xs(d[xk]) + '" y1="' + ys(d.waste) + '" y2="' + ys(a + b * d[xk]) + '"/>'; });
-  rows.forEach(function (d) { h += '<circle class="pt' + (d.out ? ' out' : '') + '" cx="' + xs(d[xk]).toFixed(1) + '" cy="' + ys(d.waste).toFixed(1) + '" r="' + (d.out ? 6 : 4.5) + '"/>'; });
-  if (fitted) {
-    h += '<line class="fit" x1="' + xs(0) + '" y1="' + ys(Math.max(0, a)) + '" x2="' + xs(xmax) + '" y2="' + ys(Math.max(0, a + b * xmax)) + '"/>';
-    var ny = a + b * nx;
-    h += '<circle class="newpt" cx="' + xs(nx) + '" cy="' + ys(Math.max(0, ny)) + '" r="8"/>';
-  }
-  svg.innerHTML = h;
-  LAB.lineChart($('loss'), [{ values: losses.length ? losses : [0], color: LAB.css('--accent-2') }], { height: 140, ymin: 0 });
-  if (fitted) {
-    var res = rows.map(function (d) { return d.waste - (a + b * d[xk]); });
-    var mae = res.reduce(function (s, e) { return s + Math.abs(e); }, 0) / rows.length;
-    var my = rows.reduce(function (s, d) { return s + d.waste; }, 0) / rows.length;
-    var sst = rows.reduce(function (s, d) { return s + Math.pow(d.waste - my, 2); }, 0);
-    var sse = res.reduce(function (s, e) { return s + e * e; }, 0);
-    $('mae').textContent = '±' + mae.toFixed(1) + ' t';
-    $('r2').textContent = Math.round((1 - sse / sst) * 100) + '%';
-    $('eq').innerHTML = LAB.bi('Learned rule: waste ≈ ', 'শেখা নিয়ম: বর্জ্য ≈ ') + '<b>' + a.toFixed(1) + ' + ' + b.toFixed(3) + ' × ' + LAB.t(X[xk].en.toLowerCase(), X[xk].bn) + '</b>';
-    $('newy').textContent = Math.max(0, a + b * nx).toFixed(1) + ' ' + LAB.t('tonnes/day', 'টন/দিন');
-    $('newnote').innerHTML = nx > dmax ? '⚠️ ' + LAB.bi('Far outside the data the model learned from. This is a guess, not knowledge.', 'মডেল যে ডেটা থেকে শিখেছে তার অনেক বাইরে। এটা জ্ঞান নয়, আন্দাজ।') : LAB.bi('About ' + Math.ceil(Math.max(0, a + b * nx) / 5) + ' truck trips per day (5 t per truck).', 'দৈনিক প্রায় ' + Math.ceil(Math.max(0, a + b * nx) / 5) + 'টি গাড়ির ট্রিপ (প্রতি গাড়ি ৫ টন)।');
-  } else {
-    $('mae').textContent = '–'; $('r2').textContent = '–'; $('eq').textContent = ''; $('newy').textContent = '–'; $('newnote').textContent = '';
-  }
-  $('newlabel').innerHTML = LAB.bi('New ward: ', 'নতুন ওয়ার্ড: ') + '<b>' + nx + '</b> ' + (xk === 'pop' ? LAB.t('thousand people', 'হাজার মানুষ') : LAB.t('businesses', 'ব্যবসাপ্রতিষ্ঠান'));
+  el._raf = requestAnimationFrame(step);
+}
+function setRing(id, frac) {
+  var c = 314.16;
+  $(id).style.strokeDashoffset = (c * (1 - Math.max(0, Math.min(1, frac)))).toFixed(1);
 }
 
-document.querySelectorAll('[data-x]').forEach(function (btn) {
-  btn.onclick = function () {
-    xk = btn.dataset.x; a = 0; b = 0; losses = [];
-    document.querySelectorAll('[data-x]').forEach(function (o) { o.classList.toggle('on', o === btn); });
-    draw();
+/* =====================================================================
+   ① BUILD & ANIMATE THE BANGLADESHI CITY CORPORATION WARD STREET SCENE
+   ===================================================================== */
+function buildWardScene() {
+  var cloud = function (x, y, s, cls) {
+    return '<g class="cloud ' + cls + '" transform="translate(' + x + ',' + y + ') scale(' + s + ')"><g>' +
+      '<ellipse cx="0" cy="0" rx="44" ry="20"/><ellipse cx="-28" cy="5" rx="28" ry="15"/><ellipse cx="32" cy="5" rx="30" ry="16"/><ellipse cx="6" cy="-13" rx="26" ry="18"/></g></g>';
   };
+  var sunRays = [0, 45, 90, 135, 180, 225, 270, 315].map(function (deg) {
+    var c = Math.cos(deg * Math.PI / 180), s = Math.sin(deg * Math.PI / 180);
+    return '<line x1="' + (76 + c * 32).toFixed(1) + '" y1="' + (62 + s * 32).toFixed(1) + '" x2="' + (76 + c * 43).toFixed(1) + '" y2="' + (62 + s * 43).toFixed(1) + '"/>';
+  }).join('');
+
+  // 6 Dhaka-style buildings that reveal & grow as ward population increases!
+  var bSpecs = [
+    { x: 16,  w: 66, h: 152, wall: 'wall',  rows: 4, cols: 2, tank: 1, minP: 0 },
+    { x: 88,  w: 76, h: 192, wall: 'wall2', rows: 5, cols: 3, tank: 1, minP: 0 },
+    { x: 170, w: 68, h: 140, wall: 'wall',  rows: 4, cols: 2, tank: 0, minP: 20 },
+    { x: 244, w: 80, h: 210, wall: 'wall2', rows: 6, cols: 3, tank: 1, minP: 45 },
+    { x: 330, w: 64, h: 164, wall: 'wall',  rows: 4, cols: 2, tank: 1, minP: 70 },
+    { x: 398, w: 60, h: 186, wall: 'wall2', rows: 5, cols: 2, tank: 0, minP: 100 }
+  ];
+  var bldgs = '';
+  bSpecs.forEach(function (b, idx) {
+    var topY = 330 - b.h;
+    var g = '<g class="bldg-g" id="bldg-' + idx + '" data-minp="' + b.minP + '">';
+    g += '<rect class="' + b.wall + '" x="' + b.x + '" y="' + topY + '" width="' + b.w + '" height="' + b.h + '"/>';
+    g += '<rect class="wall2" x="' + (b.x - 3) + '" y="' + (topY - 6) + '" width="' + (b.w + 6) + '" height="7"/>';
+    if (b.tank) g += '<rect class="tank" x="' + (b.x + b.w - 26) + '" y="' + (topY - 24) + '" width="20" height="18" rx="3"/>';
+    var padX = 9, stepX = (b.w - 18) / b.cols;
+    for (var r = 0; r < b.rows; r++) {
+      for (var c = 0; c < b.cols; c++) {
+        var wx = b.x + padX + c * stepX + 2, wy = topY + 14 + r * 26;
+        if (wy + 16 < 292) g += '<rect class="win" x="' + wx.toFixed(1) + '" y="' + wy + '" width="' + Math.max(11, stepX - 8).toFixed(1) + '" height="14" rx="2"/>';
+      }
+    }
+    // Ground-floor shop shutter + colorful awning
+    var awn = idx % 3 === 0 ? 'var(--s-awning1)' : idx % 3 === 1 ? 'var(--s-awning2)' : 'var(--s-awning3)';
+    g += '<rect class="shutter" x="' + (b.x + 8) + '" y="298" width="' + (b.w - 16) + '" height="32"/>';
+    for (var sl = 304; sl < 328; sl += 5) g += '<line x1="' + (b.x + 8) + '" x2="' + (b.x + b.w - 8) + '" y1="' + sl + '" y2="' + sl + '" stroke="var(--s-edge)" stroke-width="1"/>';
+    g += '<g class="shop-g" id="shop-' + idx + '"><polygon points="' + (b.x + 4) + ',298 ' + (b.x + b.w - 4) + ',298 ' + (b.x + b.w - 8) + ',287 ' + (b.x + 8) + ',287" fill="' + awn + '"/></g>';
+    g += '</g>';
+    bldgs += g;
+  });
+
+  // 6 Compactor Truck SVG templates (positioned dynamically on the road in requestAnimationFrame!)
+  var trucksSvg = '';
+  for (var ti = 0; ti < 6; ti++) {
+    trucksSvg += '<g id="truck-' + ti + '" opacity="0">' +
+      '<circle class="ex-puff" cx="-34" cy="-9" r="4"/>' +
+      '<rect x="-28" y="-32" width="44" height="24" rx="4" fill="var(--s-truck)" stroke="var(--s-truck-d)" stroke-width="1.5"/>' +
+      '<rect x="-23" y="-25" width="34" height="4" rx="1" fill="rgba(255,255,255,.35)"/>' +
+      '<text x="-6" y="-12" font-size="8" font-weight="800" fill="#fff" text-anchor="middle" font-family="sans-serif">5t CC</text>' +
+      '<path d="M16,-28 L30,-28 Q37,-28 38,-18 L38,-8 L16,-8 Z" fill="var(--s-cab)"/>' +
+      '<rect x="21" y="-24" width="12" height="9" rx="2" fill="var(--s-glass)"/>' +
+      '<circle cx="37" cy="-13" r="2.5" fill="#fef08a"/>' +
+      '<circle cx="-15" cy="-7" r="7" fill="#111827"/><circle cx="-15" cy="-7" r="2.8" fill="#9ca3af"/>' +
+      '<circle cx="25" cy="-7" r="7" fill="#111827"/><circle cx="25" cy="-7" r="2.8" fill="#9ca3af"/>' +
+    '</g>';
+  }
+
+  $('ward-svg').innerHTML =
+    '<defs>' +
+      '<linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sky-a"/><stop offset="1" class="sky-b"/></linearGradient>' +
+      '<pattern id="haz" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="16" fill="var(--accent-2)"/><rect x="8" width="8" height="16" fill="#fef08a"/></pattern>' +
+    '</defs>' +
+    '<rect width="800" height="420" fill="url(#skyg)"/>' +
+    '<g id="sun"><circle cx="76" cy="62" r="24"/>' + sunRays + '</g>' +
+    cloud(215, 56, 1, '') + cloud(470, 44, .85, 'c2') +
+    // Ground, sidewalk & road
+    '<rect class="ground" x="0" y="328" width="800" height="92"/>' +
+    '<rect class="side" x="0" y="325" width="800" height="14"/>' +
+    '<rect class="road" x="0" y="344" width="800" height="68"/>' +
+    '<line class="dash" x1="0" y1="378" x2="800" y2="378"/>' +
+    // Dynamic Ward Buildings + street trees + electric pole & wires
+    bldgs +
+    '<g transform="translate(462,330)"><rect class="pole" x="-3" y="-175" width="5" height="175"/><rect class="pole" x="-16" y="-168" width="32" height="4"/>' +
+    '<path class="wire" d="M-14,-166 Q-180,-125 -470,-152"/><path class="wire" d="M14,-166 Q180,-125 360,-158"/></g>' +
+    // Secondary Transfer Station (STS) bay
+    '<g id="sts-bay">' +
+      '<rect class="sts-wall" x="488" y="232" width="154" height="96" rx="6"/>' +
+      '<rect class="sts-roof" x="482" y="216" width="166" height="22" rx="5"/>' +
+      '<text id="sts-title" x="565" y="231" font-size="11.5" font-weight="800" fill="#fff" text-anchor="middle"></text>' +
+      '<rect x="502" y="250" width="126" height="77" rx="4" fill="var(--surface-2)" opacity=".85"/>' +
+      '<path id="waste-mound" class="waste-mound" d=""/>' +
+      '<g id="waste-bags"></g>' +
+      '<text id="sts-tonnes" class="s-label" x="565" y="206" text-anchor="middle"></text>' +
+      // Overflow garbage bags when under-planned by bazaars
+      '<g class="overflow-g" id="overflow-bags" opacity="0">' +
+        '<ellipse cx="478" cy="326" rx="11" ry="8" fill="#78716c"/><ellipse cx="465" cy="328" rx="9" ry="7" fill="#57534e"/>' +
+        '<ellipse cx="654" cy="326" rx="10" ry="8" fill="#78716c"/><ellipse cx="666" cy="328" rx="8" ry="6" fill="#44403c"/>' +
+      '</g>' +
+    '</g>' +
+    // Caution hazard strip when extrapolating
+    '<rect class="caution-bar" id="caution-bar" x="484" y="238" width="162" height="7" fill="url(#haz)"/>' +
+    // Landfill directional signpost (right side)
+    '<g transform="translate(684,264)">' +
+      '<rect class="pole" x="28" y="0" width="5" height="66"/>' +
+      '<rect x="0" y="0" width="96" height="26" rx="5" fill="var(--surface)" stroke="var(--s-sts)" stroke-width="2"/>' +
+      '<text id="lf-sign" x="48" y="17" font-size="11" font-weight="700" fill="var(--text)" text-anchor="middle"></text>' +
+    '</g>' +
+    // Ward Conservancy Supervisor standing next to STS
+    '<text x="460" y="328" font-size="30" text-anchor="middle">👷</text>' +
+    // Rickshaw Waste Van rolling from apartments to STS
+    '<g id="waste-van">' +
+      '<rect x="-20" y="-22" width="24" height="14" rx="2" fill="var(--s-sts)"/>' +
+      '<ellipse cx="-8" cy="-23" rx="10" ry="4" fill="var(--s-waste)"/>' +
+      '<circle cx="-14" cy="-6" r="5" fill="#1f2937"/><circle cx="10" cy="-6" r="5" fill="#1f2937"/>' +
+      '<text x="10" y="-12" font-size="14" text-anchor="middle">🚲</text>' +
+    '</g>' +
+    // Animated Compactor Trucks on road
+    '<g id="trucks-layer">' + trucksSvg + '</g>' +
+    // Road fleet counter pill
+    '<g id="road-pill">' +
+      '<rect x="20" y="348" width="194" height="24" rx="12" fill="var(--surface)" opacity=".92" stroke="var(--border)"/>' +
+      '<text id="road-pill-t" x="117" y="364" font-size="11.5" font-weight="700" fill="var(--text)" text-anchor="middle"></text>' +
+    '</g>';
+
+  // Position speech bubbles cleanly in open space (never overlapping WARD STS header or forecast chip!)
+  var put = function (el, x, y) { el.style.left = (x / 800 * 100) + '%'; el.style.bottom = (100 - y / 420 * 100) + '%'; };
+  put($('bub-sup'), 220, 260);
+  put($('bub-drv'), 560, 316);
+}
+
+function updateWardSceneVisuals() {
+  var rows = data(), nx = getNewX(), dmax = dataMax(rows), isExtrap = nx > dmax;
+  var pred = Math.max(0, a + b * nx);
+  var trips = Math.max(1, Math.ceil(pred / 5));
+  var hasOut = $('outliers').checked;
+  var cleanSol = computeOLS(BASE, xk);
+  var cleanTrips = Math.max(1, Math.ceil(Math.max(0, cleanSol.a + cleanSol.b * nx) / 5));
+  var diffTrips = trips - cleanTrips;
+
+  // Dynamic building density & shop prominence
+  var popEquiv = xk === 'pop' ? nx : nx / 9;
+  for (var i = 0; i < 6; i++) {
+    var bEl = $('bldg-' + i);
+    var minP = +bEl.dataset.minp;
+    var show = popEquiv >= minP;
+    bEl.style.opacity = show ? '1' : '0.12';
+    var scY = show ? Math.min(1.14, 0.88 + (popEquiv / 180) * 0.28) : 0.65;
+    bEl.style.transform = 'scaleY(' + scY.toFixed(2) + ')';
+    var sEl = $('shop-' + i);
+    if (sEl) sEl.style.opacity = (xk === 'biz' || nx > 40) ? '1' : '0.55';
+  }
+
+  sc.targetMound = Math.min(1, pred / 105);
+  sc.visTrucks = Math.min(6, Math.max(1, Math.ceil(trips / 3)));
+
+  $('sts-title').textContent = LAB.t('WARD STS (TRANSFER STATION)', 'ওয়ার্ড STS (ট্রান্সফার স্টেশন)');
+  $('sts-tonnes').textContent = pred.toFixed(1) + ' ' + LAB.t('tonnes / day', 'টন / দিন');
+  $('lf-sign').textContent = LAB.t('Landfill →', 'ল্যান্ডফিল →');
+  $('road-pill-t').textContent = '🚛 ' + trips + ' ' + LAB.t('compactor trips / day', 'টি গাড়ির ট্রিপ / দিন');
+  $('caution-bar').classList.toggle('on', isExtrap);
+  $('overflow-bags').style.opacity = (hasOut && xk === 'pop' && diffTrips <= -1 && !isExtrap) ? '1' : '0';
+
+  // Floating forecast chip
+  $('fc-v').innerHTML = (isExtrap ? '⚠️ ' : '🚛 ') + pred.toFixed(1) + ' ' + LAB.bi('t/day', 'টন/দিন') + ' · ' + trips + ' ' + LAB.bi('trucks', 'গাড়ি');
+  $('fc-m').style.width = Math.min(100, (pred / 115) * 100).toFixed(0) + '%';
+  $('forecast').className = 'forecast' + (isExtrap ? ' warn' : (hasOut && xk === 'pop' && Math.abs(diffTrips) >= 2 ? ' bad' : ''));
+
+  // Character speech bubbles (Supervisor & Truck Driver!)
+  var supMsg, drvMsg;
+  if (isExtrap) {
+    supMsg = ['Hold on! We have never managed a ward this huge — is ' + trips + ' trucks a real forecast or just a guess?', 'দাঁড়ান! এত বড় ওয়ার্ড আমরা কখনো চালাইনি — ' + trips + 'টি গাড়ি কি আসল হিসাব, নাকি শুধু আন্দাজ?'];
+    drvMsg = ['That is way outside our past city records!', 'এটা আমাদের অতীত রেকর্ডের অনেক বাইরে!'];
+  } else if (hasOut && xk === 'pop' && diffTrips >= 2) {
+    supMsg = ['Why did HQ send ' + trips + ' trucks to this quiet ward? ' + diffTrips + ' are sitting empty — those 5 bazaars skewed the rule!', 'এই শান্ত ওয়ার্ডে ' + trips + 'টি গাড়ি কেন পাঠাল? ' + diffTrips + 'টি খালি দাঁড়িয়ে — ৫টি বাজার নিয়ম বাঁকিয়ে দিয়েছে!'];
+    drvMsg = ['Burning diesel with an empty bay!', 'খালি গাড়ি নিয়ে জ্বালানি পুড়ছে!'];
+  } else if (hasOut && xk === 'pop' && diffTrips <= -1) {
+    supMsg = ['We are short by ' + Math.abs(diffTrips) + ' truck(s)! Garbage is spilling onto the sidewalk!', 'আমাদের ' + Math.abs(diffTrips) + 'টি গাড়ি কম পড়েছে! ফুটপাতে ময়লা উপচে পড়ছে!'];
+    drvMsg = ['Full to the roof — send backup!', 'পুরো ভরে গেছে — আরেকটা গাড়ি পাঠান!'];
+  } else if (handMode) {
+    supMsg = ['Testing your hand-drawn line: ' + trips + ' compactor trips planned for this ward!', 'আপনার হাতে আঁকা রেখা অনুযায়ী এই ওয়ার্ডে ' + trips + 'টি গাড়ি ঠিক করা হলো!'];
+    drvMsg = ['Let us see if your line beats the AI!', 'দেখি আপনার রেখা এআই-কে হারাতে পারে কি না!'];
+  } else if (pred < 22) {
+    supMsg = ['Quiet morning! ' + trips + ' compactor trips will clear the whole STS before 9 AM.', 'শান্ত সকাল! ' + trips + 'টি ট্রিপেই সকাল ৯টার আগে পুরো STS পরিষ্কার হয়ে যাবে।'];
+    drvMsg = ['Easy shift — heading to landfill!', 'সহজ ট্রিপ — ল্যান্ডফিলে যাচ্ছি!'];
+  } else {
+    supMsg = [trips + ' compactor trucks scheduled for ' + pred.toFixed(1) + ' tonnes. The street will stay clean!', pred.toFixed(1) + ' টনের জন্য ' + trips + 'টি কম্প্যাক্টর গাড়ি প্রস্তুত। রাস্তা পরিষ্কার থাকবে!'];
+    drvMsg = ['5 tonnes loaded — rolling to landfill!', '৫ টন বোঝাই — ল্যান্ডফিলে রওনা দিলাম!'];
+  }
+  setBubble('bub-sup', LAB.bi('Ward Supervisor', 'পরিচ্ছন্নতা পরিদর্শক'), supMsg);
+  setBubble('bub-drv', LAB.bi('Compactor Driver', 'গাড়ির চালক'), drvMsg);
+}
+
+function animateWardScene(dt) {
+  sc.mound += (sc.targetMound - sc.mound) * Math.min(1, dt * 4.5);
+  var h = 10 + sc.mound * 58, w = 34 + sc.mound * 76;
+  var cx = 565, baseY = 327;
+  $('waste-mound').setAttribute('d', 'M' + (cx - w / 2).toFixed(1) + ',' + baseY + ' Q' + cx + ',' + (baseY - h * 1.55).toFixed(1) + ' ' + (cx + w / 2).toFixed(1) + ',' + baseY + ' Z');
+
+  // Rickshaw waste van rolls from apartments to STS
+  if (!REDUCED) {
+    sc.vanX += dt * 42;
+    if (sc.vanX > 445) sc.vanX = 24;
+  }
+  $('waste-van').setAttribute('transform', 'translate(' + sc.vanX.toFixed(1) + ',341)');
+
+  // Compactor trucks cruise along road
+  for (var i = 0; i < 6; i++) {
+    var tr = $('truck-' + i);
+    if (i < sc.visTrucks) {
+      if (!REDUCED) sc.trucks[i] = (sc.trucks[i] + dt * 0.14) % 1;
+      var tx = -50 + sc.trucks[i] * 900;
+      var laneY = (i % 2 === 0) ? 372 : 400;
+      var bob = REDUCED ? 0 : Math.sin(simTime * 16 + i * 2) * 0.8;
+      tr.setAttribute('opacity', '1');
+      tr.setAttribute('transform', 'translate(' + tx.toFixed(1) + ',' + (laneY + bob).toFixed(1) + ')');
+    } else {
+      tr.setAttribute('opacity', '0');
+    }
+  }
+}
+
+/* =====================================================================
+   ② EXPLORE: 6 STAMPED WARD REGISTER CARDS
+   ===================================================================== */
+function pickCards(random) {
+  var rows = data();
+  if (!random) cardRows = BASE.slice(0, 6);
+  else cardRows = LAB.shuffle(BASE, LAB.rng(Math.floor(Math.random() * 1e6))).slice(0, 6);
+  if ($('outliers').checked) cardRows[5] = OUT[Math.floor(Math.random() * OUT.length)];
+}
+function drawCards() {
+  if (!cardRows) pickCards(false);
+  var hasOut = $('outliers').checked;
+  if (hasOut && !cardRows.some(function (c) { return c.out; })) cardRows[5] = OUT[0];
+  if (!hasOut && cardRows.some(function (c) { return c.out; })) pickCards(false);
+  $('recs').innerHTML = cardRows.map(function (r, i) {
+    var trips = Math.ceil(r.waste / 5);
+    return '<div class="rec' + (r.out ? ' bazaar-card' : '') + '" style="animation-delay:' + (i * 0.07) + 's">' +
+      '<div class="h">' + (r.out ? '🏪 ' : '🏘️ ') + LAB.bi(r.nameEn, r.nameBn) + '</div>' +
+      '<div class="cl"><span>👥 ' + r.pop + 'k</span><span>🏪 ' + r.biz + '</span><span>🚛 ' + trips + '</span></div>' +
+      (r.out ? '<span class="note">⚠️ ' + LAB.bi('bazaar outlier!', 'পাইকারি বাজার!') + '</span>' : '') +
+      '<div class="stamp' + (r.out ? ' mkt' : '') + '" style="animation-delay:' + (0.28 + i * 0.07) + 's">🗑️ ' + r.waste + ' ' + LAB.bi('t/d', 'টন') + '</div>' +
+    '</div>';
+  }).join('');
+  var rows = data();
+  $('counts').innerHTML = LAB.bi(
+    '👥 population (k) · 🏪 shops · 🚛 5-tonne trips · 🗑️ weighed daily waste. Register has <b>' + rows.length + '</b> wards' + (hasOut ? ' (including <b>5 wholesale bazaars</b>)' : '') + '.',
+    '👥 জনসংখ্যা (হাজার) · 🏪 দোকান · 🚛 ৫-টনের ট্রিপ · 🗑️ মাপা দৈনিক বর্জ্য। খাতায় মোট <b>' + rows.length + 'টি</b> ওয়ার্ড' + (hasOut ? ' (<b>৫টি পাইকারি বাজারসহ</b>)' : '') + '।'
+  );
+}
+
+/* =====================================================================
+   ③ TRAIN: GRADIENT DESCENT, BEST FIT, TRY-BY-HAND & INTERACTIVE CANVAS
+   ===================================================================== */
+function stopAnims() { gdState = null; animSnap = null; walkAnim = null; }
+
+function startGD() {
+  stopAnims(); handMode = false;
+  var rows = data(), n = rows.length, mx = 0, sx = 0;
+  if ($('outliers').checked) { var cl = computeOLS(BASE, xk); ghostLine = { a: cl.a, b: cl.b, xk: xk }; }
+  else ghostLine = null;
+  for (var i = 0; i < n; i++) mx += rows[i][xk];
+  mx /= n;
+  for (var j = 0; j < n; j++) sx += Math.pow(rows[j][xk] - mx, 2);
+  sx = Math.sqrt(sx / n);
+  a = 0; b = 0; gdStep = 0; losses = [mse(rows, 0, 0)];
+  gdState = { rows: rows, n: n, mx: mx, sx: sx, A: 0, B: 0, lr: 0.09, accMs: 0 };
+  updateAll();
+}
+
+function stepGD() {
+  if (!gdState) return;
+  var s = gdState, ga = 0, gb = 0;
+  for (var i = 0; i < s.n; i++) {
+    var d = s.rows[i], z = (d[xk] - s.mx) / s.sx, e = s.A + s.B * z - d.waste;
+    ga += e; gb += e * z;
+  }
+  s.A -= s.lr * ga / s.n; s.B -= s.lr * gb / s.n;
+  b = s.B / s.sx; a = s.A - s.B * s.mx / s.sx;
+  gdStep++;
+  losses.push(mse(s.rows, a, b));
+  if (gdStep >= MAX_STEPS) gdState = null;
+  updateAll();
+}
+
+function runBestFit(animate) {
+  stopAnims(); handMode = false;
+  var rows = data();
+  if ($('outliers').checked) { var cl = computeOLS(BASE, xk); ghostLine = { a: cl.a, b: cl.b, xk: xk }; }
+  else ghostLine = null;
+  var sol = computeOLS(rows, xk);
+  var sa = isFitted() ? a : 0, sb = isFitted() ? b : 0;
+  if (animate !== false && !REDUCED) {
+    losses = [];
+    for (var k = 0; k <= 16; k++) {
+      var u = k / 16, ez = 1 - Math.pow(1 - u, 3);
+      losses.push(mse(rows, sa + (sol.a - sa) * ez, sb + (sol.b - sb) * ez));
+    }
+    animSnap = { fromA: sa, fromB: sb, toA: sol.a, toB: sol.b, t0: performance.now(), dur: 520 };
+  } else {
+    a = sol.a; b = sol.b; losses = [mse(rows, a, b)];
+  }
+  gdStep = MAX_STEPS;
+  updateAll();
+}
+
+function toggleHandMode() {
+  stopAnims();
+  handMode = !handMode;
+  if (handMode) {
+    // Give the user a slightly off starting line so dragging feels rewarding!
+    a = 22; b = xk === 'pop' ? 0.14 : 0.015;
+    losses = [mse(data(), a, b)];
+  }
+  updateAll();
+}
+
+function startWalkThrough() {
+  stopAnims();
+  if (!isFitted()) runBestFit(false);
+  $('trainsec').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+  walkAnim = { t0: performance.now(), dur: REDUCED ? 200 : 2800 };
+  updateAll();
+}
+
+/* ---------- Scatter Plot Canvas ---------- */
+var plotCv = $('plot'), pCtx = plotCv.getContext('2d');
+var PW = 760, PH = 410, PAD = { l: 56, r: 22, t: 24, b: 48 };
+var lastScales = null;
+
+function setupHiDPI(cv, ctx, w, h) {
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+function getPlotScales() {
+  var rows = data(), nx = getNewX(), dmax = dataMax(rows);
+  var xmax = Math.max(X[xk].max, nx * 1.07);
+  var lTop = isFitted() ? (a + b * xmax) : 0;
+  var gTop = (ghostLine && ghostLine.xk === xk) ? (ghostLine.a + ghostLine.b * xmax) : 0;
+  var ymax = Math.max(100, lTop + 12, gTop + 12);
+  var iw = PW - PAD.l - PAD.r, ih = PH - PAD.t - PAD.b;
+  return {
+    rows: rows, nx: nx, dmax: dmax, xmax: xmax, ymax: ymax,
+    xs: function (v) { return PAD.l + (v / xmax) * iw; },
+    ys: function (v) { return PH - PAD.b - (v / ymax) * ih; },
+    invX: function (px) { return Math.max(0, Math.min(xmax, ((px - PAD.l) / iw) * xmax)); },
+    invY: function (py) { return Math.max(0, Math.min(ymax, ((PH - PAD.b - py) / ih) * ymax)); }
+  };
+}
+
+function drawPlot(now) {
+  setupHiDPI(plotCv, pCtx, PW, PH);
+  var c = pCtx, scP = getPlotScales();
+  lastScales = scP;
+  var C = {
+    surface: LAB.css('--surface'), surface2: LAB.css('--surface-2'), text: LAB.css('--text'),
+    muted: LAB.css('--muted'), border: LAB.css('--border'), accent: LAB.css('--accent'),
+    accent2: LAB.css('--accent-2'), yes: LAB.css('--yes'), no: LAB.css('--no'),
+    grid: LAB.css('--c-grid'), ghost: LAB.css('--c-ghost'),
+    warnBg: LAB.css('--c-warn-bg'), warnStripe: LAB.css('--c-warn-stripe')
+  };
+  var font = getComputedStyle(document.body).fontFamily;
+  var pL = PAD.l, pR = PW - PAD.r, pT = PAD.t, pB = PH - PAD.b;
+  c.fillStyle = C.surface; c.fillRect(0, 0, PW, PH);
+
+  // 1. Extrapolation zone
+  if (scP.nx > scP.dmax || scP.xmax > scP.dmax * 1.08) {
+    var zx = scP.xs(scP.dmax), zw = pR - zx;
+    if (zw > 6) {
+      c.save(); c.beginPath(); c.rect(zx, pT, zw, pB - pT); c.clip();
+      c.fillStyle = C.warnBg; c.fillRect(zx, pT, zw, pB - pT);
+      c.strokeStyle = C.warnStripe; c.lineWidth = 6;
+      var sh = REDUCED ? 0 : (simTime * 16) % 24;
+      for (var s = -pB; s < zw + pB; s += 24) {
+        c.beginPath(); c.moveTo(zx + s + sh, pB); c.lineTo(zx + s + sh + (pB - pT), pT); c.stroke();
+      }
+      c.restore();
+      c.save();
+      c.strokeStyle = C.accent2; c.setLineDash([5, 4]); c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(zx, pT); c.lineTo(zx, pB); c.stroke(); c.setLineDash([]);
+      c.fillStyle = C.accent2; c.font = '700 12px ' + font;
+      var wt = zw < 170 ? '⚠️ ' + LAB.t('No data', 'ডেটা নেই') : '⚠️ ' + LAB.t('No city data here (extrapolation)', 'এখানে শহরের ডেটা নেই (আন্দাজ)');
+      if (zx + 8 + c.measureText(wt).width <= pR - 6) { c.textAlign = 'left'; c.fillText(wt, zx + 8, pT + 18); }
+      else { c.textAlign = 'right'; c.fillText(wt, pR - 8, pT + 18); }
+      c.restore();
+    }
+  }
+
+  // 2. Grid & axes
+  c.font = '12px ' + font;
+  for (var k = 0; k <= 5; k++) {
+    var yv = (scP.ymax * k) / 5, yy = scP.ys(yv);
+    c.strokeStyle = k === 0 ? C.border : C.grid; c.lineWidth = k === 0 ? 1.5 : 1;
+    c.setLineDash(k === 0 ? [] : [3, 4]);
+    c.beginPath(); c.moveTo(pL, yy); c.lineTo(pR, yy); c.stroke(); c.setLineDash([]);
+    c.fillStyle = C.muted; c.textAlign = 'right'; c.textBaseline = 'middle';
+    c.fillText(Math.round(yv), pL - 8, yy);
+  }
+  for (var kx = 0; kx <= 5; kx++) {
+    var xv = (scP.xmax * kx) / 5, xx = scP.xs(xv);
+    if (kx === 0) { c.strokeStyle = C.border; c.lineWidth = 1.5; c.beginPath(); c.moveTo(xx, pT); c.lineTo(xx, pB); c.stroke(); }
+    c.fillStyle = C.muted; c.textAlign = 'center'; c.textBaseline = 'top';
+    c.fillText(Math.round(xv), xx, pB + 8);
+  }
+  c.fillStyle = C.text; c.font = '600 13px ' + font;
+  c.textAlign = 'center'; c.textBaseline = 'bottom';
+  c.fillText(LAB.t(X[xk].en, X[xk].bn), (pL + pR) / 2, PH - 6);
+  c.save(); c.translate(16, (pT + pB) / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.textBaseline = 'top';
+  c.fillText(LAB.t('Daily waste (tonnes / day)', 'দৈনিক বর্জ্য (টন / দিন)'), 0, 0); c.restore();
+
+  var fitted = isFitted();
+
+  // 3. Ghost residential-only comparison line & distortion wedge
+  if (fitted && ghostLine && ghostLine.xk === xk && $('outliers').checked) {
+    var gx0 = scP.xs(0), gy0 = scP.ys(Math.max(0, ghostLine.a)), gx1 = scP.xs(scP.xmax), gy1 = scP.ys(Math.max(0, ghostLine.a + ghostLine.b * scP.xmax));
+    var lx0 = scP.xs(0), ly0 = scP.ys(Math.max(0, a)), lx1 = scP.xs(scP.xmax), ly1 = scP.ys(Math.max(0, a + b * scP.xmax));
+    c.save(); c.fillStyle = C.yes; c.globalAlpha = 0.08;
+    c.beginPath(); c.moveTo(gx0, gy0); c.lineTo(gx1, gy1); c.lineTo(lx1, ly1); c.lineTo(lx0, ly0); c.closePath(); c.fill(); c.restore();
+    c.save(); c.strokeStyle = C.ghost; c.lineWidth = 2.4; c.setLineDash([7, 5]);
+    c.beginPath(); c.moveTo(gx0, gy0); c.lineTo(gx1, gy1); c.stroke(); c.setLineDash([]);
+    c.fillStyle = C.muted; c.font = '600 11px ' + font; c.textAlign = 'right';
+    c.fillText(LAB.t('Residential-only rule', 'বাজার ছাড়া নিয়ম'), pR - 10, Math.max(pT + 34, gy1 - 10));
+    c.restore();
+  }
+
+  // 4. Error pulls
+  if ($('showres').checked && fitted) {
+    c.save();
+    var pulse = gdState ? (0.65 + 0.35 * Math.sin(simTime * 10)) : 1;
+    for (var ri = 0; ri < scP.rows.length; ri++) {
+      var d = scP.rows[ri], px = scP.xs(d[xk]), pyA = scP.ys(d.waste), pyP = scP.ys(a + b * d[xk]);
+      var under = d.waste > (a + b * d[xk]);
+      var focus = (hoveredPt && hoveredPt.id === d.id) || (selectedPt && selectedPt.id === d.id);
+      c.strokeStyle = under ? C.yes : C.no;
+      c.globalAlpha = focus ? 0.95 : (d.out ? 0.72 * outlierAnimT : (gdState ? 0.45 * pulse : 0.32));
+      c.lineWidth = focus ? 3 : (d.out ? 2.2 : 1.25);
+      c.beginPath(); c.moveTo(px, pyA); c.lineTo(px, pyP); c.stroke();
+    }
+    c.restore();
+  }
+
+  // 5. Ward dots
+  for (var pi = 0; pi < scP.rows.length; pi++) {
+    var pt = scP.rows[pi], cx = scP.xs(pt[xk]), cy = scP.ys(pt.waste);
+    var hov = (hoveredPt && hoveredPt.id === pt.id) || (selectedPt && selectedPt.id === pt.id);
+    if (pt.out) {
+      var bt = Math.min(1, outlierAnimT);
+      var back = 1 + 2.1 * Math.pow(bt - 1, 3) + 1.1 * Math.pow(bt - 1, 2);
+      var dy = cy - (1 - bt) * 34, rad = Math.max(1, (hov ? 9.5 : 7.5) * back);
+      var halo = rad + 4 + (REDUCED ? 0 : 2.5 * Math.sin(simTime * 4 + pt.id));
+      c.save();
+      c.beginPath(); c.arc(cx, dy, halo, 0, Math.PI * 2); c.fillStyle = C.yes; c.globalAlpha = 0.16 * bt; c.fill();
+      c.globalAlpha = 0.95 * bt;
+      c.beginPath(); c.arc(cx, dy, rad, 0, Math.PI * 2); c.fillStyle = C.yes; c.fill();
+      c.strokeStyle = C.surface; c.lineWidth = 2; c.stroke(); c.restore();
+    } else {
+      c.save(); c.beginPath(); c.arc(cx, cy, hov ? 7.5 : 4.6, 0, Math.PI * 2);
+      c.fillStyle = hov ? C.accent2 : C.accent; c.globalAlpha = hov ? 1 : 0.7; c.fill();
+      if (hov) { c.strokeStyle = C.surface; c.lineWidth = 2.2; c.stroke(); }
+      c.restore();
+    }
+  }
+  if ($('outliers').checked && outlierAnimT > 0.35) {
+    c.save(); c.globalAlpha = Math.min(1, outlierAnimT); c.fillStyle = C.yes; c.font = '700 12px ' + font;
+    c.textAlign = xk === 'pop' ? 'left' : 'center';
+    c.fillText('🏪 ' + LAB.t('5 Wholesale Bazaars', '৫টি পাইকারি বাজার'), xk === 'pop' ? scP.xs(24) + 10 : scP.xs(1000), Math.max(pT + 18, scP.ys(92)));
+    c.restore();
+  }
+
+  // 6. Fitted Regression Line + Hand-Fit Handles
+  if (fitted) {
+    c.save(); c.beginPath(); c.rect(pL, pT, pR - pL, pB - pT); c.clip();
+    if (gdState || animSnap || handMode) {
+      c.strokeStyle = C.accent2; c.globalAlpha = 0.22; c.lineWidth = 10;
+      c.beginPath(); c.moveTo(scP.xs(0), scP.ys(a)); c.lineTo(scP.xs(scP.xmax), scP.ys(a + b * scP.xmax)); c.stroke();
+    }
+    c.globalAlpha = 1; c.strokeStyle = C.accent2; c.lineWidth = 3.8; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(scP.xs(0), scP.ys(a)); c.lineTo(scP.xs(scP.xmax), scP.ys(a + b * scP.xmax)); c.stroke();
+    c.restore();
+
+    // Draggable Hand-Fit Handles
+    if (handMode) {
+      var h1x = scP.xs(scP.xmax * 0.12), h1y = scP.ys(Math.max(0, Math.min(scP.ymax, a + b * scP.xmax * 0.12)));
+      var h2x = scP.xs(scP.xmax * 0.85), h2y = scP.ys(Math.max(0, Math.min(scP.ymax, a + b * scP.xmax * 0.85)));
+      [[h1x, h1y], [h2x, h2y]].forEach(function (h) {
+        c.save();
+        c.beginPath(); c.arc(h[0], h[1], 13, 0, Math.PI * 2); c.fillStyle = C.surface; c.fill();
+        c.strokeStyle = C.accent2; c.lineWidth = 3; c.stroke();
+        c.fillStyle = C.accent2; c.font = '700 12px ' + font; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText('↕', h[0], h[1] + 0.5);
+        c.restore();
+      });
+    }
+
+    // 7. New Ward Pin + Animated Walk-Through Trace ("Show me how the line calculates this")
+    var ny = Math.max(0, a + b * scP.nx);
+    var pinX = scP.xs(scP.nx), pinY = scP.ys(ny);
+    var wu = walkAnim ? Math.min(1, (now - walkAnim.t0) / walkAnim.dur) : 1;
+
+    c.save();
+    c.strokeStyle = C.accent2; c.lineWidth = walkAnim ? 3 : 1.5;
+    c.setLineDash(walkAnim ? [] : [4, 4]); c.globalAlpha = walkAnim ? 0.95 : 0.7;
+    if (walkAnim) {
+      // Phase 1 (0..0.33): move along X axis from 0 to pinX
+      var u1 = Math.min(1, wu / 0.33);
+      var cx1 = pL + (pinX - pL) * u1;
+      c.beginPath(); c.moveTo(pL, pB); c.lineTo(cx1, pB); c.stroke();
+      // Phase 2 (0.33..0.67): shoot straight UP to the line
+      if (wu > 0.33) {
+        var u2 = Math.min(1, (wu - 0.33) / 0.34);
+        var cy2 = pB + (pinY - pB) * u2;
+        c.beginPath(); c.moveTo(pinX, pB); c.lineTo(pinX, cy2); c.stroke();
+      }
+      // Phase 3 (0.67..1.0): shoot LEFT to Y axis
+      if (wu > 0.67) {
+        var u3 = Math.min(1, (wu - 0.67) / 0.33);
+        var cx3 = pinX + (pL - pinX) * u3;
+        c.beginPath(); c.moveTo(pinX, pinY); c.lineTo(cx3, pinY); c.stroke();
+      }
+      // Traveling truck badge
+      var trX = wu <= 0.33 ? cx1 : wu <= 0.67 ? pinX : (pinX + (pL - pinX) * Math.min(1, (wu - 0.67) / 0.33));
+      var trY = wu <= 0.33 ? pB - 10 : wu <= 0.67 ? (pB + (pinY - pB) * Math.min(1, (wu - 0.33) / 0.34)) : pinY;
+      c.font = '18px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('🚛', trX, trY);
+      if (wu >= 1) walkAnim = null;
+    } else {
+      c.beginPath(); c.moveTo(pinX, pB); c.lineTo(pinX, pinY); c.lineTo(pL, pinY); c.stroke();
+    }
+    c.setLineDash([]);
+    var pr = 11 + (REDUCED ? 0 : 3.2 * Math.sin(simTime * 4.5));
+    c.beginPath(); c.arc(pinX, pinY, pr, 0, Math.PI * 2); c.fillStyle = C.accent2; c.globalAlpha = 0.22; c.fill();
+    c.globalAlpha = 1; c.beginPath(); c.arc(pinX, pinY, 8.5, 0, Math.PI * 2); c.fillStyle = C.accent2; c.fill();
+    c.strokeStyle = C.surface; c.lineWidth = 2.5; c.stroke();
+
+    var lbl = ny.toFixed(1) + ' ' + LAB.t('t/d', 'টন/দিন');
+    c.font = '700 12px ' + font;
+    var tw = c.measureText(lbl).width + 16;
+    var lx = pinX + 14 + tw > pR ? pinX - 14 - tw : pinX + 14;
+    var ly = Math.max(pT + 14, Math.min(pB - 26, pinY - 12));
+    c.fillStyle = C.accent2; roundRect(c, lx, ly, tw, 24, 12); c.fill();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(lbl, lx + tw / 2, ly + 12.5);
+    c.restore();
+  }
+}
+
+/* ---------------- Pointer Interactions (Hover Ward + Drag New Ward Pin + Drag Hand-Fit Line) ---------------- */
+function canvasCoords(e) {
+  var r = plotCv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * (PW / r.width), y: (e.clientY - r.top) * (PH / r.height) };
+}
+function updateTooltip(pt, cx, cy) {
+  var tip = $('tip');
+  if (!pt) { tip.classList.remove('show'); return; }
+  var pred = a + b * pt[xk], gap = pt.waste - pred;
+  var cls = Math.abs(gap) <= 2.5 ? 'ok-t' : 'yes-t';
+  var meaning = gap > 2.5 ? LAB.t('under-planned (overflow!)', 'কম অনুমান (ময়লা জমে!)')
+    : gap < -2.5 ? LAB.t('over-planned (extra truck)', 'বেশি অনুমান (বাড়তি গাড়ি)')
+    : LAB.t('spot-on dispatch ✓', 'নিখুঁত অনুমান ✓');
+  tip.innerHTML =
+    '<div class="t-head"><span>' + (pt.out ? '🏪 ' : '🏘️ ') + LAB.t(pt.nameEn, pt.nameBn) + '</span>' +
+    '<span class="t-tag' + (pt.out ? ' mkt' : '') + '">' + LAB.t(pt.typeEn, pt.typeBn) + '</span></div>' +
+    '<div>👥 ' + pt.pop + 'k · 🏪 ' + pt.biz + ' ' + LAB.t('shops', 'দোকান') + '</div>' +
+    '<div>🗑️ ' + LAB.t('Actual: ', 'আসল: ') + '<b>' + pt.waste + ' ' + LAB.t('t/d', 'টন/দিন') + '</b> (' + Math.ceil(pt.waste / 5) + ' ' + LAB.t('trucks', 'গাড়ি') + ')</div>' +
+    '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed var(--border)">' +
+      LAB.t('Line predicts: ', 'রেখার অনুমান: ') + '<b>' + pred.toFixed(1) + ' ' + LAB.t('t', 'টন') + '</b><br>' +
+      '<span class="' + cls + '">' + (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' ' + LAB.t('t', 'টন') + ' · ' + meaning + '</span></div>';
+  var wrap = plotCv.parentElement.getBoundingClientRect();
+  var left = cx - wrap.left + 14, top = cy - wrap.top - 16;
+  if (left + 250 > wrap.width) left = cx - wrap.left - 255;
+  if (top + 135 > wrap.height) top = wrap.height - 140;
+  tip.style.left = Math.max(6, left) + 'px'; tip.style.top = Math.max(6, top) + 'px';
+  tip.classList.add('show');
+}
+
+plotCv.addEventListener('pointerdown', function (e) {
+  if (!lastScales) return;
+  var p = canvasCoords(e), scP = lastScales;
+  if (handMode) {
+    var x1 = scP.xmax * 0.12, y1 = Math.max(0, Math.min(scP.ymax, a + b * x1));
+    var x2 = scP.xmax * 0.85, y2 = Math.max(0, Math.min(scP.ymax, a + b * x2));
+    if (Math.hypot(p.x - scP.xs(x1), p.y - scP.ys(y1)) < 22) { dragHandle = { which: 1, x1: x1, x2: x2, y2: y2 }; plotCv.setPointerCapture(e.pointerId); return; }
+    if (Math.hypot(p.x - scP.xs(x2), p.y - scP.ys(y2)) < 22) { dragHandle = { which: 2, x1: x1, x2: x2, y1: y1 }; plotCv.setPointerCapture(e.pointerId); return; }
+  }
+  if (isFitted()) {
+    var pinX = scP.xs(scP.nx), pinY = scP.ys(Math.max(0, a + b * scP.nx));
+    if (Math.hypot(p.x - pinX, p.y - pinY) < 22) { dragNew = true; plotCv.setPointerCapture(e.pointerId); plotCv.style.cursor = 'grabbing'; return; }
+  }
+  if (hoveredPt) selectedPt = (selectedPt && selectedPt.id === hoveredPt.id) ? null : hoveredPt;
 });
-$('gd').onclick = gd;
-$('ols').onclick = function () { if (timer) clearInterval(timer); ols(); losses = [mse(data(), a, b)]; draw(); };
-$('showres').onchange = draw;
-$('outliers').onchange = draw;
-$('newx').oninput = draw;
-LAB.onLang(draw);
-draw();
+
+plotCv.addEventListener('pointermove', function (e) {
+  if (!lastScales) return;
+  var p = canvasCoords(e), scP = lastScales;
+  if (dragHandle) {
+    var ny = scP.invY(p.y);
+    var y1 = dragHandle.which === 1 ? ny : dragHandle.y1;
+    var y2 = dragHandle.which === 2 ? ny : dragHandle.y2;
+    b = (y2 - y1) / (dragHandle.x2 - dragHandle.x1);
+    a = y1 - b * dragHandle.x1;
+    losses.push(mse(data(), a, b));
+    if (losses.length > 60) losses.shift();
+    updateAll();
+    return;
+  }
+  if (dragNew) {
+    var sv = Math.round(scP.invX(p.x) / X[xk].mult);
+    $('newx').value = Math.max(X[xk].min, Math.min(X[xk].smax, sv));
+    updateAll(); updateTooltip(null);
+    return;
+  }
+  if (handMode) {
+    var hx1 = scP.xs(scP.xmax * 0.12), hy1 = scP.ys(Math.max(0, Math.min(scP.ymax, a + b * scP.xmax * 0.12)));
+    var hx2 = scP.xs(scP.xmax * 0.85), hy2 = scP.ys(Math.max(0, Math.min(scP.ymax, a + b * scP.xmax * 0.85)));
+    if (Math.hypot(p.x - hx1, p.y - hy1) < 20 || Math.hypot(p.x - hx2, p.y - hy2) < 20) { plotCv.style.cursor = 'ns-resize'; updateTooltip(null); return; }
+  }
+  var pinX = scP.xs(scP.nx), pinY = scP.ys(Math.max(0, a + b * scP.nx));
+  if (Math.hypot(p.x - pinX, p.y - pinY) < 18) { plotCv.style.cursor = 'grab'; hoveredPt = null; updateTooltip(null); return; }
+
+  var best = null, bestD = 16;
+  for (var i = 0; i < scP.rows.length; i++) {
+    var d = scP.rows[i], dist = Math.hypot(p.x - scP.xs(d[xk]), p.y - scP.ys(d.waste));
+    if (dist < bestD) { bestD = dist; best = d; }
+  }
+  hoveredPt = best;
+  plotCv.style.cursor = best ? 'pointer' : 'crosshair';
+  if (best) updateTooltip(best, e.clientX, e.clientY); else updateTooltip(null);
+});
+plotCv.addEventListener('pointerup', function () { dragHandle = null; dragNew = false; plotCv.style.cursor = 'crosshair'; });
+plotCv.addEventListener('pointerleave', function () { if (!dragNew && !dragHandle) { hoveredPt = null; updateTooltip(null); } });
+
+/* =====================================================================
+   ④ EVALUATE & ⑤ C REALITY CHECK + NARRATION
+   ===================================================================== */
+function renderPresets() {
+  var sv = +$('newx').value;
+  $('preset-btns').innerHTML = X[xk].presets.map(function (p) {
+    return '<button class="btn' + (Math.abs(sv - p.v) <= 2 ? ' active' : '') + '" data-pv="' + p.v + '">' + p.ico + ' ' + LAB.bi(p.en, p.bn) + '</button>';
+  }).join('');
+  $('preset-btns').querySelectorAll('[data-pv]').forEach(function (btn) {
+    btn.onclick = function () { $('newx').value = +btn.dataset.pv; updateAll(); };
+  });
+}
+
+function updateRealityCheck() {
+  var hasOut = $('outliers').checked;
+  $('bazaar-chips').classList.toggle('hidden', !hasOut);
+  if (hasOut) {
+    $('bazaar-chips').innerHTML = OUT.map(function (o) {
+      return '<span class="bazaar-chip">🏪 ' + LAB.bi(o.nameEn, o.nameBn) + ' (' + o.waste + ' ' + LAB.bi('t', 'টন') + ')</span>';
+    }).join('');
+  }
+  var cleanPop = computeOLS(BASE, 'pop');
+  var curPop = hasOut ? computeOLS(BASE.concat(OUT), 'pop') : cleanPop;
+
+  function drawFleet(idIcons, idLbl, popVal) {
+    var need = Math.ceil((cleanPop.a + cleanPop.b * popVal) / 5);
+    var sent = Math.ceil((curPop.a + curPop.b * popVal) / 5);
+    var sig = need + ':' + sent;
+    var el = $(idIcons);
+    if (el._sig !== sig) {
+      el._sig = sig;
+      var h = '', tot = Math.max(need, sent);
+      for (var i = 0; i < tot; i++) {
+        var cls = i < Math.min(need, sent) ? 'ok' : (sent > need ? 'extra' : 'miss');
+        var ic = cls === 'miss' ? '🗑️' : '🚛';
+        h += '<span class="tr-ic ' + cls + '" style="animation-delay:' + (i * 45) + 'ms">' + ic + '</span>';
+      }
+      el.innerHTML = h;
+    }
+    var diff = sent - need;
+    $(idLbl).innerHTML = diff === 0
+      ? '<span class="ok-t">' + sent + ' ' + LAB.bi('trucks (spot-on ✓)', 'টি গাড়ি (নিখুঁত ✓)') + '</span>'
+      : diff > 0
+        ? '<span class="warn-t">' + need + ' → ' + sent + ' (+' + diff + ' ' + LAB.bi('wasted', 'বাড়তি') + ')</span>'
+        : '<span class="yes-t">' + need + ' → ' + sent + ' (' + diff + ' ' + LAB.bi('short! overflow', 'কম! ময়লা জমে') + ')</span>';
+  }
+  drawFleet('tr-small', 'rc-small', 25);
+  drawFleet('tr-big', 'rc-big', 100);
+
+  var stClean = evalStats(BASE, cleanPop.a, cleanPop.b);
+  var stCur = evalStats(hasOut ? BASE.concat(OUT) : BASE, curPop.a, curPop.b);
+  var talk = function (av, cls, who, en, bn) {
+    return '<div class="talk"><div class="avatar' + cls + '">' + av + '</div><div class="say"><span class="who">' + who + '</span>' + LAB.bi(en, bn) + '</div></div>';
+  };
+  $('bazaar-talk').innerHTML = hasOut
+    ? talk('🏪', ' person', LAB.bi('Salam, Karwan Bazar wholesale trader', 'সালাম, কারওয়ান বাজারের আড়তদার'),
+        'Thousands of trucks unload vegetables here before dawn, even though almost nobody sleeps here at night. Of course our waste does not match our resident count!',
+        'ভোর হওয়ার আগেই হাজারো ট্রাক এখানে সবজি নামায়, যদিও রাতে এখানে প্রায় কেউ থাকে না। আমাদের বর্জ্য তো বাসিন্দার সংখ্যার সাথে মিলবে না!') +
+      talk('📏', '', LAB.bi('The line', 'রেখা'),
+        'Those 5 bazaars yanked my left end upward and dropped my R² from <b>' + Math.round(stClean.r2 * 100) + '%</b> to <b>' + Math.round(stCur.r2 * 100) + '%</b>! Now I over-send trucks to small residential wards and short-change big ones. Bazaars need their own category.',
+        'ওই ৫টি বাজার আমার বাঁ প্রান্ত ওপরে টেনে তুলেছে, আর আমার R² <b>' + Math.round(stClean.r2 * 100) + '%</b> থেকে নেমে <b>' + Math.round(stCur.r2 * 100) + '%</b> হয়েছে! এখন ছোট ওয়ার্ডে বাড়তি গাড়ি আর বড় ওয়ার্ডে কম গাড়ি যাচ্ছে। বাজারের জন্য আলাদা শ্রেণি দরকার।')
+    : talk('📏', '', LAB.bi('The line', 'রেখা'),
+        'Right now I study only the 120 ordinary wards (R² = <b>' + Math.round(stClean.r2 * 100) + '%</b>), so both small and big residential wards get the right fleet. Flip the switch to add the 5 wholesale bazaars!',
+        'এখন আমি শুধু ১২০টি সাধারণ ওয়ার্ড দেখছি (R² = <b>' + Math.round(stClean.r2 * 100) + '%</b>), তাই ছোট ও বড় সব আবাসিক ওয়ার্ড ঠিক সংখ্যক গাড়ি পাচ্ছে। এবার সুইচটি চালু করে ৫টি পাইকারি বাজার যোগ করুন!');
+}
+
+function updateAll() {
+  var rows = data(), nx = getNewX(), dmax = dataMax(rows), isExtrap = nx > dmax, hasOut = $('outliers').checked;
+  var st = evalStats(rows, a, b);
+  var pred = Math.max(0, a + b * nx);
+  var trips = Math.max(1, Math.ceil(pred / 5));
+  var crew = Math.max(4, Math.round(pred * 1.15));
+  var cost = Math.round(trips * 3200 + crew * 550);
+
+  // Hero controls
+  $('clue-ico').textContent = X[xk].ico;
+  $('clue-nm').innerHTML = LAB.bi(X[xk].en, X[xk].bn);
+  $('clue-val').textContent = nx + ' ' + LAB.t(xk === 'pop' ? 'k' : '', xk === 'pop' ? 'হা.' : '');
+  var wd = X[xk].word(nx);
+  $('clue-word').innerHTML = LAB.bi(wd[0], wd[1]);
+  $('m-trucks').textContent = trips;
+  $('m-crew').textContent = crew;
+  $('m-cost').textContent = '৳' + Math.round(cost / 1000) + 'k';
+  renderPresets();
+  updateWardSceneVisuals();
+
+  // Hero narrator
+  var eqEn = '<span class="q-chip">' + a.toFixed(1) + (b >= 0 ? ' + ' : ' − ') + Math.abs(b).toFixed(3) + ' × ' + nx + ' = ' + pred.toFixed(1) + ' t</span>';
+  var eqBn = '<span class="q-chip">' + a.toFixed(1) + (b >= 0 ? ' + ' : ' − ') + Math.abs(b).toFixed(3) + ' × ' + nx + ' = ' + pred.toFixed(1) + ' টন</span>';
+  if (isExtrap) {
+    say('say-hero',
+      'I plugged <b>' + nx + ' ' + X[xk].unitEn + '</b> into my line: ' + eqEn + ' (<b>' + trips + ' trucks</b>). <span class="warn-t">⚠️ Caution:</span> the largest ward I ever studied had only ' + dmax + ' — extending a line this far is a guess!',
+      'আমি <b>' + nx + ' ' + X[xk].unitBn + '</b> আমার রেখায় বসিয়ে পেলাম ' + eqBn + ' (<b>' + trips + 'টি গাড়ি</b>)। <span class="warn-t">⚠️ সতর্কতা:</span> আমি যে সবচেয়ে বড় ওয়ার্ড দেখেছি তাতে ছিল মাত্র ' + dmax + ' — এতদূর রেখা টানা কেবল আন্দাজ!');
+  } else {
+    say('say-hero',
+      'I plugged <b>' + nx + ' ' + X[xk].unitEn + '</b> into my learned line: ' + eqEn + '. At 5 tonnes per compactor truck, that means <span class="ok-t">' + trips + ' truck trips</span> tomorrow morning.',
+      'আমি <b>' + nx + ' ' + X[xk].unitBn + '</b> আমার শেখা রেখায় বসিয়ে পেলাম ' + eqBn + '। প্রতি গাড়িতে ৫ টন হিসেবে আগামীকাল সকালে লাগবে <span class="ok-t">' + trips + 'টি গাড়ির ট্রিপ</span>।');
+  }
+
+  // Train badge, button state & loss chart
+  $('hand').classList.toggle('on', handMode);
+  $('leg-ghost').classList.toggle('hidden', !(hasOut && ghostLine && ghostLine.xk === xk));
+  var sb = $('step-badge');
+  if (gdState) { sb.className = 'step-badge running'; sb.textContent = LAB.t('Learning… Step ', 'শিখছে… ধাপ ') + gdStep + '/' + MAX_STEPS; }
+  else if (handMode) { sb.className = 'step-badge hand'; sb.textContent = LAB.t('Hand-fit mode · drag ↕', 'নিজে হাতে · ↕ টানুন'); }
+  else { sb.className = 'step-badge'; sb.textContent = LAB.t('Fitted ✓', 'শেখা সম্পন্ন ✓'); }
+
+  LAB.lineChart($('loss'), [{ values: losses.length ? losses : [st.mse], color: LAB.css('--accent-2') }], { height: 118, ymin: 0 });
+  if (handMode) {
+    var opt = computeOLS(rows, xk), optMse = mse(rows, opt.a, opt.b);
+    $('loss-note').innerHTML = LAB.bi(
+      'Your squared error: <b>' + st.mse.toFixed(1) + '</b> (AI best possible: <b>' + optMse.toFixed(1) + '</b>). Drag the ↕ handles to shrink it!',
+      'আপনার বর্গ-ভুল: <b>' + st.mse.toFixed(1) + '</b> (এআই-এর সেরা: <b>' + optMse.toFixed(1) + '</b>)। কমাতে ↕ হাতল টানুন!'
+    );
+  } else if (losses.length > 1) {
+    var drop = Math.max(0, Math.round((1 - losses[losses.length - 1] / Math.max(1e-9, losses[0])) * 100));
+    $('loss-note').innerHTML = LAB.bi(
+      'Squared error dropped by <b>' + drop + '%</b> as the line settled between the ' + rows.length + ' wards.',
+      rows.length + 'টি ওয়ার্ডের মাঝে বসতে গিয়ে বর্গ-ভুল <b>' + drop + '%</b> কমেছে।'
+    );
+  } else {
+    $('loss-note').innerHTML = LAB.bi('Squared error (MSE): <b>' + st.mse.toFixed(1) + '</b>. Press "Watch it learn" to watch it fall step by step.', 'বর্গ-ভুল (MSE): <b>' + st.mse.toFixed(1) + '</b>। ধাপে ধাপে কমতে দেখতে "শেখা দেখুন" চাপুন।');
+  }
+
+  // Section ③ narrator
+  var ruleChipEn = '<span class="q-chip">waste ≈ ' + a.toFixed(1) + (b >= 0 ? ' + ' : ' − ') + Math.abs(b).toFixed(3) + ' × ' + X[xk].shortEn + '</span>';
+  var ruleChipBn = '<span class="q-chip">বর্জ্য ≈ ' + a.toFixed(1) + (b >= 0 ? ' + ' : ' − ') + Math.abs(b).toFixed(3) + ' × ' + X[xk].shortBn + '</span>';
+  if (walkAnim) {
+    say('say-train',
+      '🚛 Follow the truck along the chart! Go right to <b>' + nx + ' ' + X[xk].unitEn + '</b>, go straight up to my line, then read left to <b>' + pred.toFixed(1) + ' tonnes/day</b> (' + trips + ' trucks).',
+      '🚛 চার্টে গাড়িটি অনুসরণ করুন! ডানে যান <b>' + nx + ' ' + X[xk].unitBn + '</b> পর্যন্ত, সোজা ওপরে উঠে রেখায় পৌঁছান, তারপর বাঁয়ে পড়ুন <b>' + pred.toFixed(1) + ' টন/দিন</b> (' + trips + 'টি গাড়ি)।');
+  } else if (gdState) {
+    say('say-train',
+      '⚙️ Step <b>' + gdStep + '</b>: Red springs (under-planned wards) pull me up; blue springs (over-planned wards) pull me down. Watch the orange error curve fall!',
+      '⚙️ ধাপ <b>' + gdStep + '</b>: লাল স্প্রিং (কম অনুমান) আমাকে ওপরে টানছে; নীল স্প্রিং (বেশি অনুমান) নিচে টানছে। কমলা ভুলের রেখাটি নামতে দেখুন!');
+  } else if (handMode) {
+    say('say-train',
+      '✋ <b>Your turn!</b> Grab the two <b>↕</b> circles on the orange line and try to beat my error score. Watch the red &amp; blue springs shrink as you get closer!',
+      '✋ <b>এবার আপনার পালা!</b> কমলা রেখার দুটি <b>↕</b> বৃত্ত টেনে আমার ভুলের স্কোর হারানোর চেষ্টা করুন। কাছে এলেই লাল ও নীল স্প্রিং ছোট হতে দেখবেন!');
+  } else if (hasOut && st.r2 < 0.55) {
+    say('say-train',
+      '💥 Look at the shaded wedge! Just <b>5 wholesale bazaars</b> pulled my line away from the dashed residential-only rule: ' + ruleChipEn + '. R² fell to <b>' + Math.round(st.r2 * 100) + '%</b>.',
+      '💥 ছায়া দেওয়া অংশটি দেখুন! মাত্র <b>৫টি পাইকারি বাজার</b> আমাকে ড্যাশ দেওয়া আবাসিক নিয়ম থেকে টেনে সরিয়ে দিয়েছে: ' + ruleChipBn + '। R² নেমে এসেছে <b>' + Math.round(st.r2 * 100) + '%</b>-এ।');
+  } else {
+    say('say-train',
+      '🎓 Learned rule: ' + ruleChipEn + '. Hover any ward dot to inspect its actual vs. predicted waste, drag the orange pin, or click <b>Try by hand</b>!',
+      '🎓 শেখা নিয়ম: ' + ruleChipBn + '। যেকোনো ওয়ার্ডে হোভার করে আসল বনাম অনুমিত বর্জ্য দেখুন, কমলা বিন্দু টানুন, বা <b>নিজে হাতে রেখা টানুন</b> চাপুন!');
+  }
+
+  // ④ Evaluate rings & tiles
+  var r2Pct = Math.round(st.r2 * 100), tkPct = Math.round(st.w1 * 100);
+  $('ring-r2-wrap').classList.toggle('low', r2Pct < 55);
+  setRing('ring-r2', st.r2); setRing('ring-tk', st.w1);
+  countTo($('acc-r2'), r2Pct, function (v) { return Math.round(v) + '%'; });
+  countTo($('acc-tk'), tkPct, function (v) { return Math.round(v) + '%'; });
+
+  $('t-spot').innerHTML = st.spot + ' <small>/ ' + st.n + '</small>';
+  $('t-under').innerHTML = st.under + ' <small>/ ' + st.n + '</small>';
+  $('t-over').innerHTML = st.over + ' <small>/ ' + st.n + '</small>';
+  $('tb-spot').style.width = (st.spot / st.n * 100).toFixed(0) + '%';
+  $('tb-under').style.width = (st.under / st.n * 100).toFixed(0) + '%';
+  $('tb-over').style.width = (st.over / st.n * 100).toFixed(0) + '%';
+  $('t-mae').innerHTML = '±' + st.mae.toFixed(1) + ' <small>' + LAB.bi('t/day', 'টন/দিন') + '</small>';
+
+  var perTruck = b > 0.0001 ? (5 / b) : 0;
+  $('t-rule').innerHTML = xk === 'pop'
+    ? (perTruck > 0 && perTruck < 999 ? LAB.bi('Roughly <b>+1 compactor truck</b> for every <b>' + perTruck.toFixed(1) + 'k residents</b>.', 'মোটামুটি প্রতি <b>' + perTruck.toFixed(1) + ' হাজার মানুষে +১টি গাড়ি</b>।') : LAB.bi('Line is nearly flat!', 'রেখা প্রায় সমতল!'))
+    : (perTruck > 0 && perTruck < 9999 ? LAB.bi('Roughly <b>+1 compactor truck</b> for every <b>' + Math.round(perTruck) + ' shops</b>.', 'মোটামুটি প্রতি <b>' + Math.round(perTruck) + ' দোকানে +১টি গাড়ি</b>।') : LAB.bi('Line is nearly flat!', 'রেখা প্রায় সমতল!'));
+
+  if (r2Pct >= 80) {
+    say('say-eval',
+      'Strong rule! I explain <b>' + r2Pct + '%</b> of daily waste differences and land within ±1 truck on <b>' + tkPct + '%</b> of wards.',
+      'দারুণ নিয়ম! আমি দৈনিক বর্জ্যের <b>' + r2Pct + '%</b> তারতম্য ব্যাখ্যা করতে পারি এবং <b>' + tkPct + '%</b> ওয়ার্ডে ±১ গাড়ির ভেতরে সঠিক অনুমান দিই।');
+  } else {
+    say('say-eval',
+      'Uh oh — my R² dropped to <b>' + r2Pct + '%</b> and average error jumped to <b>±' + st.mae.toFixed(1) + ' t</b>. One straight line cannot fit both residential wards and wholesale bazaars!',
+      'ওহো — আমার R² নেমে এসেছে <b>' + r2Pct + '%</b>-এ আর গড় ভুল বেড়ে <b>±' + st.mae.toFixed(1) + ' টন</b>! একটি সরলরেখা আবাসিক ওয়ার্ড ও পাইকারি বাজার দুটোই একসাথে মেলাতে পারে না!');
+  }
+
+  updateRealityCheck();
+}
+
+/* ---------------- Wiring ---------------- */
+function switchX(nextKey) {
+  if (xk === nextKey) return;
+  xk = nextKey; handMode = false;
+  document.querySelectorAll('#seg-x .btn').forEach(function (o) { o.classList.toggle('on', o.dataset.x === xk); });
+  var sl = $('newx'); sl.min = X[xk].min; sl.max = X[xk].smax; sl.value = xk === 'pop' ? 60 : 55;
+  runBestFit(true);
+}
+
+document.querySelectorAll('#seg-x .btn').forEach(function (btn) { btn.onclick = function () { switchX(btn.dataset.x); }; });
+$('newx').addEventListener('input', function () { walkAnim = null; updateAll(); });
+$('walk').onclick = startWalkThrough;
+$('gd').onclick = startGD;
+$('ols').onclick = function () { runBestFit(true); };
+$('hand').onclick = toggleHandMode;
+$('showres').onchange = updateAll;
+$('shuffle').onclick = function () { pickCards(true); drawCards(); };
+$('csv').onclick = function () {
+  LAB.downloadCSV('ward_waste_synthetic.csv', [['ward', 'population_k', 'businesses', 'waste_tonnes_day', 'type']].concat(
+    data().map(function (r) { return [r.nameEn, r.pop, r.biz, r.waste, r.typeEn]; })));
+};
+$('outliers').addEventListener('change', function () {
+  var checked = $('outliers').checked;
+  if (checked && !lastOutChecked) outlierAnimT = 0;
+  lastOutChecked = checked;
+  pickCards(false); drawCards();
+  runBestFit(true);
+});
+$('try-a').onclick = function () {
+  if (xk !== 'pop') switchX('pop');
+  $('newx').value = 210;
+  updateAll();
+  $('scene').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+};
+$('try-b').onclick = function () {
+  switchX('biz');
+  $('trainsec').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+};
+$('reset-all').onclick = function () {
+  $('outliers').checked = false; lastOutChecked = false; handMode = false;
+  if (xk !== 'pop') { xk = 'pop'; document.querySelectorAll('#seg-x .btn').forEach(function (o) { o.classList.toggle('on', o.dataset.x === 'pop'); }); }
+  $('newx').min = X.pop.min; $('newx').max = X.pop.smax; $('newx').value = 60;
+  pickCards(false); drawCards();
+  runBestFit(true);
+};
+
+LAB.onLang(function () { drawCards(); updateAll(); });
+document.addEventListener('themechange', updateAll);
+document.addEventListener('labresize', updateAll);
+
+/* ---------------- Main 60fps Animation Loop ---------------- */
+function tick(now) {
+  var dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  simTime += dt;
+
+  if ($('outliers').checked && outlierAnimT < 1) outlierAnimT = Math.min(1, outlierAnimT + dt * 2.3);
+
+  if (gdState) {
+    var stepMs = [140, 95, 58, 32, 16][+$('speed').value - 1];
+    gdState.accMs += dt * 1000;
+    while (gdState && gdState.accMs >= stepMs) { gdState.accMs -= stepMs; stepGD(); }
+  }
+  if (animSnap) {
+    var u = Math.min(1, (now - animSnap.t0) / animSnap.dur), ez = 1 - Math.pow(1 - u, 3);
+    a = animSnap.fromA + (animSnap.toA - animSnap.fromA) * ez;
+    b = animSnap.fromB + (animSnap.toB - animSnap.fromB) * ez;
+    if (u >= 1) { a = animSnap.toA; b = animSnap.toB; animSnap = null; updateAll(); }
+  }
+
+  if (!document.hidden) {
+    animateWardScene(dt);
+    drawPlot(now);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------------- First Run (matching tree.html: live immediately, auto-animates GD when scrolling to ③!) ---------------- */
+buildWardScene();
+pickCards(false);
+drawCards();
+runBestFit(false);
+requestAnimationFrame(tick);
+
+if ('IntersectionObserver' in window && !REDUCED) {
+  var io = new IntersectionObserver(function (es) {
+    if (es.some(function (e) { return e.isIntersecting; }) && !trainedOnceOnScroll && !gdState && !handMode && !walkAnim) {
+      trainedOnceOnScroll = true;
+      io.disconnect();
+      startGD();
+    }
+  }, { threshold: 0.35 });
+  io.observe($('plot'));
+}
 </script>
 </body>
 </html>

@@ -6,22 +6,271 @@
 <title>Waterlogging Decision Tree</title>
 <link rel="stylesheet" href="../assets/lab.css">
 <style>
-  #treebox { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
-  #tree text { font-family: var(--font); fill: var(--text); }
-  #tree .edge { stroke: var(--muted); stroke-width: 1.5; fill: none; }
-  #tree .edge.hot { stroke: var(--accent-2); stroke-width: 4; }
-  #tree .q { fill: var(--surface); stroke: var(--border); }
-  #tree .leaf-yes { fill: var(--yes-soft); stroke: var(--yes); }
-  #tree .leaf-no { fill: var(--no-soft); stroke: var(--no); }
-  #tree .hot rect, #tree rect.hot, #tree circle.hot { stroke: var(--accent-2); stroke-width: 4; }
-  #tree .el { fill: var(--muted); font-size: 12px; }
+  /* ---------- street-scene palette (page-local, both themes) ---------- */
+  :root {
+    --s-sky1: #8fb3d1; --s-sky2: #e6eef3; --s-storm: #334155; --s-sun: #fbbf24; --s-cloud: #ffffff; --s-cloud-d: #7b8797;
+    --s-ground: #9c7f5a; --s-soil: #7d6447; --s-side: #cbbfa8; --s-road: #5b6370; --s-dash: #f1f5f9;
+    --s-wall: #efe3cc; --s-wall2: #d9c8a9; --s-win: #7fa6c4; --s-edge: #8a7a5f; --s-tank: #1f2937; --s-shutter: #9ca3af;
+    --s-tin: #9aa5b1; --s-rust: #b4643c; --s-blue: #3e7ca6; --s-roof: #6b7280;
+    --s-water: #2f7de1; --s-water-hi: #bfdbfe; --s-river: #3b82c4; --s-rain: #4b6d93;
+    --s-pipe: #44403c; --s-pipe-in: #a8a29e; --s-cng: #15803d; --s-cng-d: #14532d; --s-glass: #cfe8f6;
+    --s-pole: #57534e; --s-wire: #292524;
+  }
+  :root[data-theme="dark"] {
+    --s-sky1: #0b1424; --s-sky2: #24344d; --s-storm: #000; --s-sun: #e5e7eb; --s-cloud: #475569; --s-cloud-d: #1f2937;
+    --s-ground: #4a3b2a; --s-soil: #3a2e21; --s-side: #57534e; --s-road: #374151; --s-dash: #9ca3af;
+    --s-wall: #4b5160; --s-wall2: #3d4351; --s-win: #fcd34d; --s-edge: #2b303a; --s-tank: #0b0f14; --s-shutter: #6b7280;
+    --s-tin: #64748b; --s-rust: #7c3f22; --s-blue: #2a5677; --s-roof: #3f4652;
+    --s-water: #2563eb; --s-water-hi: #60a5fa; --s-river: #1e40af; --s-rain: #93c5fd;
+    --s-pipe: #1c1917; --s-pipe-in: #57534e; --s-cng: #16a34a; --s-cng-d: #14532d; --s-glass: #334155;
+    --s-pole: #78716c; --s-wire: #a8a29e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --s-sky1: #0b1424; --s-sky2: #24344d; --s-storm: #000; --s-sun: #e5e7eb; --s-cloud: #475569; --s-cloud-d: #1f2937;
+      --s-ground: #4a3b2a; --s-soil: #3a2e21; --s-side: #57534e; --s-road: #374151; --s-dash: #9ca3af;
+      --s-wall: #4b5160; --s-wall2: #3d4351; --s-win: #fcd34d; --s-edge: #2b303a; --s-tank: #0b0f14; --s-shutter: #6b7280;
+      --s-tin: #64748b; --s-rust: #7c3f22; --s-blue: #2a5677; --s-roof: #3f4652;
+      --s-water: #2563eb; --s-water-hi: #60a5fa; --s-river: #1e40af; --s-rain: #93c5fd;
+      --s-pipe: #1c1917; --s-pipe-in: #57534e; --s-cng: #16a34a; --s-cng-d: #14532d; --s-glass: #334155;
+      --s-pole: #78716c; --s-wire: #a8a29e;
+    }
+  }
+
+  section { margin-top: 18px; }
+  .sec-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sec-h h2 { margin: 0; }
+  .sec-h .spacer { flex: 1; }
+  .tag { font-size: .75rem; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); font-weight: 600; }
+
+  /* ---------- hero: street scene ---------- */
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+  .scene { position: relative; border-radius: 12px; overflow: hidden; container-type: inline-size; background: var(--s-sky2); }
+  .scene svg { width: 100%; height: auto; }
+  .scene .sky-a { stop-color: var(--s-sky1); } .scene .sky-b { stop-color: var(--s-sky2); }
+  #storm { fill: var(--s-storm); transition: opacity 1s; }
+  #sun { transition: opacity 1s; } #sun circle { fill: var(--s-sun); } #sun line { stroke: var(--s-sun); stroke-width: 3; stroke-linecap: round; }
+  .cloud { animation: drift 38s ease-in-out infinite alternate; }
+  .cloud.c2 { animation-duration: 52s; animation-delay: -20s; } .cloud.c3 { animation-duration: 45s; animation-delay: -9s; }
+  .cloud ellipse { fill: var(--s-cloud); } .cloud.dk ellipse { fill: var(--s-cloud-d); }
+  #clouds-dark { transition: opacity 1s; }
+  @keyframes drift { from { transform: translateX(-40px); } to { transform: translateX(60px); } }
+  .rain line { stroke: var(--s-rain); stroke-width: 1.6; stroke-linecap: round; opacity: .75; animation: fall .7s linear infinite; }
+  @keyframes fall { from { transform: translate(0, 0); } to { transform: translate(-34px, 500px); } }
+  #flash { fill: #fff; opacity: 0; pointer-events: none; }
+  #flash.on { animation: flash 6s infinite; }
+  @keyframes flash { 0%, 88%, 92%, 100% { opacity: 0; } 89% { opacity: .55; } 90% { opacity: .1; } 91% { opacity: .4; } }
+  .ground { fill: var(--s-ground); } .soil { fill: var(--s-soil); } .side { fill: var(--s-side); }
+  .road { fill: var(--s-road); } .dash { stroke: var(--s-dash); stroke-width: 2; stroke-dasharray: 18 14; }
+  .wall { fill: var(--s-wall); stroke: var(--s-edge); } .wall2 { fill: var(--s-wall2); stroke: var(--s-edge); }
+  .win { fill: var(--s-win); } .tank { fill: var(--s-tank); } .shutter { fill: var(--s-shutter); }
+  .sh-tin { fill: var(--s-tin); } .sh-rust { fill: var(--s-rust); } .sh-blue { fill: var(--s-blue); } .roof { fill: var(--s-roof); }
+  .dark { fill: #1f2937; }
+  #planned, #informal { transition: opacity .8s; }
+  .pole { fill: var(--s-pole); } .wire { stroke: var(--s-wire); stroke-width: 1.2; fill: none; }
+  .pipe { fill: var(--s-pipe); } .pipe-in { fill: var(--s-pipe-in); }
+  #pipe-flow, #outfall { stroke: var(--s-water); fill: none; stroke-dasharray: 7 7; animation: flow .5s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -14; } }
+  .water { fill: var(--s-water); opacity: .72; } .water-top { fill: none; stroke: var(--s-water-hi); stroke-width: 2.5; opacity: .9; }
+  .river { fill: var(--s-river); }
+  .puddle { fill: var(--s-water); opacity: .7; }
+  #puddles { transition: opacity .8s; }
+  .cng-body { fill: var(--s-cng); } .cng-roof { fill: var(--s-cng-d); } .cng-glass { fill: var(--s-glass); }
+  .s-label { font: 700 15px var(--font); fill: var(--text); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  .s-label.small { font-size: 12px; font-weight: 600; }
+  .ruler { stroke: var(--text); stroke-width: 2; }
+  .guide { stroke: var(--text); stroke-width: 1; stroke-dasharray: 4 4; opacity: .5; }
+
+  .forecast {
+    position: absolute; right: 10px; top: 10px; display: flex; gap: 8px; align-items: center; max-width: 52%;
+    background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 7px 12px 8px; box-shadow: var(--shadow);
+    transition: border-color .5s;
+  }
+  .forecast.bad { border-color: var(--yes); } .forecast.good { border-color: var(--no); }
+  .forecast .av { font-size: 1.8rem; line-height: 1; }
+  .forecast .k { font-size: .72rem; color: var(--muted); }
+  .forecast .v { font-weight: 800; font-size: 1rem; line-height: 1.25; }
+  .meter { height: 7px; border-radius: 4px; background: var(--no-soft); overflow: hidden; margin-top: 4px; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--yes); border-radius: 4px; transition: width .7s; }
+
+  .bubble {
+    position: absolute; max-width: 30%; padding: 7px 11px; border-radius: 14px; font-size: .82rem; line-height: 1.3;
+    background: var(--surface); color: var(--text); border: 2px solid var(--text); box-shadow: var(--shadow);
+    transform: translateX(-26px); transition: bottom .1s;
+  }
+  .bubble::after {
+    content: ""; position: absolute; left: 16px; bottom: -11px; width: 14px; height: 14px; background: var(--surface);
+    border-right: 2px solid var(--text); border-bottom: 2px solid var(--text); transform: skewX(30deg) rotate(45deg) scale(.8);
+  }
+  .bubble .who { display: block; font-size: .7rem; font-weight: 700; color: var(--muted); }
+  .pop { animation: pop .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+  @keyframes pop { from { opacity: 0; transform: translateX(-26px) scale(.7); } to { opacity: 1; transform: translateX(-26px) scale(1); } }
+  @container (max-width: 640px) {
+    .bubble { font-size: .7rem; max-width: 42%; padding: 5px 8px; }
+    #bub-drv { display: none; }
+    .forecast { padding: 4px 8px; } .forecast .av { font-size: 1.2rem; } .forecast .v { font-size: .8rem; }
+  }
+
+  .clue { margin-bottom: 12px; }
+  .clue .top { display: flex; align-items: baseline; gap: 6px; font-size: .92rem; }
+  .clue .ico { font-size: 1.3rem; }
+  .clue .nm { font-weight: 700; }
+  .clue .val { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .clue .word { font-size: .8rem; color: var(--muted); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .seg .btn { font-size: .85rem; padding: 7px 8px; }
+  .seg .btn.on { background: var(--accent-soft); outline: 2px solid var(--accent); }
+  .presets { display: grid; gap: 6px; margin-top: 10px; }
+  .presets .btn { text-align: left; font-size: .85rem; }
+
+  /* ---------- narrator ---------- */
+  .talk { display: flex; gap: 10px; align-items: flex-start; }
+  .talk .avatar {
+    flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 1.6rem;
+    background: var(--accent-soft); border: 2px solid var(--accent);
+  }
+  .talk .avatar.person { background: var(--accent-2-soft); border-color: var(--accent-2); }
+  .talk .say {
+    position: relative; flex: 1; background: var(--surface); border: 2px solid var(--border); border-radius: 14px;
+    padding: 9px 13px; font-size: .98rem; min-height: 46px;
+  }
+  .talk .say::before {
+    content: ""; position: absolute; left: -9px; top: 14px; width: 14px; height: 14px; background: var(--surface);
+    border-left: 2px solid var(--border); border-bottom: 2px solid var(--border); transform: rotate(45deg);
+  }
+  .talk .say.pop { animation: sayin .4s ease both; }
+  @keyframes sayin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .talk .who { font-size: .72rem; font-weight: 700; color: var(--muted); display: block; }
+  .talk + .talk { margin-top: 10px; }
+  .q-chip { display: inline-block; padding: 1px 9px; border-radius: 99px; background: var(--accent-2-soft); font-weight: 700; white-space: nowrap; }
+  .yes-t { color: var(--yes); font-weight: 700; } .no-t { color: var(--no); font-weight: 700; }
+
+  /* ---------- explore ---------- */
+  .recs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 560px) { .recs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .rec {
+    position: relative; border: 2px solid var(--border); border-radius: 12px; padding: 8px 10px 34px; background: var(--surface);
+    font-size: .82rem; overflow: hidden; animation: cardin .5s both;
+  }
+  @keyframes cardin { from { opacity: 0; transform: translateY(10px) rotate(-2deg); } to { opacity: 1; transform: none; } }
+  .rec .h { font-size: .72rem; color: var(--muted); font-weight: 700; }
+  .rec .cl { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .stamp {
+    position: absolute; right: 8px; bottom: 6px; font-weight: 800; font-size: .74rem; padding: 2px 8px; border-radius: 6px;
+    border: 2px solid; transform: rotate(-6deg); animation: stamp .4s cubic-bezier(.3, 1.6, .5, 1) both; letter-spacing: .02em;
+  }
+  .stamp.yes { color: var(--yes); border-color: var(--yes); background: var(--yes-soft); }
+  .stamp.no { color: var(--no); border-color: var(--no); background: var(--no-soft); }
+  @keyframes stamp { from { opacity: 0; transform: rotate(-6deg) scale(2.2); } to { opacity: 1; transform: rotate(-6deg) scale(1); } }
+  .rec.hidden-flood { border-style: dashed; border-color: var(--yes); }
+  .rec .note { position: absolute; left: 8px; bottom: 7px; font-size: .68rem; font-weight: 700; color: var(--yes); }
   #scatter circle.y { fill: var(--yes); } #scatter circle.n { fill: var(--no); }
-  .cm td, .cm th { text-align: center !important; }
-  .cm td.good { background: var(--accent-soft); font-weight: 700; }
-  .cm td.bad { background: var(--accent-2-soft); font-weight: 700; }
-  .check { display: flex; gap: 10px; align-items: flex-start; font-size: .95rem; cursor: pointer; }
-  .check input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent-2); }
-  #pred { font-size: 1.6rem; font-weight: 800; }
+  #scatter circle.ghost { fill: none; stroke: var(--yes); stroke-width: 1.3; }
+  #scatter.intro circle { animation: dotin .5s both; }
+  @keyframes dotin { from { opacity: 0; transform: translateY(-14px); } }
+  #scatter .note { fill: var(--text); font-size: 12px; font-weight: 700; }
+  #scatter .arrow { stroke: var(--text); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; opacity: .6; }
+
+  /* ---------- train ---------- */
+  #strip rect { transition: fill .35s; }
+  #strip .ty { fill: var(--yes); } #strip .tn { fill: var(--no); } #strip .te { fill: var(--border); }
+  .piles { display: flex; gap: 12px; flex-wrap: wrap; font-size: .85rem; margin: 6px 0 12px; }
+  .piles b { font-variant-numeric: tabular-nums; }
+  .sorter { position: relative; height: 92px; width: 300px; max-width: 100%; margin: 6px auto 0; }
+  .sorter .sq {
+    position: absolute; top: 26px; left: 0; width: 22px; height: 22px; border-radius: 5px;
+    animation: sortsq 6s ease-in-out infinite; transform: translateX(var(--x0));
+  }
+  .sorter .sq.r { background: var(--yes); } .sorter .sq.b { background: var(--no); }
+  @keyframes sortsq { 0%, 22% { transform: translateX(var(--x0)); } 45%, 85% { transform: translateX(var(--x1)) translateY(20px); } 100% { transform: translateX(var(--x0)); } }
+  .sorter .gl { position: absolute; top: 72px; font-size: .78rem; font-weight: 700; animation: gl 6s ease-in-out infinite; }
+  @keyframes gl { 0%, 35% { opacity: 0; } 45%, 85% { opacity: 1; } 95%, 100% { opacity: 0; } }
+  .sorter .qq { position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: .82rem; }
+
+  #treesec .talk { position: sticky; top: 56px; z-index: 5; background: var(--surface); padding: 6px 0; }
+  #treebox { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); margin-top: 8px; }
+  #tree text { font-family: var(--font); fill: var(--text); }
+  #tree .edge { fill: none; stroke: var(--muted); stroke-opacity: .25; stroke-linecap: round; }
+  #tree .edge.hot { stroke: var(--accent-2); stroke-opacity: .85; }
+  #tree .flowd { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 0 13; animation: flow 1.1s linear infinite; opacity: .55; }
+  #tree .flowd.y { stroke: var(--yes); } #tree .flowd.n { stroke: var(--no); }
+  #tree .drawin { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw .7s ease forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  #tree .node .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+  #tree .node.ly .box { fill: var(--yes-soft); stroke: var(--yes); }
+  #tree .node.ln .box { fill: var(--no-soft); stroke: var(--no); }
+  #tree .node.hot .box { stroke: var(--accent-2); stroke-width: 4; }
+  #tree .node.now .box { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { stroke-width: 8; } }
+  #tree .grow { animation: grow .55s cubic-bezier(.3, 1.6, .5, 1) both; transform-box: fill-box; transform-origin: center; }
+  @keyframes grow { from { opacity: 0; transform: scale(.3); } }
+  #tree .bar-y { fill: var(--yes); } #tree .bar-n { fill: var(--no); }
+  #tree .meta { fill: var(--muted) !important; font-size: 11.5px; }
+  #tree .pl rect { fill: var(--surface); stroke: var(--border); }
+  #tree .pl.hot rect { fill: var(--accent-2-soft); stroke: var(--accent-2); }
+  #tree .pl text { font-size: 11.5px; font-weight: 700; }
+  #tree circle.cq { fill: var(--surface); stroke: var(--muted); }
+  #tree circle.cy { fill: var(--yes-soft); stroke: var(--yes); } #tree circle.cn { fill: var(--no-soft); stroke: var(--no); }
+  #tree circle.hot { stroke: var(--accent-2); stroke-width: 3; }
+  #drop { font-size: 22px; pointer-events: none; }
+
+  /* ---------- evaluate ---------- */
+  .eval { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .eval { grid-template-columns: minmax(0, 1fr); } }
+  .rings { display: flex; gap: 14px; justify-content: center; }
+  .ring { position: relative; width: 130px; text-align: center; }
+  .ring svg { width: 130px; height: 130px; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 12; }
+  .ring .bg { stroke: var(--surface-2); }
+  .ring .fg { stroke-linecap: round; stroke-dasharray: 314.16; stroke-dashoffset: 314.16; transition: stroke-dashoffset .9s cubic-bezier(.3, .8, .3, 1); }
+  .ring.tr .fg { stroke: var(--accent); } .ring.te .fg { stroke: var(--accent-2); }
+  .ring .v { position: absolute; top: 38px; left: 0; right: 0; font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .ring .k { font-size: .82rem; color: var(--muted); line-height: 1.3; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 520px) { .tiles { grid-template-columns: 1fr; } }
+  .tile { border-radius: 12px; padding: 10px 12px; border: 2px solid transparent; }
+  .tile.good { background: var(--accent-soft); } .tile.bad { background: var(--accent-2-soft); }
+  .tile.worst { border-color: var(--yes); }
+  .tile .t { font-weight: 700; font-size: .92rem; }
+  .tile .n { font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tile .n small { font-size: .8rem; color: var(--muted); font-weight: 600; }
+  .tile .d { font-size: .8rem; color: var(--muted); line-height: 1.3; }
+  .tile .tb { height: 6px; border-radius: 3px; background: rgba(127, 127, 127, .2); margin: 4px 0; overflow: hidden; }
+  .tile .tb i { display: block; height: 100%; background: var(--text); opacity: .55; transition: width .7s; }
+  #sweepchart text { fill: var(--muted); font: 12px var(--font); }
+  #sweepchart .grid { stroke: var(--border); }
+  #sweepchart .zone { fill: var(--accent-2-soft); opacity: .7; }
+  #sweepchart .ln { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.4s ease forwards; }
+  #sweepchart .ln.tr { stroke: var(--accent); } #sweepchart .ln.te { stroke: var(--accent-2); animation-delay: .3s; }
+  #sweepchart .dt { fill: var(--accent); } #sweepchart .de { fill: var(--accent-2); }
+  #sweepchart .now { stroke: var(--text); stroke-dasharray: 3 4; }
+  #sweepchart .lbl { fill: var(--text); font-weight: 700; }
+  #sweepchart .hit { fill: transparent; cursor: pointer; }
+  #sweepchart .hit:hover { fill: var(--text); opacity: .06; }
+
+  /* ---------- break it ---------- */
+  .bk { display: flex; flex-direction: column; }
+  .bk .big { font-size: 2.2rem; line-height: 1; }
+  .bk .btn { align-self: flex-start; margin-top: auto; }
+  .switch { display: flex; gap: 10px; align-items: center; cursor: pointer; font-size: .95rem; font-weight: 600; }
+  .switch input { appearance: none; width: 46px; height: 26px; border-radius: 99px; background: var(--border); position: relative; cursor: pointer; flex: none; transition: background .3s; }
+  .switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .3s; }
+  .switch input:checked { background: var(--accent-2); } .switch input:checked::after { left: 23px; }
+  .houses { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0 2px; }
+  .hs { width: 15px; height: 15px; clip-path: polygon(50% 0, 100% 45%, 88% 45%, 88% 100%, 12% 100%, 12% 45%, 0 45%); animation: hsin .35s both; }
+  .hs.w { background: var(--ok); } .hs.m { background: var(--yes); }
+  @keyframes hsin { from { opacity: 0; transform: translateY(-8px); } }
+  .grp { margin-top: 10px; }
+  .grp .gh { display: flex; justify-content: space-between; font-size: .88rem; font-weight: 700; }
+  .grp .gh span:last-child { font-variant-numeric: tabular-nums; }
+  .legend-h { font-size: .78rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+  .legend-h i { display: inline-block; vertical-align: -2px; margin-right: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
+    .rain line { animation: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -29,78 +278,197 @@
 <main class="wrap">
   <h1>3 · <span lang="en">Predict waterlogging with a decision tree</span><span lang="bn">ডিসিশন ট্রি দিয়ে জলাবদ্ধতার পূর্বাভাস</span></h1>
   <p class="lead">
-    <span lang="en">In Experiment 2 a human wrote the rules. Here we give the machine <b>800 past records</b> (rainfall, drain blockage, elevation, area type, and whether the street flooded) and let it <b>discover the rules itself</b>.</span>
-    <span lang="bn">২ নম্বর পরীক্ষায় নিয়ম লিখেছিল মানুষ। এখানে আমরা যন্ত্রকে <b>৮০০টি পুরোনো রেকর্ড</b> দিচ্ছি (বৃষ্টিপাত, ড্রেন বন্ধের মাত্রা, উচ্চতা, এলাকার ধরন, এবং রাস্তায় পানি জমেছিল কি না) এবং সে <b>নিজেই নিয়ম খুঁজে বের করবে</b>।</span>
+    <span lang="en">Every monsoon, some streets turn into rivers within an hour, while a street two blocks away stays dry. The city corporation wants to warn neighbourhoods <b>before</b> it happens. In Experiment 2 a human wrote the rules. Here we give the machine <b>800 past rainy days</b> and let it <b>discover the rules itself</b>.</span>
+    <span lang="bn">প্রতি বর্ষায় কিছু রাস্তা এক ঘণ্টার মধ্যে নদী হয়ে যায়, অথচ দুই গলি দূরের রাস্তা শুকনো থাকে। সিটি কর্পোরেশন চায় পানি জমার <b>আগেই</b> এলাকাবাসীকে সতর্ক করতে। ২ নম্বর পরীক্ষায় নিয়ম লিখেছিল মানুষ। এখানে আমরা যন্ত্রকে <b>৮০০টি পুরোনো বৃষ্টির দিনের রেকর্ড</b> দিচ্ছি, আর সে <b>নিজেই নিয়ম খুঁজে বের করবে</b>।</span>
   </p>
   <div id="cycle"></div>
 
-  <div class="grid2">
-    <div class="card">
-      <h2>① <span lang="en">Explore the data</span><span lang="bn">ডেটা দেখি</span></h2>
-      <svg id="scatter"></svg>
-      <p class="muted" style="font-size:.85rem;margin:.4em 0">
-        <span style="color:var(--yes)">●</span> <span lang="en">flooded</span><span lang="bn">পানি জমেছিল</span> &nbsp;
-        <span style="color:var(--no)">●</span> <span lang="en">no flooding</span><span lang="bn">পানি জমেনি</span> ·
-        <span lang="en">x: rainfall, y: drain blockage</span><span lang="bn">x: বৃষ্টিপাত, y: ড্রেন বন্ধ</span>
-      </p>
-      <div class="scroll-x"><table class="data" id="rows"></table></div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn small" id="csv">⬇ <span lang="en">Download CSV (for Orange)</span><span lang="bn">CSV ডাউনলোড (Orange-এর জন্য)</span></button>
-        <span class="muted" id="counts" style="font-size:.85rem"></span>
+  <!-- ① + ⑥ : the street -->
+  <section>
+    <div class="sec-h">
+      <h2>① <span lang="en">Tonight in your neighbourhood</span><span lang="bn">আজ রাতে আপনার এলাকায়</span></h2>
+      <span class="tag">⑥ <span lang="en">live forecast from the trained tree</span><span lang="bn">শেখানো গাছের সরাসরি পূর্বাভাস</span></span>
+    </div>
+    <div class="hero">
+      <div class="card" style="padding:10px">
+        <div class="scene" id="scene">
+          <svg id="street-svg" viewBox="0 0 800 420" role="img" aria-label="A street in the rain: houses, a road with an auto-rickshaw, a drain under the road and a river. Water rises on the street when the tree predicts waterlogging."></svg>
+          <div class="forecast" id="forecast">
+            <span class="av">🌳</span>
+            <div><div class="k"><span lang="en">The tree's forecast</span><span lang="bn">গাছের পূর্বাভাস</span></div>
+              <div class="v" id="fc-v">–</div><div class="meter"><i id="fc-m"></i></div></div>
+          </div>
+          <div class="bubble" id="bub-res"></div>
+          <div class="bubble" id="bub-drv"></div>
+        </div>
+        <div class="talk" style="margin-top:10px">
+          <div class="avatar">🌳</div>
+          <div class="say" id="say-hero"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:.7em"><span lang="en">Change tonight's clues</span><span lang="bn">আজ রাতের সূত্রগুলো বদলান</span></h3>
+        <div class="clue">
+          <div class="top"><span class="ico">🌧️</span><span class="nm"><span lang="en">Rainfall</span><span lang="bn">বৃষ্টিপাত</span></span><span class="val" id="v-rain"></span></div>
+          <input type="range" id="a-rain" min="0" max="200" value="90" aria-label="Rainfall">
+          <div class="word" id="w-rain"></div>
+        </div>
+        <div class="clue">
+          <div class="top"><span class="ico">🗑️</span><span class="nm"><span lang="en">Drain blocked</span><span lang="bn">ড্রেন বন্ধ</span></span><span class="val" id="v-block"></span></div>
+          <input type="range" id="a-block" min="0" max="100" value="60" aria-label="Drain blockage">
+          <div class="word" id="w-block"></div>
+        </div>
+        <div class="clue">
+          <div class="top"><span class="ico">⛰️</span><span class="nm"><span lang="en">Street height above river</span><span lang="bn">নদী থেকে রাস্তার উচ্চতা</span></span><span class="val" id="v-elev"></span></div>
+          <input type="range" id="a-elev" min="1" max="12" step="0.5" value="4" aria-label="Elevation">
+          <div class="word" id="w-elev"></div>
+        </div>
+        <div class="seg" id="seg-inf">
+          <button class="btn" data-inf="0">🏢 <span lang="en">Planned area</span><span lang="bn">পরিকল্পিত এলাকা</span></button>
+          <button class="btn" data-inf="1">🏚️ <span lang="en">Informal settlement</span><span lang="bn">অনানুষ্ঠানিক বসতি</span></button>
+        </div>
+        <div class="presets">
+          <span class="muted" style="font-size:.8rem"><span lang="en">Try a scene:</span><span lang="bn">একটি দৃশ্য বেছে নিন:</span></span>
+          <button class="btn" data-preset="0">⛈️ <span lang="en">Cloudburst over a low-lying settlement</span><span lang="bn">নিচু বসতিতে মুষলধারে বৃষ্টি</span></button>
+          <button class="btn" data-preset="1">🏢 <span lang="en">Same storm, raised planned area</span><span lang="bn">একই ঝড়, উঁচু পরিকল্পিত এলাকা</span></button>
+          <button class="btn" data-preset="2">🌦️ <span lang="en">Light evening shower</span><span lang="bn">সন্ধ্যার হালকা বৃষ্টি</span></button>
+        </div>
+        <button class="btn primary" id="walk" style="margin-top:12px;width:100%">▶ <span lang="en">Show me how the tree decided</span><span lang="bn">গাছ কীভাবে সিদ্ধান্ত নিল দেখাও</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② explore -->
+  <section class="card">
+    <div class="sec-h">
+      <h2>② <span lang="en">Explore the data: the tree's study notes</span><span lang="bn">ডেটা দেখি: গাছের পড়ার খাতা</span></h2>
+      <span class="spacer"></span>
+      <button class="btn small" id="shuffle">🔀 <span lang="en">Show 6 other days</span><span lang="bn">অন্য ৬টি দিন দেখাও</span></button>
+      <button class="btn small" id="csv">⬇ <span lang="en">CSV (for Orange)</span><span lang="bn">CSV (Orange-এর জন্য)</span></button>
+    </div>
+    <div class="talk">
+      <div class="avatar">🌳</div>
+      <div class="say"><span lang="en">Each card is one past rainy day: four clues, and a stamp saying what happened. I'll study hundreds of these. <b>Can you already spot a pattern?</b> Look where the red dots crowd together.</span><span lang="bn">প্রতিটি কার্ড একটি পুরোনো বৃষ্টির দিন: চারটি সূত্র, আর একটি সিল যাতে লেখা কী ঘটেছিল। আমি এমন শত শত কার্ড পড়ব। <b>আপনি কি এখনই কোনো প্যাটার্ন দেখতে পাচ্ছেন?</b> লাল বিন্দুগুলো কোথায় ভিড় করেছে দেখুন।</span></div>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div><div class="recs" id="recs"></div><p class="muted" id="counts" style="font-size:.85rem;margin:.6em 0 0"></p></div>
+      <div>
+        <svg id="scatter" class="chart intro"></svg>
+        <p class="muted" style="font-size:.85rem;margin:.3em 0">
+          <span style="color:var(--yes)">●</span> <span lang="en">flooded</span><span lang="bn">পানি জমেছিল</span> &nbsp;
+          <span style="color:var(--no)">●</span> <span lang="en">stayed dry</span><span lang="bn">শুকনো ছিল</span>
+          <span id="ghost-key" class="hidden"> &nbsp; <span style="color:var(--yes)">○</span> <span lang="en">flooded, never reported</span><span lang="bn">পানি জমেছিল, কিন্তু জানানো হয়নি</span></span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ train -->
+  <section class="card" id="treesec">
+    <div class="sec-h"><h2>③ <span lang="en">Train: let the tree learn the rules</span><span lang="bn">শেখাই: গাছকে নিয়ম শিখতে দিই</span></h2></div>
+    <div class="grid2">
+      <div>
+        <svg id="strip" viewBox="0 0 500 160" aria-label="800 records split into a study pile and a hidden exam pile"></svg>
+        <div class="piles">
+          <span>📚 <span lang="en">Study pile</span><span lang="bn">পড়ার স্তূপ</span>: <b id="n-train"></b></span>
+          <span>🔒 <span lang="en">Hidden exam pile</span><span lang="bn">লুকানো পরীক্ষার স্তূপ</span>: <b id="n-test"></b></span>
+        </div>
+        <label class="ctl"><span><span lang="en">How many days the tree may study</span><span lang="bn">গাছ কতগুলো দিন পড়তে পারবে</span>: <b id="v-split"></b></span>
+          <input type="range" id="split" min="5" max="90" value="70" step="5"></label>
+        <p class="muted" style="font-size:.85rem;margin:.2em 0 .8em"><span lang="en">Like a student: study from past papers, then sit an exam with questions never seen before.</span><span lang="bn">ছাত্রছাত্রীর মতো: পুরোনো প্রশ্ন থেকে পড়া, তারপর এমন প্রশ্নে পরীক্ষা যা আগে কখনো দেখেনি।</span></p>
+        <label class="ctl"><span><span lang="en">How many questions deep the tree may go</span><span lang="bn">গাছ কত ধাপ পর্যন্ত প্রশ্ন করতে পারবে</span>: <b id="v-depth"></b></span>
+          <input type="range" id="depth" min="1" max="12" value="3"></label>
+        <p class="muted" style="font-size:.85rem;margin:.2em 0 .8em" id="depth-note"></p>
+        <div class="row">
+          <button class="btn primary" id="train">▶ <span lang="en">Watch the tree learn</span><span lang="bn">গাছের শেখা দেখুন</span></button>
+        </div>
+      </div>
+      <div class="callout" style="background:var(--surface-2);border:0">
+        <div class="label"><span lang="en">How does it pick a question?</span><span lang="bn">সে প্রশ্ন বাছে কীভাবে?</span></div>
+        <p style="font-size:.92rem;margin:.3em 0"><span lang="en">The tree tries <b>every clue and every cut-off</b>, and keeps the question that sorts the days into the <b>purest groups</b>: one mostly flooded, one mostly dry. Then it repeats inside each group.</span><span lang="bn">গাছ <b>প্রতিটি সূত্র আর প্রতিটি সম্ভাব্য সীমা</b> পরীক্ষা করে, আর সেই প্রশ্ন রাখে যা দিনগুলোকে <b>সবচেয়ে বিশুদ্ধ দলে</b> ভাগ করে: একটিতে বেশিরভাগ দিনে পানি জমেছিল, অন্যটিতে বেশিরভাগ শুকনো। তারপর প্রতিটি দলের ভেতরে আবার একই কাজ।</span></p>
+        <div class="sorter" id="sorter"></div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>② <span lang="en">Train</span><span lang="bn">শেখাই</span></h2>
-      <label class="ctl"><span><span lang="en">Records used for training</span><span lang="bn">প্রশিক্ষণে ব্যবহৃত রেকর্ড</span>: <b id="v-split"></b></span>
-        <input type="range" id="split" min="5" max="90" value="70" step="5"></label>
-      <p class="muted" style="font-size:.85rem;margin:.2em 0 .8em"><span lang="en">The rest is hidden from the machine and used only to test it.</span><span lang="bn">বাকিগুলো যন্ত্রের কাছ থেকে লুকানো থাকে, শুধু যাচাইয়ের জন্য।</span></p>
-      <label class="ctl"><span><span lang="en">Maximum tree depth (number of questions)</span><span lang="bn">গাছের সর্বোচ্চ গভীরতা (প্রশ্নের সংখ্যা)</span>: <b id="v-depth"></b></span>
-        <input type="range" id="depth" min="1" max="12" value="3"></label>
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="train">▶ <span lang="en">Train the tree</span><span lang="bn">গাছকে শেখাও</span></button>
-        <button class="btn" id="sweep">📈 <span lang="en">Try every depth</span><span lang="bn">সব গভীরতা পরীক্ষা</span></button>
-      </div>
-      <h2 style="margin-top:18px">③ <span lang="en">Evaluate on unseen records</span><span lang="bn">অদেখা রেকর্ডে যাচাই</span></h2>
-      <div class="stats">
-        <div class="stat"><div class="k"><span lang="en">Accuracy on training data</span><span lang="bn">প্রশিক্ষণ ডেটায় নির্ভুলতা</span></div><div class="v" id="acc-train">–</div></div>
-        <div class="stat"><div class="k"><span lang="en">Accuracy on unseen test data</span><span lang="bn">অদেখা টেস্ট ডেটায় নির্ভুলতা</span></div><div class="v" id="acc-test">–</div></div>
-      </div>
-      <table class="data cm" id="cm" style="margin-top:10px"></table>
-      <svg id="sweepchart" class="hidden" style="margin-top:10px"></svg>
-      <p class="muted hidden" id="sweeplegend" style="font-size:.85rem"><span style="color:var(--accent)">━</span> <span lang="en">training accuracy</span><span lang="bn">প্রশিক্ষণে নির্ভুলতা</span> &nbsp; <span style="color:var(--accent-2)">━</span> <span lang="en">test accuracy (unseen)</span><span lang="bn">টেস্টে নির্ভুলতা (অদেখা)</span> · <span lang="en">x: depth</span><span lang="bn">x: গভীরতা</span></p>
+    <h3 style="margin-top:18px"><span lang="en">The rules the machine discovered</span><span lang="bn">যন্ত্র যে নিয়মগুলো খুঁজে পেয়েছে</span></h3>
+    <div class="talk">
+      <div class="avatar">🌳</div>
+      <div class="say" id="say-tree"></div>
     </div>
-  </div>
-
-  <div class="card" style="margin-top:16px">
-    <h2><span lang="en">The rules the machine discovered</span><span lang="bn">যন্ত্র যে নিয়মগুলো খুঁজে পেয়েছে</span></h2>
-    <p class="muted" style="font-size:.9rem" id="treenote"></p>
+    <p class="muted" style="font-size:.85rem;margin:.4em 0 0" id="treenote"></p>
     <div id="treebox"><svg id="tree"></svg></div>
-  </div>
+  </section>
 
-  <div class="grid2" style="margin-top:16px">
-    <div class="card">
-      <h2>⑥ <span lang="en">Use the model: a new day</span><span lang="bn">মডেল ব্যবহার: নতুন একটি দিন</span></h2>
-      <label class="ctl"><span><span lang="en">Rainfall</span><span lang="bn">বৃষ্টিপাত</span>: <b id="v-rain"></b> mm</span><input type="range" id="a-rain" min="0" max="200" value="90"></label>
-      <label class="ctl"><span><span lang="en">Drain blockage</span><span lang="bn">ড্রেন বন্ধ</span>: <b id="v-block"></b>%</span><input type="range" id="a-block" min="0" max="100" value="60"></label>
-      <label class="ctl"><span><span lang="en">Elevation</span><span lang="bn">উচ্চতা</span>: <b id="v-elev"></b> m</span><input type="range" id="a-elev" min="1" max="12" step="0.5" value="4"></label>
-      <label class="check" style="margin-top:8px"><input type="checkbox" id="a-inf"> <span><span lang="en">Informal settlement</span><span lang="bn">অনানুষ্ঠানিক বসতি</span></span></label>
-      <div style="margin-top:12px" id="pred">–</div>
-      <p class="muted" style="font-size:.88rem"><span lang="en">The orange path in the tree shows how the decision was made.</span><span lang="bn">গাছের কমলা পথটি দেখায় সিদ্ধান্ত কীভাবে নেওয়া হলো।</span></p>
+  <!-- ④ evaluate -->
+  <section class="card" id="evalsec">
+    <div class="sec-h">
+      <h2>④ <span lang="en">The exam: test on days the tree never saw</span><span lang="bn">পরীক্ষা: গাছ যে দিনগুলো কখনো দেখেনি তাতে যাচাই</span></h2>
+      <span class="spacer"></span>
+      <button class="btn" id="sweep">📈 <span lang="en">Try every depth</span><span lang="bn">সব গভীরতা পরীক্ষা</span></button>
     </div>
+    <div class="eval">
+      <div>
+        <div class="rings">
+          <div class="ring tr"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" id="ring-train" cx="60" cy="60" r="50"/></svg>
+            <div class="v" id="acc-train">–</div><div class="k">📚 <span lang="en">Practice score<br>(study pile)</span><span lang="bn">অনুশীলনের স্কোর<br>(পড়ার স্তূপ)</span></div></div>
+          <div class="ring te"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" id="ring-test" cx="60" cy="60" r="50"/></svg>
+            <div class="v" id="acc-test">–</div><div class="k">📝 <span lang="en">Exam score<br>(never seen)</span><span lang="bn">পরীক্ষার স্কোর<br>(অদেখা)</span></div></div>
+        </div>
+        <div class="talk" style="margin-top:12px"><div class="avatar">🌳</div><div class="say" id="say-exam"></div></div>
+      </div>
+      <div>
+        <div class="tiles">
+          <div class="tile good"><div class="t">✅ <span lang="en">Warned, and it flooded</span><span lang="bn">সতর্ক করেছে, পানিও জমেছে</span></div><div class="n" id="cm-tp">–</div><div class="tb"><i id="cb-tp"></i></div><div class="d"><span lang="en">Families moved their belongings in time.</span><span lang="bn">পরিবারগুলো সময়মতো জিনিসপত্র সরাতে পেরেছে।</span></div></div>
+          <div class="tile bad worst"><div class="t">😱 <span lang="en">Flooded, with NO warning</span><span lang="bn">পানি জমেছে, কোনো সতর্কতা ছাড়াই</span></div><div class="n" id="cm-fn">–</div><div class="tb"><i id="cb-fn"></i></div><div class="d"><span lang="en">The most dangerous mistake: people caught off guard.</span><span lang="bn">সবচেয়ে বিপজ্জনক ভুল: মানুষ অপ্রস্তুত অবস্থায় পড়েছে।</span></div></div>
+          <div class="tile bad"><div class="t">🔔 <span lang="en">False alarm</span><span lang="bn">ভুল সতর্কতা</span></div><div class="n" id="cm-fp">–</div><div class="tb"><i id="cb-fp"></i></div><div class="d"><span lang="en">People prepared for nothing. Too many, and they stop listening.</span><span lang="bn">মানুষ অকারণে প্রস্তুতি নিয়েছে। বেশি হলে মানুষ সতর্কতা শোনা বন্ধ করে দেয়।</span></div></div>
+          <div class="tile good"><div class="t">😌 <span lang="en">Calm, and it stayed dry</span><span lang="bn">সতর্কতা নেই, পানিও জমেনি</span></div><div class="n" id="cm-tn">–</div><div class="tb"><i id="cb-tn"></i></div><div class="d"><span lang="en">An ordinary day, correctly called.</span><span lang="bn">একটি সাধারণ দিন, সঠিক অনুমান।</span></div></div>
+        </div>
+        <p class="muted" style="font-size:.8rem;margin:.6em 0 0"><span lang="en">Scored against the <b>records</b>. If the records are wrong, this score is wrong too (see ⑤ C).</span><span lang="bn"><b>রেকর্ডের</b> সঙ্গে মিলিয়ে স্কোর। রেকর্ড ভুল হলে এই স্কোরও ভুল (দেখুন ⑤ গ)।</span></p>
+      </div>
+    </div>
+    <div id="sweepwrap" class="hidden" style="margin-top:16px">
+      <svg id="sweepchart" viewBox="0 0 640 250"></svg>
+      <p class="muted" style="font-size:.85rem;margin:.3em 0"><span style="color:var(--accent)">━</span> <span lang="en">practice score</span><span lang="bn">অনুশীলনের স্কোর</span> &nbsp; <span style="color:var(--accent-2)">━</span> <span lang="en">exam score (unseen days)</span><span lang="bn">পরীক্ষার স্কোর (অদেখা দিন)</span> · <span lang="en">click a depth to use it</span><span lang="bn">যেকোনো গভীরতায় ক্লিক করে সেটি বেছে নিন</span></p>
+    </div>
+  </section>
 
-    <div class="callout break">
-      <div class="label">⑤ <span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></div>
-      <h3><span lang="en">A. Overfitting</span><span lang="bn">ক. ওভারফিটিং</span></h3>
-      <p><span lang="en">Set depth to 12 and press "Try every depth". Training accuracy approaches 100%, but test accuracy gets <i>worse</i>. The tree memorised the past instead of learning.</span>
-      <span lang="bn">গভীরতা ১২ করে "সব গভীরতা পরীক্ষা" চাপুন। প্রশিক্ষণে নির্ভুলতা প্রায় ১০০%, কিন্তু টেস্টে নির্ভুলতা <i>কমে যায়</i>। গাছটি শেখেনি, অতীত মুখস্থ করেছে।</span></p>
-      <h3><span lang="en">B. Too little data</span><span lang="bn">খ. খুব কম ডেটা</span></h3>
-      <p><span lang="en">Train with only 5% of the records (40 rows). The rules become strange and unstable.</span><span lang="bn">মাত্র ৫% রেকর্ড (৪০টি) দিয়ে শেখান। নিয়মগুলো অদ্ভুত ও অস্থির হয়ে যায়।</span></p>
-      <h3><span lang="en">C. Biased records</span><span lang="bn">গ. পক্ষপাতদুষ্ট রেকর্ড</span></h3>
-      <label class="check"><input type="checkbox" id="bias"> <span><span lang="en">In informal settlements, <b>70% of floods were never reported</b> to the city corporation.</span><span lang="bn">অনানুষ্ঠানিক বসতিতে <b>৭০% জলাবদ্ধতার খবর কখনো</b> সিটি কর্পোরেশনে পৌঁছায়নি।</span></span></label>
-      <div id="reality" style="margin-top:10px"></div>
+  <!-- ⑤ break it -->
+  <section>
+    <div class="sec-h"><h2>⑤ <span lang="en">Break it</span><span lang="bn">ভেঙে দেখি</span></h2><span class="spacer"></span>
+      <button class="btn small" id="reset">↺ <span lang="en">Back to normal</span><span lang="bn">স্বাভাবিকে ফেরাও</span></button></div>
+    <div class="grid2">
+      <div class="callout break bk">
+        <div class="big">📖🤯</div>
+        <h3 style="margin-top:.4em"><span lang="en">A. Overfitting: memorising, not learning</span><span lang="bn">ক. ওভারফিটিং: শেখা নয়, মুখস্থ</span></h3>
+        <p><span lang="en">Let the tree ask up to 12 questions. It will invent a special rule for almost every day in its study pile. Practice score nears 100%, but the exam score <i>drops</i>, like a student who memorised last year's answers.</span><span lang="bn">গাছকে ১২টি পর্যন্ত প্রশ্ন করতে দিন। সে পড়ার স্তূপের প্রায় প্রতিটি দিনের জন্য আলাদা নিয়ম বানাবে। অনুশীলনে স্কোর প্রায় ১০০%, কিন্তু পরীক্ষায় স্কোর <i>কমে যায়</i>, ঠিক যেমন গত বছরের উত্তর মুখস্থ করা ছাত্র।</span></p>
+        <button class="btn warn" id="try-a">🧪 <span lang="en">Try it: depth 12</span><span lang="bn">করে দেখুন: গভীরতা ১২</span></button>
+      </div>
+      <div class="callout break bk">
+        <div class="big">🤏📄</div>
+        <h3 style="margin-top:.4em"><span lang="en">B. Too few examples</span><span lang="bn">খ. খুব কম উদাহরণ</span></h3>
+        <p><span lang="en">Let the tree study only 5% of the days (40 records). Its questions become strange and its forecasts jump around when you nudge the street's clues.</span><span lang="bn">গাছকে মাত্র ৫% দিন (৪০টি রেকর্ড) পড়তে দিন। তার প্রশ্নগুলো অদ্ভুত হয়ে যায়, আর রাস্তার সূত্র সামান্য বদলালেই পূর্বাভাস লাফিয়ে বদলায়।</span></p>
+        <button class="btn warn" id="try-b">🧪 <span lang="en">Try it: study 40 days</span><span lang="bn">করে দেখুন: ৪০টি দিন পড়া</span></button>
+      </div>
     </div>
-  </div>
+    <div class="callout break" style="margin-top:16px">
+      <div class="grid2">
+        <div>
+          <div class="big" style="font-size:2.2rem">📵🏚️</div>
+          <h3 style="margin-top:.4em"><span lang="en">C. Biased records: the floods nobody wrote down</span><span lang="bn">গ. পক্ষপাতদুষ্ট রেকর্ড: যে জলাবদ্ধতা কেউ লেখেনি</span></h3>
+          <p><span lang="en">In informal settlements, many floods never reach the city corporation's register. Turn this on and the tree studies those days as "dry".</span><span lang="bn">অনানুষ্ঠানিক বসতিতে অনেক জলাবদ্ধতার খবর সিটি কর্পোরেশনের খাতায় পৌঁছায় না। এটি চালু করলে গাছ সেই দিনগুলোকে "শুকনো" হিসেবে পড়বে।</span></p>
+          <label class="switch"><input type="checkbox" id="bias"> <span><span lang="en">70% of floods in informal settlements were <b>never reported</b></span><span lang="bn">অনানুষ্ঠানিক বসতির ৭০% জলাবদ্ধতা <b>কখনো জানানো হয়নি</b></span></span></label>
+          <div id="bias-talk" style="margin-top:14px"></div>
+        </div>
+        <div>
+          <b><span lang="en">Reality check: streets that <i>actually</i> flooded on exam days. Did the tree warn them?</span><span lang="bn">বাস্তবতা যাচাই: পরীক্ষার দিনগুলোতে যেসব রাস্তায় <i>আসলেই</i> পানি জমেছিল। গাছ কি তাদের সতর্ক করেছিল?</span></b>
+          <div class="legend-h"><span><i class="hs w" style="animation:none"></i><span lang="en">warned</span><span lang="bn">সতর্ক করেছে</span></span><span><i class="hs m" style="animation:none"></i><span lang="en">flooded with no warning</span><span lang="bn">সতর্কতা ছাড়াই পানি জমেছে</span></span></div>
+          <div class="grp"><div class="gh"><span>🏚️ <span lang="en">Informal settlements</span><span lang="bn">অনানুষ্ঠানিক বসতি</span></span><span id="rc-a"></span></div><div class="houses" id="hs-a"></div></div>
+          <div class="grp"><div class="gh"><span>🏢 <span lang="en">Planned areas</span><span lang="bn">পরিকল্পিত এলাকা</span></span><span id="rc-b"></span></div><div class="houses" id="hs-b"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="callout lesson" style="margin-top:16px">
     <div class="label"><span lang="en">Lesson</span><span lang="bn">শিক্ষা</span></div>
@@ -113,234 +481,730 @@
 <script>
 LAB.header({ home: '../index.html', family: ['Machine learning · classification', 'মেশিন লার্নিং · শ্রেণিবিন্যাস'], synthetic: true });
 LAB.cycle(document.getElementById('cycle'));
-var $ = function (id) { return document.getElementById(id); };
+const $ = id => document.getElementById(id);
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pct = x => Math.round(x * 100) + '%';
 
-var FEATS = [
-  { key: 'rain', en: 'Rainfall', bn: 'বৃষ্টিপাত', fmt: function (v) { return Math.round(v) + ' mm'; } },
-  { key: 'block', en: 'Drain blockage', bn: 'ড্রেন বন্ধ', fmt: function (v) { return Math.round(v) + '%'; } },
-  { key: 'elev', en: 'Elevation', bn: 'উচ্চতা', fmt: function (v) { return v.toFixed(1) + ' m'; } },
-  { key: 'inf', en: 'Informal settlement', bn: 'অনানুষ্ঠানিক বসতি', binary: true }
+/* ---------- features: each one a "clue" the tree can ask about ---------- */
+const FEATS = [
+  { key: 'rain', icon: '🌧️', en: 'Rainfall', bn: 'বৃষ্টিপাত', cut: t => Math.floor(t) + 1,
+    q: v => ['at least ' + v + ' mm?', 'অন্তত ' + v + ' মিমি?'], val: r => [r.rain + ' mm', r.rain + ' মিমি'] },
+  { key: 'block', icon: '🗑️', en: 'Drain blocked', bn: 'ড্রেন বন্ধ', cut: t => Math.floor(t) + 1,
+    q: v => ['at least ' + v + '%?', 'অন্তত ' + v + '%?'], val: r => [r.block + '%', r.block + '%'] },
+  { key: 'elev', icon: '⛰️', en: 'Street height', bn: 'রাস্তার উচ্চতা', cut: t => Math.floor(t * 2) / 2 + 0.5,
+    q: v => ['at least ' + v + ' m?', 'অন্তত ' + v + ' মি?'], val: r => [r.elev + ' m', r.elev + ' মি'] },
+  { key: 'inf', icon: '🏚️', en: 'Area type', bn: 'এলাকার ধরন', binary: true, cut: () => 1,
+    q: () => ['informal settlement?', 'অনানুষ্ঠানিক বসতি?'],
+    val: r => r.inf ? ['informal settlement', 'অনানুষ্ঠানিক বসতি'] : ['planned area', 'পরিকল্পিত এলাকা'] }
 ];
-var FMAP = {}; FEATS.forEach(function (f) { FMAP[f.key] = f; });
+const FMAP = {}; FEATS.forEach(f => { FMAP[f.key] = f; });
+const qPair = n => { const f = FMAP[n.f], q = f.q(f.cut(n.thr)); return [f.icon + ' ' + f.en + ': ' + q[0], f.icon + ' ' + f.bn + ': ' + q[1]]; };
 
 /* ---------- synthetic data (seeded: identical in every session) ---------- */
-var DATA = (function () {
-  var r = LAB.rng(2024), out = [];
-  for (var i = 0; i < 800; i++) {
-    var rain = Math.min(200, Math.round(-Math.log(1 - r()) * 55));
-    var block = Math.round(r() * 100);
-    var elev = Math.round((1 + r() * 11) * 2) / 2;
-    var inf = r() < 0.35 ? 1 : 0;
-    var z = 0.06 * (rain - 60) + 0.05 * (block - 50) - 0.55 * (elev - 6) + 1.2 * inf - 0.5;
-    var truth = r() < 1 / (1 + Math.exp(-z)) ? 1 : 0;
-    var unreported = truth && inf && r() < 0.7;
-    out.push({ rain: rain, block: block, elev: elev, inf: inf, truth: truth, unreported: unreported });
+const DATA = (function () {
+  const r = LAB.rng(2024), out = [];
+  for (let i = 0; i < 800; i++) {
+    const rain = Math.min(200, Math.round(-Math.log(1 - r()) * 55));
+    const block = Math.round(r() * 100);
+    const elev = Math.round((1 + r() * 11) * 2) / 2;
+    const inf = r() < 0.35 ? 1 : 0;
+    const z = 0.06 * (rain - 60) + 0.05 * (block - 50) - 0.55 * (elev - 6) + 1.2 * inf - 0.5;
+    const truth = r() < 1 / (1 + Math.exp(-z)) ? 1 : 0;
+    const unreported = truth && inf && r() < 0.7;
+    out.push({ id: i + 1, rain, block, elev, inf, truth, unreported });
   }
   return out;
 })();
-var ORDER = LAB.shuffle(DATA.map(function (_, i) { return i; }), LAB.rng(99));
+const ORDER = LAB.shuffle(DATA.map((_, i) => i), LAB.rng(99));
 
-var tree = null, nid = 0, train = [], test = [], showDepth = 99, animTimer = null;
+let tree = null, nid = 0, train = [], test = [], showDepth = 99;
+let mode = 'idle', timer = null, growing = false, walkLimit = null, trainedOnce = false;
+let hotRow = null, infVal = 0, lastHotLeaf = null, dropLen = 0, dropRaf = 0, sweepOn = false;
 
 function label(row) { return $('bias').checked && row.unreported ? 0 : row.truth; }
 function split() {
-  var k = Math.round(DATA.length * $('split').value / 100);
-  train = ORDER.slice(0, k).map(function (i) { return DATA[i]; });
-  test = ORDER.slice(k).map(function (i) { return DATA[i]; });
+  const k = Math.round(DATA.length * $('split').value / 100);
+  train = ORDER.slice(0, k).map(i => DATA[i]);
+  test = ORDER.slice(k).map(i => DATA[i]);
 }
 
 /* ---------- CART decision tree (Gini impurity) ---------- */
-function gini(p, n) { if (!n) return 0; var q = p / n; return 2 * q * (1 - q); }
+function gini(p, n) { if (!n) return 0; const q = p / n; return 2 * q * (1 - q); }
 function build(rows, depth, maxDepth) {
-  var n = rows.length, pos = 0;
-  rows.forEach(function (r) { pos += r.y; });
-  var node = { id: nid++, n: n, pos: pos, depth: depth };
+  const n = rows.length; let pos = 0;
+  rows.forEach(r => { pos += r.y; });
+  const node = { id: nid++, n, pos, depth };
   if (depth >= maxDepth || n < 2 || pos === 0 || pos === n) return node;
-  var parent = gini(pos, n), best = null;
-  FEATS.forEach(function (f) {
-    var s = rows.slice().sort(function (a, b) { return a[f.key] - b[f.key]; }), lp = 0;
-    for (var i = 0; i < n - 1; i++) {
+  const parent = gini(pos, n); let best = null;
+  FEATS.forEach(f => {
+    const s = rows.slice().sort((a, b) => a[f.key] - b[f.key]); let lp = 0;
+    for (let i = 0; i < n - 1; i++) {
       lp += s[i].y;
       if (s[i][f.key] === s[i + 1][f.key]) continue;
-      var ln = i + 1, rn = n - ln;
-      var gain = parent - (ln * gini(lp, ln) + rn * gini(pos - lp, rn)) / n;
-      if (!best || gain > best.gain + 1e-12) best = { f: f.key, thr: (s[i][f.key] + s[i + 1][f.key]) / 2, gain: gain };
+      const ln = i + 1, rn = n - ln;
+      const gain = parent - (ln * gini(lp, ln) + rn * gini(pos - lp, rn)) / n;
+      if (!best || gain > best.gain + 1e-12) best = { f: f.key, thr: (s[i][f.key] + s[i + 1][f.key]) / 2, gain };
     }
   });
   if (!best || best.gain < 1e-6) return node;
   node.f = best.f; node.thr = best.thr;
-  node.left = build(rows.filter(function (r) { return r[best.f] <= best.thr; }), depth + 1, maxDepth);
-  node.right = build(rows.filter(function (r) { return r[best.f] > best.thr; }), depth + 1, maxDepth);
+  node.left = build(rows.filter(r => r[best.f] <= best.thr), depth + 1, maxDepth);
+  node.right = build(rows.filter(r => r[best.f] > best.thr), depth + 1, maxDepth);
   return node;
 }
-function fit(maxDepth) {
-  nid = 0;
-  return build(train.map(function (r) { return Object.assign({}, r, { y: label(r) }); }), 0, maxDepth);
-}
-function leafFor(node, row, limit) {
-  while (node.f && node.depth < limit) node = row[node.f] <= node.thr ? node.left : node.right;
-  return node;
-}
+function fit(maxDepth) { nid = 0; return build(train.map(r => Object.assign({}, r, { y: label(r) })), 0, maxDepth); }
+function leafFor(node, row, limit) { while (node.f && node.depth < limit) node = row[node.f] <= node.thr ? node.left : node.right; return node; }
+function pathFor(row) { const out = [tree]; let n = tree; while (n.f && n.depth < showDepth) { n = row[n.f] <= n.thr ? n.left : n.right; out.push(n); } return out; }
 function treeDepth(node) { return node.f ? 1 + Math.max(treeDepth(node.left), treeDepth(node.right)) : 0; }
 function accuracy(node, rows, limit) {
   if (!rows.length) return 0;
-  var ok = 0;
-  rows.forEach(function (r) { var l = leafFor(node, r, limit); ok += ((l.pos / l.n >= 0.5 ? 1 : 0) === label(r)) ? 1 : 0; });
+  let ok = 0;
+  rows.forEach(r => { const l = leafFor(node, r, limit); ok += ((l.pos / l.n >= 0.5 ? 1 : 0) === label(r)) ? 1 : 0; });
   return ok / rows.length;
 }
+function countLeaves(limit) { let c = 0; (function w(n) { if (n.f && n.depth < limit) { w(n.left); w(n.right); } else c++; })(tree); return c; }
 
-/* ---------- explore ---------- */
+/* ---------- small helpers ---------- */
+function say(id, en, bn) {
+  const el = $(id), html = LAB.bi(en, bn);
+  if (el._html === html) return;
+  el._html = html; el.innerHTML = html;
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function countTo(el, to, fmt, ms) {
+  const from = el._v == null ? 0 : el._v; el._v = to;
+  cancelAnimationFrame(el._raf);
+  if (REDUCED) { el.textContent = fmt(to); return; }
+  const t0 = performance.now(), dur = ms || 700;
+  const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(from + (to - from) * e); if (k < 1) el._raf = requestAnimationFrame(step); };
+  el._raf = requestAnimationFrame(step);
+}
+function stopAnims() { clearTimeout(timer); timer = null; growing = false; walkLimit = null; mode = 'idle'; }
+
+/* =====================================================================
+   ① THE STREET SCENE
+   ===================================================================== */
+const SC = { W: 800, H: 420, riverY: 396 };
+const roadY = e => 376 - (e - 1) / 11 * 134;
+const sc = { elev: 4, water: 0, cngX: 420, phase: 0, t: { elev: 4, water: 0, flood: false }, lastRy: -1 };
+const CHUNKS = [];
+
+function buildScene() {
+  const r = LAB.rng(7);
+  let rain = '';
+  for (let i = 0; i < 170; i++) {
+    const x = r() * 880, y = -70 + r() * 50, d = (.55 + r() * .35).toFixed(2);
+    rain += '<line x1="' + x.toFixed(0) + '" y1="' + y.toFixed(0) + '" x2="' + (x - 4).toFixed(0) + '" y2="' + (y + 16).toFixed(0) + '" style="animation-duration:' + d + 's;animation-delay:-' + (r() * d).toFixed(2) + 's"/>';
+  }
+  const cloud = (x, y, s, cls) => '<g class="cloud ' + cls + '" transform="translate(' + x + ',' + y + ') scale(' + s + ')"><g>' +
+    '<ellipse cx="0" cy="0" rx="46" ry="22"/><ellipse cx="-30" cy="6" rx="30" ry="16"/><ellipse cx="34" cy="6" rx="32" ry="17"/><ellipse cx="6" cy="-14" rx="28" ry="20"/></g></g>';
+  // planned buildings
+  let planned = '<rect class="wall" x="16" y="-186" width="136" height="186"/><rect class="wall2" x="12" y="-192" width="144" height="8"/>' +
+    '<rect class="tank" x="112" y="-214" width="26" height="22" rx="4"/><rect class="tank" x="40" y="-206" width="18" height="14" rx="3"/>';
+  for (let row = 0; row < 5; row++) for (let c = 0; c < 4; c++) planned += '<rect class="win" x="' + (26 + c * 31) + '" y="' + (-176 + row * 28) + '" width="20" height="16" rx="2"/>';
+  planned += '<rect class="shutter" x="26" y="-30" width="58" height="30"/><rect x="26" y="-40" width="58" height="9" fill="var(--accent-2)"/>';
+  for (let i = 0; i < 6; i++) planned += '<line x1="26" x2="84" y1="' + (-26 + i * 5) + '" y2="' + (-26 + i * 5) + '" stroke="var(--s-edge)" stroke-width="1"/>';
+  planned += '<rect class="dark" x="104" y="-34" width="22" height="34"/>';
+  planned += '<rect class="wall2" x="168" y="-142" width="132" height="142"/><rect class="wall" x="164" y="-148" width="140" height="8"/>';
+  for (let row = 0; row < 4; row++) for (let c = 0; c < 3; c++) {
+    planned += '<rect class="win" x="' + (182 + c * 40) + '" y="' + (-132 + row * 28) + '" width="24" height="16" rx="2"/>';
+    if (c === 1) planned += '<rect x="' + (176 + c * 40) + '" y="' + (-116 + row * 28) + '" width="36" height="4" fill="var(--s-edge)"/><circle cx="' + (180 + c * 40) + '" cy="' + (-119 + row * 28) + '" r="4" fill="#4d7c0f"/>';
+  }
+  planned += '<rect class="dark" x="222" y="-30" width="24" height="30"/>';
+  // informal settlement: tin-shed houses
+  let inf = '';
+  [[6, 58, 58, 'tin'], [68, 56, 68, 'rust'], [128, 62, 52, 'blue'], [194, 56, 62, 'tin'], [254, 62, 56, 'rust']].forEach(s => {
+    const [x, w, h, c] = s;
+    inf += '<rect class="sh-' + c + '" x="' + x + '" y="' + (-h) + '" width="' + w + '" height="' + h + '"/>' +
+      '<rect fill="url(#corr)" x="' + x + '" y="' + (-h) + '" width="' + w + '" height="' + h + '"/>' +
+      '<polygon class="roof" points="' + (x - 5) + ',' + (-h + 4) + ' ' + (x + w + 5) + ',' + (-h - 8) + ' ' + (x + w + 5) + ',' + (-h - 2) + ' ' + (x - 5) + ',' + (-h + 10) + '"/>' +
+      '<rect class="dark" x="' + (x + w * .55) + '" y="-30" width="15" height="30"/>' +
+      '<rect class="dark" x="' + (x + 8) + '" y="' + (-h + 18) + '" width="13" height="11"/>';
+  });
+  inf += '<path class="wire" d="M64,-52 Q96,-40 128,-50"/>' +
+    '<rect x="76" y="-48" width="9" height="13" fill="#e11d48"/><rect x="92" y="-45" width="10" height="15" fill="#facc15"/><rect x="108" y="-47" width="8" height="12" fill="#22c55e"/>';
+  // drain chunks (garbage) inside the pipe
+  const cols = ['#e11d48', '#facc15', '#22c55e', '#f5f5f4', '#0ea5e9', '#a16207'];
+  let chunks = '';
+  for (let i = 0; i < 110; i++) {
+    const frac = r(), x = 362 + r() * 332, w = 7 + r() * 9, h = 4 + r() * 4;
+    CHUNKS.push(frac);
+    chunks += '<rect class="ck" x="' + x.toFixed(0) + '" y="' + (54 - h - frac * 18).toFixed(1) + '" width="' + w.toFixed(0) + '" height="' + h.toFixed(0) + '" rx="2" fill="' + cols[i % cols.length] + '" transform="rotate(' + ((r() - .5) * 40).toFixed(0) + ' ' + x.toFixed(0) + ' ' + (50 - frac * 18).toFixed(0) + ')"/>';
+  }
+  let pebbles = '';
+  for (let i = 0; i < 40; i++) pebbles += '<ellipse class="soil" cx="' + (r() * 680).toFixed(0) + '" cy="' + (70 + r() * 220).toFixed(0) + '" rx="' + (3 + r() * 6).toFixed(0) + '" ry="' + (2 + r() * 3).toFixed(0) + '"/>';
+
+  $('street-svg').innerHTML =
+    '<defs><linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sky-a"/><stop offset="1" class="sky-b"/></linearGradient>' +
+    '<pattern id="corr" width="6" height="10" patternUnits="userSpaceOnUse"><rect width="2.5" height="10" fill="#000" opacity=".18"/></pattern>' +
+    '<clipPath id="roadclip"><rect x="330" y="-120" width="362" height="140"/></clipPath>' +
+    '<clipPath id="pipeclip"><rect x="352" y="34" width="348" height="20"/></clipPath></defs>' +
+    '<rect width="800" height="420" fill="url(#skyg)"/>' +
+    '<rect id="storm" width="800" height="420" opacity="0"/>' +
+    '<g id="sun"><circle cx="92" cy="66" r="28"/>' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => { const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180); return '<line x1="' + (92 + c * 36) + '" y1="' + (66 + s * 36) + '" x2="' + (92 + c * 48) + '" y2="' + (66 + s * 48) + '"/>'; }).join('') + '</g>' +
+    '<g id="clouds-light">' + cloud(250, 60, 1, '') + cloud(560, 44, .8, 'c2') + '</g>' +
+    '<g id="clouds-dark" opacity="0">' + cloud(130, 50, 1.3, 'dk c3') + cloud(420, 40, 1.5, 'dk') + cloud(700, 58, 1.2, 'dk c2') + cloud(300, 20, 1.1, 'dk c2') + '</g>' +
+    '<g id="street">' +
+      '<path class="ground" d="M0,0 L692,0 L762,300 L0,300 Z"/>' + pebbles +
+      '<rect class="side" x="0" y="-2" width="332" height="8"/>' +
+      '<g id="planned">' + planned + '</g><g id="informal" opacity="0">' + inf + '</g>' +
+      '<rect class="pole" x="318" y="-170" width="5" height="170"/><rect class="pole" x="304" y="-164" width="33" height="4"/>' +
+      '<path class="wire" d="M306,-162 Q160,-120 -10,-150"/><path class="wire" d="M335,-162 Q560,-110 820,-160"/><path class="wire" d="M320,-150 Q480,-100 820,-130"/>' +
+      '<text x="296" y="-2" font-size="30" text-anchor="middle">🧕</text>' +
+      '<rect class="road" x="330" y="-3" width="364" height="19"/><line class="dash" x1="336" y1="6" x2="690" y2="6"/>' +
+      '<rect class="dark" x="352" y="-5" width="26" height="5" rx="1"/><rect class="pipe" x="357" y="14" width="16" height="22"/>' +
+      '<rect class="pipe" x="350" y="30" width="352" height="28" rx="4"/><rect class="pipe-in" x="352" y="34" width="348" height="20"/>' +
+      '<g clip-path="url(#pipeclip)"><line id="pipe-flow" x1="352" x2="700" y1="40" y2="40" stroke-width="8"/>' + chunks + '</g>' +
+      '<path id="outfall" d="" stroke-width="8"/>' +
+      '<text id="drain-lbl" class="s-label small" x="526" y="78" text-anchor="middle"></text>' +
+      '<g id="puddles" opacity="0"><ellipse class="puddle" cx="410" cy="-2" rx="28" ry="3"/><ellipse class="puddle" cx="540" cy="-2" rx="38" ry="3"/><ellipse class="puddle" cx="650" cy="-2" rx="22" ry="3"/></g>' +
+      '<g clip-path="url(#roadclip)"><g id="cng">' +
+        '<path class="cng-body" d="M-36,-14 L-36,-48 Q-36,-60 -24,-62 L16,-62 Q34,-60 38,-42 L42,-14 Z"/>' +
+        '<path class="cng-roof" d="M-40,-60 Q0,-76 40,-60 L40,-56 L-40,-56 Z"/>' +
+        '<rect class="cng-glass" x="-28" y="-54" width="34" height="24" rx="3"/>' +
+        '<path d="M-21,-54 V-30 M-14,-54 V-30 M-7,-54 V-30 M0,-54 V-30" stroke="var(--s-cng-d)" stroke-width="1.5"/>' +
+        '<circle cx="39" cy="-28" r="3.5" fill="#fde047"/>' +
+        '<circle cx="-22" cy="-9" r="9" fill="#111827"/><circle cx="-22" cy="-9" r="3.5" fill="#9ca3af"/>' +
+        '<circle cx="26" cy="-9" r="9" fill="#111827"/><circle cx="26" cy="-9" r="3.5" fill="#9ca3af"/>' +
+      '</g></g>' +
+      '<path id="water" class="water" d=""/><path id="water-top" class="water-top" d=""/>' +
+    '</g>' +
+    '<path id="river" class="river" d=""/><path id="river-top" class="water-top" d=""/>' +
+    '<line id="guide" class="guide"/><line id="ruler" class="ruler" marker-start="" />' +
+    '<path id="ruler-ends" class="ruler" fill="none"/>' +
+    '<text id="elev-lbl" class="s-label" text-anchor="end"></text><text id="elev-sub" class="s-label small" text-anchor="end"></text>' +
+    '<g class="rain" id="rain">' + rain + '</g>' +
+    '<rect id="flash" width="800" height="420"/>';
+  if (REDUCED) document.querySelectorAll('#rain line').forEach((l, i) => { l.setAttribute('transform', 'translate(' + (-10 - (i * 7) % 30) + ',' + ((i * 53) % 460) + ')'); });
+}
+
+function wave(x0, x1, y, amp, ph, k) {
+  let d = 'M' + x0 + ',' + y.toFixed(1);
+  for (let x = x0; x <= x1; x += 20) d += ' L' + x + ',' + (y + amp * Math.sin(x / 38 + ph * k)).toFixed(1);
+  return d + ' L' + x1 + ',' + (y + amp * Math.sin(x1 / 38 + ph * k)).toFixed(1);
+}
+
+function renderScene() {
+  const ry = roadY(sc.elev), riverLocal = SC.riverY - ry;
+  $('street').setAttribute('transform', 'translate(0,' + ry.toFixed(1) + ')');
+  // street water
+  if (sc.water > .4) {
+    const top = wave(0, 692, -sc.water, 1.8, sc.phase, 2.2);
+    $('water').setAttribute('d', top + ' L692,16 L0,16 Z');
+    $('water-top').setAttribute('d', top);
+  } else { $('water').setAttribute('d', ''); $('water-top').setAttribute('d', ''); }
+  // river
+  const rt = wave(700, 800, SC.riverY, 2, sc.phase, 1.5);
+  $('river').setAttribute('d', rt + ' L800,420 L700,420 Z'); $('river-top').setAttribute('d', rt);
+  // drain outfall to the river
+  const b = sc.block, yc = 34 + (1 - b) * 10;
+  $('outfall').setAttribute('d', b > .97 ? '' : 'M700,' + yc.toFixed(1) + ' Q716,' + yc.toFixed(1) + ' 722,' + (riverLocal + 4).toFixed(1));
+  // CNG auto-rickshaw
+  const bob = sc.water > 8 ? Math.sin(sc.phase * 2.4) * 1.5 : 0;
+  $('cng').setAttribute('transform', 'translate(' + sc.cngX.toFixed(1) + ',' + bob.toFixed(1) + ')');
+  // ruler
+  if (Math.abs(ry - sc.lastRy) > .05) {
+    sc.lastRy = ry;
+    const g = $('guide'); g.setAttribute('x1', 692); g.setAttribute('x2', 792); g.setAttribute('y1', ry); g.setAttribute('y2', ry);
+    const ru = $('ruler'); ru.setAttribute('x1', 784); ru.setAttribute('x2', 784); ru.setAttribute('y1', ry + 2); ru.setAttribute('y2', SC.riverY - 2);
+    $('ruler-ends').setAttribute('d', 'M778,' + (ry + 8) + ' L784,' + (ry + 2) + ' L790,' + (ry + 8) + ' M778,' + (SC.riverY - 8) + ' L784,' + (SC.riverY - 2) + ' L790,' + (SC.riverY - 8));
+    const mid = (ry + SC.riverY) / 2;
+    $('elev-lbl').setAttribute('x', 776); $('elev-lbl').setAttribute('y', mid + 2);
+    $('elev-sub').setAttribute('x', 776); $('elev-sub').setAttribute('y', mid + 17);
+    placeBubbles(ry);
+  }
+}
+function placeBubbles(ry) {
+  const put = (el, x, y) => { el.style.left = (x / SC.W * 100) + '%'; el.style.bottom = (100 - y / SC.H * 100) + '%'; };
+  put($('bub-res'), 300, ry - 44);
+  put($('bub-drv'), 548, ry - 82);
+}
+let lastT = 0;
+function frame(t) {
+  const dt = Math.min(60, t - (lastT || t)) / 1000; lastT = t;
+  if (!document.hidden) {
+    sc.elev += (sc.t.elev - sc.elev) * Math.min(1, dt * 5);
+    sc.water += (sc.t.water - sc.water) * Math.min(1, dt * 2.2);
+    sc.phase += dt;
+    if (!sc.t.flood) { sc.cngX += dt * 75; if (sc.cngX > 750) sc.cngX = 280; }
+    else if (sc.cngX < 380 || sc.cngX > 640) sc.cngX += (500 - sc.cngX) * Math.min(1, dt * 2);
+    renderScene();
+  }
+  requestAnimationFrame(frame);
+}
+
+const WORDS = {
+  rain: v => v < 10 ? ['barely a drizzle', 'ঝিরঝিরে বৃষ্টি'] : v < 35 ? ['light rain', 'হালকা বৃষ্টি'] : v < 70 ? ['moderate rain', 'মাঝারি বৃষ্টি'] : v < 120 ? ['heavy monsoon rain', 'ভারী বর্ষণ'] : ['extreme cloudburst', 'অতি ভারী বর্ষণ'],
+  block: v => v < 20 ? ['mostly clear', 'প্রায় পরিষ্কার'] : v < 50 ? ['some plastic and silt', 'কিছু প্লাস্টিক আর কাদা'] : v < 80 ? ['badly clogged with plastic', 'প্লাস্টিকে অনেকটা আটকে গেছে'] : ['almost fully choked', 'প্রায় পুরো বন্ধ'],
+  elev: v => v < 3 ? ['low-lying, close to the river', 'নিচু, নদীর কাছাকাছি'] : v < 7 ? ['medium height', 'মাঝারি উচ্চতা'] : ['raised ground', 'উঁচু জমি']
+};
+const PRESETS = [{ rain: 150, block: 80, elev: 2, inf: 1 }, { rain: 150, block: 20, elev: 9.5, inf: 0 }, { rain: 25, block: 35, elev: 5, inf: 0 }];
+
+function updateScene(p) {
+  const rain = hotRow.rain, flood = p >= .5;
+  sc.t.elev = hotRow.elev; sc.block = hotRow.block / 100;
+  sc.t.flood = flood; sc.t.water = flood ? 20 + (p - .5) / .5 * 46 : 0;
+  if (REDUCED) { sc.elev = sc.t.elev; sc.water = sc.t.water; }
+  const n = Math.round(rain / 200 * 170);
+  document.querySelectorAll('#rain line').forEach((l, i) => { l.style.display = i < n ? '' : 'none'; });
+  $('storm').setAttribute('opacity', (rain / 200 * .7).toFixed(2));
+  $('clouds-dark').setAttribute('opacity', Math.min(1, rain / 90).toFixed(2));
+  $('sun').style.opacity = rain < 12 ? 1 : 0;
+  $('flash').classList.toggle('on', rain >= 150);
+  $('puddles').style.opacity = !flood && rain > 25 ? Math.min(1, rain / 90) : 0;
+  $('informal').style.opacity = hotRow.inf ? 1 : 0; $('planned').style.opacity = hotRow.inf ? 0 : 1;
+  document.querySelectorAll('#street-svg .ck').forEach((c, i) => { c.style.display = CHUNKS[i] < sc.block ? '' : 'none'; });
+  const pf = $('pipe-flow'), fw = Math.max(0, (1 - sc.block) * 18);
+  pf.setAttribute('y1', 34 + (1 - sc.block) * 10); pf.setAttribute('y2', 34 + (1 - sc.block) * 10); pf.setAttribute('stroke-width', fw);
+  $('outfall').setAttribute('stroke-width', Math.max(0, (1 - sc.block) * 14));
+  $('drain-lbl').textContent = LAB.t('🗑️ drain ' + hotRow.block + '% blocked', '🗑️ ড্রেন ' + hotRow.block + '% বন্ধ');
+  $('elev-lbl').textContent = LAB.t(hotRow.elev + ' m', hotRow.elev + ' মি');
+  $('elev-sub').textContent = LAB.t('above river', 'নদী থেকে উঁচু');
+  sc.lastRy = -1;
+  // forecast chip
+  $('fc-v').innerHTML = flood ? '⚠️ ' + LAB.bi('Waterlogging likely', 'জলাবদ্ধতার সম্ভাবনা বেশি') + ' · ' + pct(p) : '✓ ' + LAB.bi('Waterlogging unlikely', 'জলাবদ্ধতার সম্ভাবনা কম') + ' · ' + pct(p);
+  $('fc-m').style.width = (p * 100) + '%';
+  $('forecast').className = 'forecast ' + (flood ? 'bad' : 'good');
+  // the people in the street talk
+  let res;
+  if (flood && hotRow.inf) res = ['Water is coming inside again! Lift the rice and the children\'s books onto the bed.', 'আবার ঘরে পানি ঢুকছে! চাল আর বাচ্চাদের বই খাটের ওপর তোলো।'];
+  else if (flood) res = ['The ground-floor shops will go under. Move the cars and the stock now!', 'নিচতলার দোকানে পানি ঢুকবে। এখনই গাড়ি আর মালপত্র সরাও!'];
+  else if (hotRow.inf && $('bias').checked) res = ['"Low risk"? We flood every monsoon. We just stopped reporting it.', '"ঝুঁকি কম"? প্রতি বর্ষায় আমাদের এখানে পানি জমে। আমরা শুধু জানানো বন্ধ করেছি।'];
+  else if (rain < 12) res = ['Dry and calm tonight. Good for drying clothes.', 'আজ রাত শুকনো আর শান্ত। কাপড় শুকানোর জন্য ভালো।'];
+  else res = ['Just rain. Take an umbrella, the children can still go to school.', 'শুধু বৃষ্টি। ছাতা নাও, বাচ্চারা স্কুলে যেতে পারবে।'];
+  const drv = flood ? ['I\'m not driving into that! Find another road.', 'ওই পানিতে আমি যাব না! অন্য রাস্তা দেখেন।'] : ['Road is clear, hop in!', 'রাস্তা ফাঁকা, উঠে পড়েন!'];
+  setBubble('bub-res', LAB.bi('Resident', 'বাসিন্দা'), res);
+  setBubble('bub-drv', LAB.bi('CNG driver', 'সিএনজি চালক'), drv);
+}
+function setBubble(id, who, t) {
+  const el = $(id), html = '<span class="who">' + who + '</span>' + LAB.bi(t[0], t[1]);
+  if (el._html === html) return;
+  el._html = html; el.innerHTML = html; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+
+/* ---------- apply the tree to tonight's street ---------- */
+function apply(opts) {
+  hotRow = { rain: +$('a-rain').value, block: +$('a-block').value, elev: +$('a-elev').value, inf: infVal };
+  $('v-rain').textContent = LAB.t(hotRow.rain + ' mm', hotRow.rain + ' মিমি');
+  $('v-block').textContent = hotRow.block + '%';
+  $('v-elev').textContent = LAB.t(hotRow.elev + ' m', hotRow.elev + ' মি');
+  ['rain', 'block', 'elev'].forEach(k => { const w = WORDS[k](hotRow[k]); $('w-' + k).innerHTML = LAB.bi(w[0], w[1]); });
+  document.querySelectorAll('#seg-inf .btn').forEach(b => b.classList.toggle('on', +b.dataset.inf === infVal));
+  if (!tree) return;
+  const leaf = leafFor(tree, hotRow, showDepth), p = leaf.pos / leaf.n;
+  updateScene(p);
+  drawTree(opts || {});
+  const k = leaf.depth, v = p >= .5;
+  const vEn = v ? '<span class="yes-t">⚠️ waterlogging likely</span>' : '<span class="no-t">✓ waterlogging unlikely</span>';
+  const vBn = v ? '<span class="yes-t">⚠️ জলাবদ্ধতার সম্ভাবনা বেশি</span>' : '<span class="no-t">✓ জলাবদ্ধতার সম্ভাবনা কম</span>';
+  say('say-hero',
+    'I asked <b>' + k + '</b> question' + (k === 1 ? '' : 's') + ' about tonight and found <b>' + leaf.n + ' past days</b> just like it. In <b>' + pct(p) + '</b> of them the street flooded. So I say: ' + vEn + '.',
+    'আজ রাত নিয়ে আমি <b>' + k + 'টি</b> প্রশ্ন করেছি এবং ঠিক এমন <b>' + leaf.n + 'টি পুরোনো দিন</b> পেয়েছি। তার <b>' + pct(p) + '</b> দিনে রাস্তায় পানি জমেছিল। তাই আমার উত্তর: ' + vBn + '।');
+  if (mode === 'idle') say('say-tree',
+    'Follow the 💧 drop: it shows tonight\'s path through my questions. Each box is a question I chose myself, because it best separates flooded days from dry ones. The red/blue bar shows how mixed each group still is.',
+    '💧 ফোঁটাটি অনুসরণ করুন: এটি আমার প্রশ্নগুলোর ভেতর দিয়ে আজ রাতের পথ দেখায়। প্রতিটি বাক্স একটি প্রশ্ন যা আমি নিজেই বেছেছি, কারণ এটি পানি জমা দিন আর শুকনো দিনকে সবচেয়ে ভালোভাবে আলাদা করে। লাল/নীল দাগ দেখায় প্রতিটি দল এখনো কতটা মিশ্র।');
+}
+
+/* =====================================================================
+   ② EXPLORE
+   ===================================================================== */
+let cardRows = null;
+function pickCards(random) {
+  const pool = train.slice();
+  if (!random) cardRows = pool.slice(0, 6);
+  else { const r = LAB.rng(Math.floor(Math.random() * 1e6)); cardRows = LAB.shuffle(pool, r).slice(0, 6); }
+  if ($('bias').checked && !cardRows.some(x => x.unreported)) {
+    const u = pool.find(x => x.unreported); if (u) cardRows[5] = u;
+  }
+}
+function drawCards() {
+  if (!cardRows || cardRows.some(r => train.indexOf(r) < 0)) pickCards(false);
+  $('recs').innerHTML = cardRows.map((r, i) => {
+    const y = label(r), hid = $('bias').checked && r.unreported;
+    return '<div class="rec' + (hid ? ' hidden-flood' : '') + '" style="animation-delay:' + (i * .08) + 's">' +
+      '<div class="h">' + LAB.bi('Rainy day #' + r.id, 'বৃষ্টির দিন #' + r.id) + '</div>' +
+      '<div class="cl"><span>🌧️ ' + r.rain + '</span><span>🗑️ ' + r.block + '%</span><span>⛰️ ' + r.elev + '</span><span>' + (r.inf ? '🏚️' : '🏢') + '</span></div>' +
+      (hid ? '<span class="note">📵 ' + LAB.bi('really flooded!', 'আসলে পানি জমেছিল!') + '</span>' : '') +
+      '<div class="stamp ' + (y ? 'yes' : 'no') + '" style="animation-delay:' + (.35 + i * .08) + 's">' + (y ? '🌊 ' + LAB.bi('FLOODED', 'পানি জমেছিল') : '☀️ ' + LAB.bi('DRY', 'শুকনো')) + '</div></div>';
+  }).join('');
+  const yes = train.filter(label).length;
+  $('counts').innerHTML = LAB.bi(
+    '🌧️ rain (mm) · 🗑️ drain blocked · ⛰️ height (m) · 🏢/🏚️ area type. Study pile: <b>' + train.length + '</b> days, <b>' + yes + '</b> flooded.',
+    '🌧️ বৃষ্টি (মিমি) · 🗑️ ড্রেন বন্ধ · ⛰️ উচ্চতা (মি) · 🏢/🏚️ এলাকার ধরন। পড়ার স্তূপ: <b>' + train.length + '</b>টি দিন, <b>' + yes + '</b>টিতে পানি জমেছিল।');
+}
 function drawScatter() {
-  var svg = $('scatter'), W = 520, H = 260, P = 34;
-  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.classList.add('chart');
-  var h = '<line class="axis" x1="' + P + '" y1="' + (H - P) + '" x2="' + W + '" y2="' + (H - P) + '"/><line class="axis" x1="' + P + '" y1="0" x2="' + P + '" y2="' + (H - P) + '"/>';
-  [0, 50, 100, 150, 200].forEach(function (v) { h += '<text x="' + (P + v / 200 * (W - P - 6)) + '" y="' + (H - P + 16) + '" text-anchor="middle">' + v + '</text>'; });
-  [0, 50, 100].forEach(function (v) { h += '<text x="' + (P - 6) + '" y="' + (H - P - v / 100 * (H - P - 8) + 4) + '" text-anchor="end">' + v + '</text>'; });
-  h += '<text x="' + W / 2 + '" y="' + (H - 2) + '" text-anchor="middle">' + LAB.t('rainfall (mm)', 'বৃষ্টিপাত (মিমি)') + '</text>';
-  train.forEach(function (r) {
-    h += '<circle class="' + (label(r) ? 'y' : 'n') + '" cx="' + (P + r.rain / 200 * (W - P - 6)).toFixed(1) + '" cy="' + (H - P - r.block / 100 * (H - P - 8)).toFixed(1) + '" r="3" opacity=".6"/>';
+  const svg = $('scatter'), W = 520, H = 280, P = 36;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  const X = v => P + v / 200 * (W - P - 8), Y = v => H - P - v / 100 * (H - P - 10);
+  let h = '<line class="axis" x1="' + P + '" y1="' + (H - P) + '" x2="' + W + '" y2="' + (H - P) + '"/><line class="axis" x1="' + P + '" y1="0" x2="' + P + '" y2="' + (H - P) + '"/>';
+  [0, 50, 100, 150, 200].forEach(v => { h += '<text x="' + X(v) + '" y="' + (H - P + 16) + '" text-anchor="middle">' + v + '</text>'; });
+  [0, 50, 100].forEach(v => { h += '<text x="' + (P - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + '</text>'; });
+  h += '<text x="' + (W / 2 + 18) + '" y="' + (H - 3) + '" text-anchor="middle">🌧️ ' + LAB.t('rainfall (mm) →', 'বৃষ্টিপাত (মিমি) →') + '</text>';
+  h += '<text transform="translate(11,' + (H / 2 - 18) + ') rotate(-90)" text-anchor="middle">🗑️ ' + LAB.t('drain blocked (%) →', 'ড্রেন বন্ধ (%) →') + '</text>';
+  const bias = $('bias').checked;
+  train.forEach((r, i) => {
+    const d = svg.classList.contains('intro') ? ' style="animation-delay:' + ((i % 120) * 8) + 'ms"' : '';
+    h += '<circle class="' + (label(r) ? 'y' : 'n') + '" cx="' + X(r.rain).toFixed(1) + '" cy="' + Y(r.block).toFixed(1) + '" r="3.2" opacity=".6"' + d + '/>';
+    if (bias && r.unreported) h += '<circle class="ghost" cx="' + X(r.rain).toFixed(1) + '" cy="' + Y(r.block).toFixed(1) + '" r="5.5"/>';
   });
+  h += '<path class="arrow" d="M' + X(30) + ',' + Y(22) + ' Q' + X(90) + ',' + Y(40) + ' ' + X(150) + ',' + Y(88) + '" marker-end=""/>' +
+    '<text class="note" x="' + X(160) + '" y="' + Y(95) + '" text-anchor="end">' + LAB.t('more rain + blocked drain = more 🌊', 'বেশি বৃষ্টি + বন্ধ ড্রেন = বেশি 🌊') + '</text>';
   svg.innerHTML = h;
-  var t = '<tr><th>#</th>' + FEATS.map(function (f) { return '<th>' + LAB.t(f.en, f.bn) + '</th>'; }).join('') + '<th>' + LAB.t('Flooded?', 'পানি জমেছিল?') + '</th></tr>';
-  train.slice(0, 6).forEach(function (r, i) {
-    t += '<tr><td>' + (i + 1) + '</td><td>' + r.rain + '</td><td>' + r.block + '%</td><td>' + r.elev + '</td><td>' + (r.inf ? LAB.t('Yes', 'হ্যাঁ') : LAB.t('No', 'না')) + '</td><td>' +
-      (label(r) ? '<span class="pill yes">' + LAB.t('Yes', 'হ্যাঁ') + '</span>' : '<span class="pill no">' + LAB.t('No', 'না') + '</span>') + '</td></tr>';
+  $('ghost-key').classList.toggle('hidden', !bias);
+}
+
+/* =====================================================================
+   ③ TRAIN
+   ===================================================================== */
+function buildStrip() {
+  let h = '';
+  for (let i = 0; i < 800; i++) h += '<rect x="' + ((i % 50) * 10 + 1) + '" y="' + (Math.floor(i / 50) * 10 + 1) + '" width="8" height="8" rx="2"/>';
+  $('strip').innerHTML = h;
+}
+function drawStrip() {
+  const k = train.length, rects = $('strip').children;
+  ORDER.forEach((di, i) => { rects[i].setAttribute('class', i < k ? (label(DATA[di]) ? 'ty' : 'tn') : 'te'); });
+  countTo($('n-train'), k, v => Math.round(v));
+  countTo($('n-test'), test.length, v => Math.round(v));
+}
+function buildSorter() {
+  const sq = [['r', 1], ['b', 0], ['b', 0], ['r', 1], ['b', 0], ['r', 0], ['r', 1], ['b', 1], ['r', 1], ['b', 0]];
+  let li = 0, ri = 0, h = '<div class="qq" id="sorter-q"></div>';
+  sq.forEach((s, i) => {
+    const x1 = s[1] ? 170 + (ri++) * 26 : (li++) * 26;
+    h += '<i class="sq ' + s[0] + '" style="--x0:' + (i * 28 + 10) + 'px;--x1:' + x1 + 'px"></i>';
   });
-  $('rows').innerHTML = t;
-  var yes = train.filter(label).length;
-  $('counts').textContent = LAB.t(train.length + ' training records · ' + yes + ' flooded', train.length + 'টি প্রশিক্ষণ রেকর্ড · ' + yes + 'টিতে পানি জমেছিল');
+  h += '<span class="gl" style="left:20px">' + LAB.bi('no', 'না') + ' → <span id="sorter-l"></span></span><span class="gl" style="left:186px">' + LAB.bi('yes', 'হ্যাঁ') + ' → <span id="sorter-r"></span></span>';
+  $('sorter').innerHTML = h;
+}
+function updateSorter() {
+  if (!tree || !tree.f || !$('sorter-q')) return;
+  const q = qPair(tree);
+  $('sorter-q').innerHTML = '<span class="q-chip">' + LAB.bi(q[0], q[1]) + '</span>';
+  $('sorter-l').textContent = pct(tree.left.pos / tree.left.n) + ' 🌊';
+  $('sorter-r').textContent = pct(tree.right.pos / tree.right.n) + ' 🌊';
 }
 
 /* ---------- tree drawing ---------- */
-function drawTree(hotLeaf) {
-  var svg = $('tree');
+function drawTree(opts) {
+  opts = opts || {};
+  const svg = $('tree');
   if (!tree) { svg.innerHTML = ''; return; }
-  var visible = function (n) { return n.f && n.depth < showDepth; };
-  var leaves = 0;
-  (function count(n) { if (visible(n)) { count(n.left); count(n.right); } else leaves++; })(tree);
-  var compact = leaves > 14;
-  var colW = compact ? 34 : 150, rowH = compact ? 46 : 92, bw = 136, bh = 54;
-  var maxD = 0, pos = {}, li = 0;
+  const vis = n => n.f && n.depth < showDepth;
+  const leaves = countLeaves(showDepth), compact = leaves > 14;
+  const colW = compact ? 34 : 178, rowH = compact ? 56 : 134, bw = 162, bh = 82;
+  const half = compact ? 9 : bh / 2, top = half + 26;
+  let maxD = 0, li = 0; const pos = {};
   (function place(n) {
     maxD = Math.max(maxD, n.depth);
-    if (visible(n)) { place(n.left); place(n.right); pos[n.id] = { x: (pos[n.left.id].x + pos[n.right.id].x) / 2, y: 20 + n.depth * rowH }; }
-    else { pos[n.id] = { x: (li++ + .5) * colW + 10, y: 20 + n.depth * rowH }; }
+    if (vis(n)) { place(n.left); place(n.right); pos[n.id] = { x: (pos[n.left.id].x + pos[n.right.id].x) / 2, y: top + n.depth * rowH }; }
+    else pos[n.id] = { x: (li++ + .5) * colW + 10, y: top + n.depth * rowH };
   })(tree);
-  var W = Math.max(leaves * colW + 20, $('treebox').clientWidth - 2), H = 40 + (maxD + 1) * rowH;
-  var off = (W - (leaves * colW + 20)) / 2;
+  const W = Math.max(leaves * colW + 20, $('treebox').clientWidth - 2), H = top + half + 16 + maxD * rowH;
+  const off = (W - (leaves * colW + 20)) / 2;
+  Object.keys(pos).forEach(k => { pos[k].x += off; });
   svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-  var hot = {};
-  if (hotLeaf) { var n = tree; hot[n.id] = 1; while (visible(n)) { n = hotRow[n.f] <= n.thr ? n.left : n.right; hot[n.id] = 1; } }
-  var edges = '', nodes = '';
+
+  const path = hotRow ? pathFor(hotRow) : [];
+  const lim = walkLimit == null ? path.length - 1 : Math.min(walkLimit, path.length - 1);
+  const hot = new Set(path.slice(0, lim + 1).map(n => n.id));
+  const nowId = walkLimit != null && path[lim] ? path[lim].id : -1;
+  const isNew = n => growing && n.depth === showDepth;
+  const isChanged = n => growing && n.depth === showDepth - 1;
+  const ew = c => compact ? 1.5 + 5 * Math.sqrt(c.n / tree.n) : 2 + 14 * Math.sqrt(c.n / tree.n);
+  const edgeD = (p, q) => { const y0 = p.y + half, y3 = q.y - half, ym = (y0 + y3) / 2; return 'M' + p.x + ',' + y0 + ' C' + p.x + ',' + ym + ' ' + q.x + ',' + ym + ' ' + q.x + ',' + y3; };
+
+  let edges = '', flows = '', pills = '', nodes = '';
   (function walk(n) {
-    var p = pos[n.id], x = p.x + off, y = p.y;
-    if (visible(n)) {
-      [n.left, n.right].forEach(function (c, k) {
-        var q = pos[c.id], cx = q.x + off;
-        edges += '<path class="edge' + (hot[n.id] && hot[c.id] ? ' hot' : '') + '" d="M' + x + ',' + (y + (compact ? 8 : bh / 2)) + ' C' + x + ',' + (y + rowH / 2) + ' ' + cx + ',' + (q.y - rowH / 2) + ' ' + cx + ',' + (q.y - (compact ? 8 : bh / 2)) + '"/>';
+    const p = pos[n.id];
+    if (vis(n)) {
+      [n.left, n.right].forEach((c, k) => {
+        const q = pos[c.id], d = edgeD(p, q), h = hot.has(n.id) && hot.has(c.id), nw = isNew(c);
+        edges += '<path class="edge' + (h ? ' hot' : '') + (nw ? ' drawin' : '') + '" pathLength="1" d="' + d + '" stroke-width="' + (h ? Math.max(5, ew(c)) : ew(c)).toFixed(1) + '"/>';
+        if (!compact && !REDUCED && !nw) flows += '<path class="flowd ' + (c.pos / c.n >= .5 ? 'y' : 'n') + '" d="' + d + '"/>';
         if (!compact) {
-          var f = FMAP[n.f], yes = f.binary ? k === 1 : k === 0;
-          edges += '<text class="el" x="' + ((x + cx) / 2 + (k ? 8 : -8)) + '" y="' + (y + rowH / 2 + 4) + '" text-anchor="' + (k ? 'start' : 'end') + '">' + (yes ? LAB.t('yes', 'হ্যাঁ') : LAB.t('no', 'না')) + '</text>';
+          const mx = (p.x + q.x) / 2, my = (p.y + half + q.y - half) / 2;
+          pills += '<g class="pl' + (h ? ' hot' : '') + (nw ? ' grow' : '') + '"><rect x="' + (mx - 19) + '" y="' + (my - 10) + '" width="38" height="20" rx="10"/><text x="' + mx + '" y="' + (my + 4) + '" text-anchor="middle">' + (k ? LAB.t('yes', 'হ্যাঁ') : LAB.t('no', 'না')) + '</text></g>';
         }
         walk(c);
       });
     }
-    var isLeaf = !visible(n), prob = n.pos / n.n, cls = isLeaf ? (prob >= .5 ? 'leaf-yes' : 'leaf-no') : 'q', hc = hot[n.id] ? ' hot' : '';
+    const leaf = !vis(n), pr = n.pos / n.n, cls = leaf ? (pr >= .5 ? 'ly' : 'ln') : 'q';
+    const anim = isNew(n) ? ' grow" style="animation-delay:.35s' : isChanged(n) ? ' grow' : '';
     if (compact) {
-      nodes += '<circle class="' + cls + hc + '" cx="' + x + '" cy="' + y + '" r="' + (isLeaf ? 9 : 6) + '"/>';
-    } else {
-      nodes += '<g class="' + hc + '"><rect class="' + cls + '" x="' + (x - bw / 2) + '" y="' + (y - bh / 2) + '" width="' + bw + '" height="' + bh + '" rx="10"/>';
-      if (isLeaf) {
-        nodes += '<text x="' + x + '" y="' + (y - 4) + '" text-anchor="middle" font-weight="700" font-size="14">' + (prob >= .5 ? LAB.t('Flood risk', 'ঝুঁকি আছে') : LAB.t('Low risk', 'ঝুঁকি কম')) + ' ' + Math.round(prob * 100) + '%</text>';
-        nodes += '<text x="' + x + '" y="' + (y + 15) + '" text-anchor="middle" font-size="12" fill="var(--muted)">' + n.n + ' ' + LAB.t('records', 'রেকর্ড') + '</text>';
-      } else {
-        var f = FMAP[n.f];
-        nodes += '<text x="' + x + '" y="' + (y - 3) + '" text-anchor="middle" font-weight="700" font-size="13.5">' + LAB.t(f.en, f.bn) + '</text>';
-        nodes += '<text x="' + x + '" y="' + (y + 15) + '" text-anchor="middle" font-size="13">' + (f.binary ? '?' : '≤ ' + f.fmt(n.thr) + ' ?') + '</text>';
-      }
-      nodes += '</g>';
+      nodes += '<circle class="' + (leaf ? (pr >= .5 ? 'cy' : 'cn') : 'cq') + (hot.has(n.id) ? ' hot' : '') + '" cx="' + p.x + '" cy="' + p.y + '" r="' + (leaf ? 8 : 5.5) + '"/>';
+      return;
     }
+    const x = p.x, y = p.y, bwI = bw - 30, bx = x - bwI / 2;
+    let g = '<g class="node ' + cls + (hot.has(n.id) ? ' hot' : '') + (n.id === nowId ? ' now' : '') + anim + '"><rect class="box" x="' + (x - bw / 2) + '" y="' + (y - bh / 2) + '" width="' + bw + '" height="' + bh + '" rx="12"/>';
+    if (leaf) {
+      g += '<text x="' + x + '" y="' + (y - 19) + '" text-anchor="middle" font-weight="700" font-size="13">' + (pr >= .5 ? '🌊 ' + LAB.t('Flood risk', 'ঝুঁকি আছে') : '☀️ ' + LAB.t('Low risk', 'ঝুঁকি কম')) + '</text>';
+      g += '<text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle" font-weight="800" font-size="21" style="fill:var(' + (pr >= .5 ? '--yes' : '--no') + ')">' + pct(pr) + '</text>';
+      g += '<text class="meta" x="' + x + '" y="' + (y + 33) + '" text-anchor="middle">' + LAB.t('flooded · ' + n.n + ' days', 'পানি জমেছিল · ' + n.n + ' দিন') + '</text>';
+    } else {
+      const f = FMAP[n.f], q = f.q(f.cut(n.thr));
+      g += '<text x="' + x + '" y="' + (y - 20) + '" text-anchor="middle" font-weight="700" font-size="13.5">' + f.icon + ' ' + LAB.t(f.en, f.bn) + '</text>';
+      g += '<text x="' + x + '" y="' + (y - 2) + '" text-anchor="middle" font-size="13">' + LAB.t(q[0], q[1]) + '</text>';
+      g += '<text class="meta" x="' + x + '" y="' + (y + 33) + '" text-anchor="middle">' + LAB.t(n.n + ' days · ' + pct(pr) + ' 🌊', n.n + ' দিন · ' + pct(pr) + ' 🌊') + '</text>';
+    }
+    g += '<rect class="bar-n" x="' + bx + '" y="' + (y + 10) + '" width="' + bwI + '" height="7" rx="3.5"/><rect class="bar-y" x="' + bx + '" y="' + (y + 10) + '" width="' + (bwI * pr).toFixed(1) + '" height="7" rx="3.5"/>';
+    nodes += g + '</g>';
   })(tree);
-  svg.innerHTML = edges + nodes;
+
+  // invisible path that the 💧 drop rides along
+  let dp = '';
+  if (path.length) {
+    const r0 = pos[path[0].id];
+    dp = 'M' + r0.x + ',' + (r0.y - half - 16) + ' L' + r0.x + ',' + (r0.y - half - 2);
+    for (let i = 1; i <= lim; i++) {
+      const a = pos[path[i - 1].id], b = pos[path[i].id];
+      dp += ' L' + a.x + ',' + (a.y + half) + ' ' + edgeD(a, b).replace(/^M[^ ]+ /, '');
+    }
+  }
+  svg.innerHTML = edges + flows + pills + nodes + '<path id="hotpath" d="' + dp + '" fill="none" stroke="none"/><text id="drop" text-anchor="middle" dominant-baseline="central">💧</text>';
+
+  // move the drop
+  const hp = $('hotpath'), L = dp ? hp.getTotalLength() : 0, leafId = path.length ? path[path.length - 1].id : -1;
+  let from = L;
+  if (opts.from != null) from = opts.from;
+  else if (leafId !== lastHotLeaf || opts.replay) from = 0;
+  lastHotLeaf = leafId;
+  animateDrop(hp, from, L);
+  dropLen = L;
+  if (nowId >= 0) { const bx = $('treebox'); bx.scrollTo({ left: pos[nowId].x - bx.clientWidth / 2, behavior: REDUCED ? 'auto' : 'smooth' }); }
+
   $('treenote').innerHTML = compact
-    ? LAB.bi('This tree has ' + leaves + ' end points: too many to read. If humans cannot read the rules, can they still check them?', 'এই গাছে ' + leaves + 'টি শেষ বিন্দু: পড়ার পক্ষে অনেক বেশি। মানুষ যদি নিয়মগুলো পড়তেই না পারে, তাহলে কি যাচাই করতে পারবে?')
-    : LAB.bi('Read from the top. Each box is a question the machine chose because it best separates flooded from non-flooded records.', 'ওপর থেকে পড়ুন। প্রতিটি বাক্স একটি প্রশ্ন, যা যন্ত্র বেছে নিয়েছে কারণ এটি পানি জমা ও না-জমা রেকর্ডকে সবচেয়ে ভালোভাবে আলাদা করে।');
+    ? '⚠️ ' + LAB.bi('This tree has <b>' + leaves + ' end groups</b>: too many to read. If humans cannot read the rules, can they still check them?', 'এই গাছে <b>' + leaves + 'টি শেষ দল</b>: পড়ার পক্ষে অনেক বেশি। মানুষ যদি নিয়মগুলো পড়তেই না পারে, তাহলে কি যাচাই করতে পারবে?')
+    : LAB.bi('Read from the top. Edge thickness = how many past days flow that way. Dots flowing down are those days being sorted.', 'ওপর থেকে পড়ুন। রেখা যত মোটা, তত বেশি পুরোনো দিন সেই পথে যায়। নিচে বয়ে যাওয়া বিন্দুগুলো হলো সেই দিনগুলোর ভাগ হওয়া।');
+}
+function animateDrop(hp, from, to) {
+  cancelAnimationFrame(dropRaf);
+  const drop = $('drop');
+  if (!drop) return;
+  const place = l => { if (!to) { drop.setAttribute('opacity', 0); return; } const pt = hp.getPointAtLength(l); drop.setAttribute('x', pt.x); drop.setAttribute('y', pt.y - 4); };
+  if (REDUCED || from >= to) { place(to); return; }
+  const t0 = performance.now(), dur = Math.min(1800, 300 + (to - from) * 2.2);
+  const step = t => { const k = Math.min(1, (t - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; place(from + (to - from) * e); if (k < 1) dropRaf = requestAnimationFrame(step); };
+  dropRaf = requestAnimationFrame(step);
 }
 
-/* ---------- evaluate ---------- */
+/* ---------- training narration ---------- */
+function sayTrain(level, D) {
+  const n = tree.n, p = tree.pos / n;
+  if (level === 0) {
+    say('say-tree',
+      '📚 I have <b>' + n + ' past rainy days</b> to study. <b>' + pct(p) + '</b> of them flooded. With no questions at all, my best guess would be <b>"' + (p >= .5 ? 'flood' : 'no flood') + '"</b> every single time. Let me find a better question…',
+      '📚 আমার কাছে পড়ার জন্য <b>' + n + 'টি পুরোনো বৃষ্টির দিন</b> আছে। এর <b>' + pct(p) + '</b> দিনে পানি জমেছিল। কোনো প্রশ্ন না করলে আমার সেরা অনুমান হতো প্রতিবারই <b>"' + (p >= .5 ? 'পানি জমবে' : 'পানি জমবে না') + '"</b>। দেখি এর চেয়ে ভালো প্রশ্ন পাই কি না…');
+  } else if (level === 1 && tree.f) {
+    const q = qPair(tree), l = tree.left.pos / tree.left.n, r = tree.right.pos / tree.right.n;
+    say('say-tree',
+      '🔍 I tried all 4 clues and every possible cut-off. Best first question: <span class="q-chip">' + q[0] + '</span> It splits the days into a <b>"no" group</b> (' + pct(l) + ' flooded) and a <b>"yes" group</b> (' + pct(r) + ' flooded). Purer groups = better guesses.',
+      '🔍 আমি ৪টি সূত্রের প্রতিটি আর সম্ভাব্য সব সীমা পরীক্ষা করেছি। সেরা প্রথম প্রশ্ন: <span class="q-chip">' + q[1] + '</span> এটি দিনগুলোকে একটি <b>"না" দলে</b> (' + pct(l) + ' দিনে পানি জমেছিল) আর একটি <b>"হ্যাঁ" দলে</b> (' + pct(r) + ' দিনে পানি জমেছিল) ভাগ করে। দল যত বিশুদ্ধ, অনুমান তত ভালো।');
+  } else {
+    const fresh = [];
+    (function w(x) { if (!x.f) return; if (x.depth === level - 1) fresh.push(x); else if (x.depth < level - 1) { w(x.left); w(x.right); } })(tree);
+    const names = [...new Set(fresh.map(x => x.f))].map(k => FMAP[k]);
+    say('say-tree',
+      '🌱 Level ' + level + ': inside each group I asked one more question (' + fresh.length + ' new, about ' + names.map(f => f.icon + ' ' + f.en.toLowerCase()).join(', ') + '). Now I have <b>' + countLeaves(level) + ' groups</b>.',
+      '🌱 ধাপ ' + level + ': প্রতিটি দলের ভেতরে আরও একটি করে প্রশ্ন করেছি (' + fresh.length + 'টি নতুন, ' + names.map(f => f.icon + ' ' + f.bn).join(', ') + ' নিয়ে)। এখন আমার <b>' + countLeaves(level) + 'টি দল</b>।');
+  }
+}
+function sayDone(D) {
+  const a = accuracy(tree, train, 99), b = accuracy(tree, test, 99), L = countLeaves(99);
+  say('say-tree',
+    '🎓 Done! <b>' + D + '</b> level' + (D === 1 ? '' : 's') + ' of questions, <b>' + L + '</b> end groups. Practice score <b>' + pct(a) + '</b>; exam on <b>' + test.length + '</b> days I never saw: <b>' + pct(b) + '</b>.' + (L > 14 ? ' That is a lot of rules. Could you check them all?' : ' Follow the 💧 to see tonight\'s path.'),
+    '🎓 শেষ! <b>' + D + '</b> ধাপ প্রশ্ন, <b>' + L + '</b>টি শেষ দল। অনুশীলনে স্কোর <b>' + pct(a) + '</b>; যে <b>' + test.length + '</b>টি দিন আমি কখনো দেখিনি তার পরীক্ষায়: <b>' + pct(b) + '</b>।' + (L > 14 ? ' অনেক নিয়ম। আপনি কি সবগুলো যাচাই করতে পারবেন?' : ' আজ রাতের পথ দেখতে 💧 অনুসরণ করুন।'));
+}
+
+function animateTrain() {
+  stopAnims(); split(); tree = fit(+$('depth').value); trainedOnce = true;
+  const D = treeDepth(tree), wait = REDUCED ? 600 : D > 5 ? 1100 : 1700;
+  showDepth = 0; mode = 'train'; growing = true;
+  drawStrip(); drawCards(); drawScatter(); updateSorter();
+  const step = () => {
+    evaluate(); apply({ replay: true });
+    if (showDepth < D) { sayTrain(showDepth, D); showDepth++; timer = setTimeout(step, wait); }
+    else { sayDone(D); growing = false; showDepth = 99; mode = 'idle'; timer = null; drawTree(); }
+  };
+  step();
+}
+
+/* ---------- walk-through: the tree explains tonight's decision ---------- */
+function walkThrough() {
+  if (!tree) return;
+  stopAnims(); mode = 'walk';
+  const path = pathFor(hotRow);
+  $('treesec').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+  let i = 0;
+  const step = () => {
+    walkLimit = i;
+    drawTree({ from: i ? dropLen : 0 });
+    if (i < path.length - 1) {
+      const n = path[i], f = FMAP[n.f], q = qPair(n), v = f.val(hotRow), yes = hotRow[n.f] > n.thr;
+      say('say-tree',
+        '<b>Question ' + (i + 1) + ':</b> <span class="q-chip">' + q[0] + '</span> Tonight: <b>' + v[0] + '</b> → ' + (yes ? '<b>YES</b>, I go right ↘' : '<b>NO</b>, I go left ↙'),
+        '<b>প্রশ্ন ' + (i + 1) + ':</b> <span class="q-chip">' + q[1] + '</span> আজ রাতে: <b>' + v[1] + '</b> → ' + (yes ? '<b>হ্যাঁ</b>, আমি ডানে যাই ↘' : '<b>না</b>, আমি বামে যাই ↙'));
+      i++; timer = setTimeout(step, REDUCED ? 1600 : 2400);
+    } else {
+      const leaf = path[path.length - 1], p = leaf.pos / leaf.n;
+      say('say-tree',
+        '🏁 I land in a group of <b>' + leaf.n + ' past days</b> that answered the same way. The street flooded on <b>' + pct(p) + '</b> of them, so tonight I say ' + (p >= .5 ? '<span class="yes-t">⚠️ waterlogging likely</span>' : '<span class="no-t">✓ waterlogging unlikely</span>') + '. That\'s all a tree does: ask, sort, and count.',
+        '🏁 আমি একই উত্তর দেওয়া <b>' + leaf.n + 'টি পুরোনো দিনের</b> দলে পৌঁছেছি। তার <b>' + pct(p) + '</b> দিনে রাস্তায় পানি জমেছিল, তাই আজ রাতে আমার উত্তর ' + (p >= .5 ? '<span class="yes-t">⚠️ জলাবদ্ধতার সম্ভাবনা বেশি</span>' : '<span class="no-t">✓ জলাবদ্ধতার সম্ভাবনা কম</span>') + '। ট্রি শুধু এটুকুই করে: প্রশ্ন করে, ভাগ করে, আর গোনে।');
+      timer = setTimeout(() => { walkLimit = null; mode = 'idle'; }, 400);
+    }
+  };
+  step();
+}
+
+/* =====================================================================
+   ④ EVALUATE
+   ===================================================================== */
 function evaluate() {
   if (!tree) return;
-  var L = showDepth;
-  $('acc-train').textContent = LAB.pct(accuracy(tree, train, L));
-  $('acc-test').textContent = LAB.pct(accuracy(tree, test, L));
-  var cm = [[0, 0], [0, 0]];
-  test.forEach(function (r) { var l = leafFor(tree, r, L); cm[label(r)][l.pos / l.n >= .5 ? 1 : 0]++; });
-  var Y = LAB.t('Flood', 'জলাবদ্ধ'), N = LAB.t('No flood', 'জলাবদ্ধ নয়');
-  $('cm').innerHTML = '<tr><th></th><th>' + LAB.t('Predicted: ', 'অনুমান: ') + Y + '</th><th>' + LAB.t('Predicted: ', 'অনুমান: ') + N + '</th></tr>' +
-    '<tr><th>' + LAB.t('Recorded: ', 'রেকর্ড: ') + Y + '</th><td class="good">' + cm[1][1] + '</td><td class="bad">' + cm[1][0] + ' <small>' + LAB.t('missed', 'মিস') + '</small></td></tr>' +
-    '<tr><th>' + LAB.t('Recorded: ', 'রেকর্ড: ') + N + '</th><td class="bad">' + cm[0][1] + ' <small>' + LAB.t('false alarm', 'ভুল সতর্কতা') + '</small></td><td class="good">' + cm[0][0] + '</td></tr>';
-  // reality check against what actually happened (true outcomes)
-  var grp = function (inf) {
-    var real = test.filter(function (r) { return r.inf === inf && r.truth; });
-    var warned = real.filter(function (r) { var l = leafFor(tree, r, L); return l.pos / l.n >= .5; }).length;
-    return { n: real.length, w: warned, p: real.length ? warned / real.length : 0 };
+  const L = showDepth, a = accuracy(tree, train, L), b = accuracy(tree, test, L);
+  countTo($('acc-train'), a * 100, v => Math.round(v) + '%');
+  countTo($('acc-test'), b * 100, v => Math.round(v) + '%');
+  $('ring-train').style.strokeDashoffset = (314.16 * (1 - a)).toFixed(1);
+  $('ring-test').style.strokeDashoffset = (314.16 * (1 - b)).toFixed(1);
+  const cm = [[0, 0], [0, 0]];
+  test.forEach(r => { const l = leafFor(tree, r, L); cm[label(r)][l.pos / l.n >= .5 ? 1 : 0]++; });
+  const N = test.length || 1;
+  [['tp', cm[1][1]], ['fn', cm[1][0]], ['fp', cm[0][1]], ['tn', cm[0][0]]].forEach(([k, v]) => {
+    countTo($('cm-' + k), v, x => Math.round(x));
+    $('cb-' + k).style.width = (v / N * 100) + '%';
+  });
+  const trPos = train.filter(label).length / (train.length || 1), base = test.filter(r => label(r) === (trPos >= .5 ? 1 : 0)).length / N;
+  const gap = a - b;
+  if (gap > .08) say('say-exam',
+    '😬 Practice <b>' + pct(a) + '</b>, but exam only <b>' + pct(b) + '</b>. I memorised my study pile instead of learning rules that work on new days.',
+    '😬 অনুশীলনে <b>' + pct(a) + '</b>, কিন্তু পরীক্ষায় মাত্র <b>' + pct(b) + '</b>। আমি নতুন দিনে কাজ করে এমন নিয়ম শিখিনি, পড়ার স্তূপ মুখস্থ করেছি।');
+  else if (b < base + .05) say('say-exam',
+    '🤔 Exam <b>' + pct(b) + '</b>. Just always saying "' + (trPos >= .5 ? 'flood' : 'no flood') + '" would score ' + pct(base) + '. I haven\'t learned much yet.',
+    '🤔 পরীক্ষায় <b>' + pct(b) + '</b>। সবসময় "' + (trPos >= .5 ? 'পানি জমবে' : 'পানি জমবে না') + '" বললেও ' + pct(base) + ' পাওয়া যেত। আমি এখনো তেমন কিছু শিখিনি।');
+  else say('say-exam',
+    '👍 Exam <b>' + pct(b) + '</b>, close to my practice score. My rules work on days I\'ve never seen. (Always guessing "' + (trPos >= .5 ? 'flood' : 'no flood') + '" would only get ' + pct(base) + '.)',
+    '👍 পরীক্ষায় <b>' + pct(b) + '</b>, অনুশীলনের স্কোরের কাছাকাছি। আমার নিয়ম অদেখা দিনেও কাজ করে। (সবসময় "' + (trPos >= .5 ? 'পানি জমবে' : 'পানি জমবে না') + '" বললে মাত্র ' + pct(base) + ' হতো।)');
+  reality();
+}
+
+/* ---------- ④ sweep: every depth ---------- */
+function sweep(scroll) {
+  split(); sweepOn = true;
+  const tr = [], te = [];
+  for (let d = 1; d <= 12; d++) { const t = fit(d); tr.push(accuracy(t, train, 99)); te.push(accuracy(t, test, 99)); }
+  tree = fit(+$('depth').value);
+  $('sweepwrap').classList.remove('hidden');
+  drawSweep(tr, te);
+  if (scroll) $('sweepwrap').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+}
+function drawSweep(tr, te) {
+  const svg = $('sweepchart'), W = 640, H = 250, P = { l: 46, r: 18, t: 26, b: 34 };
+  const xs = d => P.l + (d - 1) / 11 * (W - P.l - P.r), ys = v => H - P.b - (v - .5) / .5 * (H - P.t - P.b);
+  let best = 0; te.forEach((v, i) => { if (v > te[best] + 1e-9) best = i; });
+  let h = '<rect class="zone" x="' + xs(best + 1) + '" y="' + P.t + '" width="' + (W - P.r - xs(best + 1)) + '" height="' + (H - P.t - P.b) + '"/>' +
+    '<text class="lbl" x="' + (W - P.r - 6) + '" y="' + (P.t + 16) + '" text-anchor="end">📖🤯 ' + LAB.t('memorising zone', 'মুখস্থের এলাকা') + '</text>';
+  [.5, .6, .7, .8, .9, 1].forEach(v => { h += '<line class="grid" x1="' + P.l + '" x2="' + (W - P.r) + '" y1="' + ys(v) + '" y2="' + ys(v) + '"/><text x="' + (P.l - 6) + '" y="' + (ys(v) + 4) + '" text-anchor="end">' + Math.round(v * 100) + '%</text>'; });
+  for (let d = 1; d <= 12; d++) h += '<text x="' + xs(d) + '" y="' + (H - P.b + 16) + '" text-anchor="middle">' + d + '</text>';
+  h += '<text x="' + ((P.l + W - P.r) / 2) + '" y="' + (H - 2) + '" text-anchor="middle">' + LAB.t('questions deep (tree depth) →', 'প্রশ্নের গভীরতা (ট্রির গভীরতা) →') + '</text>';
+  const cur = +$('depth').value;
+  h += '<line class="now" x1="' + xs(cur) + '" x2="' + xs(cur) + '" y1="' + P.t + '" y2="' + (H - P.b) + '"/><text class="lbl" x="' + xs(cur) + '" y="' + (P.t - 8) + '" text-anchor="middle">👉 ' + LAB.t('your tree', 'আপনার ট্রি') + '</text>';
+  const line = (vals, cls) => '<path class="ln ' + cls + '" pathLength="1" d="' + vals.map((v, i) => (i ? 'L' : 'M') + xs(i + 1).toFixed(1) + ',' + ys(Math.max(.5, v)).toFixed(1)).join('') + '"/>';
+  h += line(tr, 'tr') + line(te, 'te');
+  tr.forEach((v, i) => { h += '<circle class="dt" cx="' + xs(i + 1) + '" cy="' + ys(Math.max(.5, v)) + '" r="3.5"/>'; });
+  te.forEach((v, i) => { h += '<circle class="de" cx="' + xs(i + 1) + '" cy="' + ys(Math.max(.5, v)) + '" r="' + (i === best ? 7 : 3.5) + '"/>'; });
+  h += '<text class="lbl" x="' + xs(best + 1) + '" y="' + (ys(te[best]) + 22) + '" text-anchor="middle">⭐ ' + LAB.t('sweet spot', 'সেরা জায়গা') + '</text>';
+  for (let d = 1; d <= 12; d++) h += '<rect class="hit" data-d="' + d + '" x="' + (xs(d) - 20) + '" y="' + P.t + '" width="40" height="' + (H - P.t - P.b) + '"><title>depth ' + d + '</title></rect>';
+  svg.innerHTML = h;
+  svg.querySelectorAll('.hit').forEach(r => { r.onclick = () => { $('depth').value = r.dataset.d; refresh(); }; });
+}
+
+/* ---------- ⑤ C reality check ---------- */
+function reality() {
+  const grp = inf => {
+    const real = test.filter(r => r.inf === inf && r.truth);
+    const marks = real.map(r => { const l = leafFor(tree, r, showDepth); return l.pos / l.n >= .5; });
+    const w = marks.filter(Boolean).length;
+    return { n: real.length, w, p: real.length ? w / real.length : 0, marks };
   };
-  var a = grp(1), b = grp(0);
-  $('reality').innerHTML = '<b>' + LAB.bi('Reality check: of the streets that <i>actually</i> flooded (test set), how many did the model warn about?', 'বাস্তবতা যাচাই: যেসব রাস্তায় <i>আসলেই</i> পানি জমেছিল (টেস্ট সেট), মডেল তার কতগুলোর জন্য সতর্ক করেছে?') + '</b>' +
-    '<div class="stats" style="margin-top:6px"><div class="stat"><div class="k">' + LAB.bi('Informal settlements', 'অনানুষ্ঠানিক বসতি') + '</div><div class="v" style="color:' + (a.p < b.p - .15 ? 'var(--yes)' : 'inherit') + '">' + LAB.pct(a.p) + '</div><div class="k">' + a.w + ' / ' + a.n + '</div></div>' +
-    '<div class="stat"><div class="k">' + LAB.bi('Planned areas', 'পরিকল্পিত এলাকা') + '</div><div class="v">' + LAB.pct(b.p) + '</div><div class="k">' + b.w + ' / ' + b.n + '</div></div></div>';
+  const a = grp(1), b = grp(0);
+  const draw = (id, g) => {
+    const el = $(id), sig = g.marks.join();
+    if (el._sig === sig) return; el._sig = sig;
+    el.innerHTML = g.marks.map((m, i) => '<i class="hs ' + (m ? 'w' : 'm') + '" style="animation-delay:' + (i * 12) + 'ms"></i>').join('');
+  };
+  draw('hs-a', a); draw('hs-b', b);
+  $('rc-a').innerHTML = LAB.bi(pct(a.p) + ' warned (' + a.w + '/' + a.n + ')', pct(a.p) + ' সতর্ক (' + a.w + '/' + a.n + ')');
+  $('rc-b').innerHTML = LAB.bi(pct(b.p) + ' warned (' + b.w + '/' + b.n + ')', pct(b.p) + ' সতর্ক (' + b.w + '/' + b.n + ')');
+  const bias = $('bias').checked;
+  const talk = (av, cls, who, en, bn) => '<div class="talk"><div class="avatar' + cls + '">' + av + '</div><div class="say"><span class="who">' + who + '</span>' + LAB.bi(en, bn) + '</div></div>';
+  $('bias-talk').innerHTML = bias
+    ? talk('🧕', ' person', LAB.bi('Amena, lives in an informal settlement', 'আমেনা, অনানুষ্ঠানিক বসতির বাসিন্দা'),
+        'Water came into our homes again and again. We complained, nobody came, so we stopped reporting.',
+        'বারবার আমাদের ঘরে পানি ঢুকেছে। অভিযোগ করেছি, কেউ আসেনি, তাই আর জানাই না।') +
+      talk('🌳', '', LAB.bi('The tree', 'ট্রি'),
+        'My records say informal settlements rarely flood, so I warned only <b>' + pct(a.p) + '</b> of the ones that really flooded (planned areas: <b>' + pct(b.p) + '</b>). I only know what was written down.',
+        'আমার রেকর্ড বলছে অনানুষ্ঠানিক বসতিতে কম পানি জমে, তাই যেগুলোতে আসলেই পানি জমেছিল তার মাত্র <b>' + pct(a.p) + '</b> আমি সতর্ক করেছি (পরিকল্পিত এলাকা: <b>' + pct(b.p) + '</b>)। যা লেখা হয়েছে, আমি শুধু সেটুকুই জানি।')
+    : talk('🌳', '', LAB.bi('The tree', 'ট্রি'),
+        'With complete records I warned <b>' + pct(a.p) + '</b> of informal streets and <b>' + pct(b.p) + '</b> of planned streets that really flooded. Now flip the switch.',
+        'সম্পূর্ণ রেকর্ড থাকায় যেসব রাস্তায় আসলেই পানি জমেছিল তার মধ্যে অনানুষ্ঠানিক বসতির <b>' + pct(a.p) + '</b> আর পরিকল্পিত এলাকার <b>' + pct(b.p) + '</b> আমি সতর্ক করেছি। এবার সুইচটি চালু করুন।');
 }
 
-/* ---------- apply ---------- */
-var hotRow = {};
-function apply() {
-  hotRow = { rain: +$('a-rain').value, block: +$('a-block').value, elev: +$('a-elev').value, inf: $('a-inf').checked ? 1 : 0 };
-  $('v-rain').textContent = hotRow.rain; $('v-block').textContent = hotRow.block; $('v-elev').textContent = hotRow.elev;
-  if (!tree) { $('pred').textContent = '–'; return; }
-  var l = leafFor(tree, hotRow, showDepth), p = l.pos / l.n;
-  $('pred').innerHTML = p >= .5
-    ? '<span style="color:var(--yes)">⚠️ ' + LAB.t('Waterlogging likely', 'জলাবদ্ধতার সম্ভাবনা বেশি') + '</span> <small class="muted">(' + Math.round(p * 100) + '%)</small>'
-    : '<span style="color:var(--no)">✓ ' + LAB.t('Waterlogging unlikely', 'জলাবদ্ধতার সম্ভাবনা কম') + '</span> <small class="muted">(' + Math.round(p * 100) + '%)</small>';
-  drawTree(true);
-}
-
+/* =====================================================================
+   wiring
+   ===================================================================== */
 function refresh() {
-  $('v-split').textContent = $('split').value + '% (' + Math.round(DATA.length * $('split').value / 100) + ')';
-  $('v-depth').textContent = $('depth').value;
-  split(); drawScatter();
-  tree = fit(+$('depth').value); showDepth = 99;
+  stopAnims();
+  const k = Math.round(DATA.length * $('split').value / 100), d = +$('depth').value;
+  $('v-split').textContent = $('split').value + '% (' + k + ')';
+  $('v-depth').textContent = d;
+  $('depth-note').innerHTML = LAB.bi('Up to ' + d + ' question' + (d === 1 ? '' : 's') + ' per forecast → at most ' + Math.pow(2, d) + ' end groups.', 'প্রতি পূর্বাভাসে সর্বোচ্চ ' + d + 'টি প্রশ্ন → সর্বোচ্চ ' + Math.pow(2, d) + 'টি শেষ দল।');
+  split();
+  if (sweepOn) sweep(false); else tree = fit(d);
+  showDepth = 99;
+  drawStrip(); drawCards(); drawScatter(); updateSorter();
   evaluate(); apply();
 }
-function animateTrain() {
-  if (animTimer) clearTimeout(animTimer);
-  split(); tree = fit(+$('depth').value);
-  var D = treeDepth(tree); showDepth = 0;
-  (function step() {
-    evaluate(); apply();
-    if (showDepth < D) { showDepth++; animTimer = setTimeout(step, 900); } else { showDepth = 99; animTimer = null; }
-  })();
-}
-function sweep() {
-  split();
-  var tr = [], te = [];
-  for (var d = 1; d <= 12; d++) { var t = fit(d); tr.push(accuracy(t, train, 99)); te.push(accuracy(t, test, 99)); }
-  $('sweepchart').classList.remove('hidden'); $('sweeplegend').classList.remove('hidden');
-  LAB.lineChart($('sweepchart'), [{ values: tr, color: LAB.css('--accent') }, { values: te, color: LAB.css('--accent-2') }], { ymin: .5, ymax: 1, yfmt: function (v) { return Math.round(v * 100) + '%'; }, height: 200 });
-  tree = fit(+$('depth').value); showDepth = 99; evaluate(); apply();
-}
 
-['split', 'depth'].forEach(function (id) { $(id).addEventListener('input', refresh); });
-$('bias').addEventListener('change', function () { refresh(); if (!$('sweepchart').classList.contains('hidden')) sweep(); });
-['a-rain', 'a-block', 'a-elev', 'a-inf'].forEach(function (id) { $(id).addEventListener('input', apply); });
+['split', 'depth'].forEach(id => $(id).addEventListener('input', refresh));
+$('bias').addEventListener('change', () => { pickCards(false); refresh(); });
+['a-rain', 'a-block', 'a-elev'].forEach(id => $(id).addEventListener('input', () => { if (mode !== 'idle') stopAnims(); apply(); }));
+document.querySelectorAll('#seg-inf .btn').forEach(b => { b.onclick = () => { infVal = +b.dataset.inf; if (mode !== 'idle') stopAnims(); apply(); }; });
+document.querySelectorAll('[data-preset]').forEach(b => {
+  b.onclick = () => {
+    const p = PRESETS[+b.dataset.preset];
+    $('a-rain').value = p.rain; $('a-block').value = p.block; $('a-elev').value = p.elev; infVal = p.inf;
+    if (mode !== 'idle') stopAnims(); apply();
+  };
+});
+$('walk').onclick = walkThrough;
 $('train').onclick = animateTrain;
-$('sweep').onclick = sweep;
-$('csv').onclick = function () {
+$('sweep').onclick = () => sweep(true);
+$('shuffle').onclick = () => { pickCards(true); drawCards(); };
+$('try-a').onclick = () => { $('depth').value = 12; sweepOn = true; refresh(); $('sweepwrap').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' }); };
+$('try-b').onclick = () => { $('split').value = 5; refresh(); $('treesec').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }); };
+$('reset').onclick = () => { $('depth').value = 3; $('split').value = 70; $('bias').checked = false; pickCards(false); refresh(); };
+$('csv').onclick = () => {
   LAB.downloadCSV('waterlogging_synthetic.csv', [['rainfall_mm', 'drain_blockage_pct', 'elevation_m', 'informal_settlement', 'waterlogging']].concat(
-    DATA.map(function (r) { return [r.rain, r.block, r.elev, r.inf ? 'yes' : 'no', label(r) ? 'yes' : 'no']; })));
+    DATA.map(r => [r.rain, r.block, r.elev, r.inf ? 'yes' : 'no', label(r) ? 'yes' : 'no'])));
 };
-LAB.onLang(function () { drawScatter(); evaluate(); apply(); });
-window.addEventListener('resize', function () { drawTree(true); });
-refresh();
+LAB.onLang(() => { buildSorter(); updateSorter(); drawScatter(); drawCards(); evaluate(); apply(); if (sweepOn) sweep(false); });
+let rsz = 0;
+const redraw = () => { clearTimeout(rsz); rsz = setTimeout(() => drawTree(), 120); };
+window.addEventListener('resize', redraw);
+document.addEventListener('labresize', redraw);
+
+// first run
+buildScene(); buildStrip(); buildSorter();
+infVal = 0; refresh();
+setTimeout(() => $('scatter').classList.remove('intro'), 2500);
+requestAnimationFrame(frame);
+// grow the tree in front of the learner the first time they scroll to it
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(es => {
+    if (es.some(e => e.isIntersecting) && !trainedOnce && mode === 'idle') { io.disconnect(); animateTrain(); }
+  }, { threshold: .25 });
+  io.observe($('treebox'));
+}
 </script>
 </body>
 </html>
