@@ -1,0 +1,218 @@
+.references {
+  max-width: 1240px;
+  gap: 22px;
+}
+
+.references-heading h1 {
+  max-width: none;
+}
+
+.references-heading .home-lead {
+  max-width: 68ch;
+}
+
+.references-browser,
+.references-content {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.references-toolbar {
+  display: grid;
+  gap: 12px;
+  padding: 11px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.references-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.references-tabs a {
+  flex: 1 0 auto;
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.references-tabs a:hover {
+  background: var(--card);
+}
+
+.references-tabs a[aria-current='page'] {
+  background: var(--accent);
+  color: var(--on-strong);
+}
+
+.references-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px 12px;
+}
+
+.references-filter {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 200px;
+  color: var(--ink-2);
+  font-size: 0.85rem;
+}
+
+.references-filter input,
+.references-filter select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+
+.references-views button {
+  min-height: 35px;
+}
+
+.references-count {
+  color: var(--ink-2);
+  font-size: 0.86rem;
+}
+
+.reference-items,
+.reference-related {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.reference-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+}
+
+.reference-items.as-list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.reference-card,
+.references-empty {
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.reference-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  height: 100%;
+  padding: 13px;
+  border-inline-start: 3px solid var(--fam);
+}
+
+.reference-card:focus-within,
+.reference-card:hover {
+  border-color: var(--fam);
+}
+
+.reference-card-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+
+.reference-card-head h2 {
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.reference-card-head a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.reference-card-head a:hover {
+  text-decoration: underline;
+}
+
+.reference-card-head a span,
+.reference-tag {
+  color: var(--fam);
+}
+
+.reference-tag,
+.reference-source {
+  font-size: 0.79rem;
+}
+
+.reference-description {
+  color: var(--ink-2);
+  line-height: 1.35;
+}
+
+.reference-footer {
+  display: grid;
+  gap: 5px;
+}
+
+.reference-source {
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.reference-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 11px;
+}
+
+.reference-related a {
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-underline-offset: 2px;
+}
+
+.as-list .reference-card {
+  padding: 8px 13px;
+  gap: 5px 14px;
+}
+
+@media (min-width: 860px) {
+  .references-toolbar {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+  }
+
+  .as-list .reference-card {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(10ch, 0.9fr);
+    grid-template-rows: auto;
+    align-items: center;
+  }
+}
+
+.references-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 16px;
+  padding: 16px;
+}

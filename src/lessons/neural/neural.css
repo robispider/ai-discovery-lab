@@ -1,0 +1,229 @@
+.neural-stage {
+  width: min(100%, 1050px);
+  min-width: 0;
+  margin-inline: auto;
+  container-type: inline-size;
+}
+
+.neural-stage button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.neural-input,
+.neural-report {
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: 8px 10px;
+}
+
+.neural-input {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  text-align: center;
+}
+
+.neural-input > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.neural-input .btn,
+.neural-table .btn {
+  min-width: 32px;
+  justify-content: center;
+  padding: 4px 6px;
+}
+
+.neural-stage input[type='range'],
+.neural-stage input[type='checkbox'] {
+  accent-color: var(--f-nn);
+}
+
+.neural-train-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.neural-train-controls .lab-slider {
+  flex: 1 1 190px;
+  margin: 0;
+}
+.neural-training,
+.neural-puzzle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 12px 18px;
+}
+
+.neural-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.neural-table th,
+.neural-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.neural-table thead th {
+  color: var(--ink-2);
+  font-size: 0.86rem;
+}
+.neural-table .selected {
+  background: var(--accent-soft);
+}
+.neural-table caption {
+  padding-block: 4px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.neural-example {
+  display: grid;
+  gap: 5px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+.neural-equation {
+  color: var(--f-nn);
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+.neural-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 6px;
+  align-items: baseline;
+}
+.neural-bar-track {
+  grid-column: 1 / -1;
+  height: 7px;
+  border-radius: 8px;
+  background: var(--paper-2);
+}
+.neural-bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--f-nn);
+  transition: width 180ms ease-out;
+}
+.neural-bar.actual i {
+  background: var(--accent);
+}
+.neural-training-update,
+.neural-handoff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.neural-training-update strong {
+  color: var(--accent);
+}
+.neural-trials > summary {
+  cursor: pointer;
+  color: var(--ink-2);
+}
+.neural-trials > p {
+  padding-block: 6px;
+}
+
+.neural-report {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.neural-report span {
+  flex: 1;
+}
+.neural-report input {
+  margin: 0;
+  flex: none;
+}
+.neural-report.active {
+  border-color: var(--f-nn);
+}
+
+.neural-puzzle-controls {
+  display: grid;
+  gap: 9px;
+}
+.neural-plot {
+  width: min(100%, 270px);
+  justify-self: center;
+}
+.neural-plot-field {
+  fill: var(--paper);
+  stroke: var(--line-strong);
+}
+.neural-plot-area {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.neural-plot-grid path {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-dasharray: 2.5 4;
+}
+.neural-plot text {
+  fill: var(--ink);
+  font-size: 12px;
+}
+.neural-dot {
+  fill: var(--f-nn);
+  stroke: var(--card);
+  stroke-width: 1.5;
+}
+.neural-dot.positive {
+  fill: var(--accent);
+}
+.neural-dot .neural-plot-miss {
+  fill: none;
+  stroke: var(--warn);
+  stroke-width: 2;
+  stroke-dasharray: 3 2;
+}
+.neural-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  color: var(--ink-2);
+}
+.neural-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: var(--f-nn);
+}
+.neural-legend .circle {
+  border-radius: 50%;
+  background: var(--accent);
+}
+.neural-handoff p {
+  flex: 1 1 270px;
+}
+
+@container (max-width: 510px) {
+  .neural-training,
+  .neural-puzzle {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neural-bar-track i {
+    transition: none;
+  }
+}

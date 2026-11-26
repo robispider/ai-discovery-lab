@@ -1,0 +1,992 @@
+/* Lesson 7: Waste Image Recogniser — animated sorting conveyor, pixel CNN & transfer learning studio. */
+
+/* Responsive 2-column layout that stacks cleanly whenever stage width is compact (e.g. <= 1280px viewport with 360px side panel). */
+.vis-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 1280px) {
+  .vis-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Protect Callout kind="lesson" from inheriting shell.css's global .lesson two-column page grid! */
+.vis-stage .lab-callout.lesson {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+  height: auto;
+}
+
+/* ---------- Persistent 5-Stage Pipeline Strip ---------- */
+.vis-pipe-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  gap: 8px;
+}
+
+.vis-pipe-card {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    background 0.15s;
+}
+
+.vis-pipe-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.vis-pipe-card[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vis-pipe-card.brk[aria-pressed='true'] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.vis-pipe-ico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 1.05rem;
+}
+
+.vis-pipe-card b {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.15;
+}
+
+.vis-pipe-card small {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--ink-2);
+  line-height: 1.2;
+}
+
+/* ---------- Hero Sorting Station SVG & Animations ---------- */
+.vis-stage-box {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1.5px solid var(--line-strong);
+}
+
+.vis-hero-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.vis-belt-move {
+  animation: vis-belt 1.5s linear infinite;
+}
+
+.vis-belt-move.fast {
+  animation: vis-belt 0.45s linear infinite;
+}
+
+@keyframes vis-belt {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+
+.vis-wire-pulse {
+  animation: vis-wire 0.95s linear infinite;
+}
+
+.vis-wire-pulse.fast {
+  animation: vis-wire 0.5s linear infinite;
+}
+
+@keyframes vis-wire {
+  to {
+    stroke-dashoffset: -34;
+  }
+}
+
+.vis-scan-line {
+  animation: vis-scan 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes vis-scan {
+  from {
+    transform: translateY(-22px);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateY(16px);
+    opacity: 0.95;
+  }
+}
+
+.vis-lens-glow {
+  animation: vis-blink 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes vis-blink {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vis-item-bob {
+  animation: vis-bob 0.85s ease-in-out infinite alternate;
+}
+
+@keyframes vis-bob {
+  from {
+    transform: translate(180px, 156px);
+  }
+  to {
+    transform: translate(180px, 152px);
+  }
+}
+
+.vis-gate-arm {
+  transition: transform 0.35s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.vis-pulse-box {
+  animation: vis-blink 0.65s ease-in-out infinite alternate;
+}
+
+.vis-px-cell {
+  cursor: pointer;
+}
+
+.vis-px-cell:hover {
+  stroke: #facc15;
+  stroke-width: 1.4;
+}
+
+/* ---------- Hardware / AI Callout Pins ---------- */
+.vis-pin {
+  cursor: pointer;
+}
+
+.vis-pin-pill {
+  fill: #ffffff;
+  stroke: #14233a;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 22%));
+  transition: stroke 0.15s;
+}
+
+.vis-pin:hover .vis-pin-pill,
+.vis-pin.active .vis-pin-pill {
+  stroke: #f97316;
+  stroke-width: 2.4;
+}
+
+.vis-pin-txt {
+  fill: #14233a;
+  font: 800 8.8px var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.vis-pin-pop {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid var(--warn);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 0.82rem;
+}
+
+.vis-pin-pop p {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+}
+
+/* ---------- Top Live Prediction Status Strip (above SVG, zero overlap) ---------- */
+.vis-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 7px 12px;
+  border-bottom: 1.5px solid var(--line);
+  border-left: 4px solid var(--ok);
+  background: var(--card);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.vis-status-bar.warn {
+  border-left-color: var(--c3);
+}
+
+.vis-status-bar.bad {
+  border-left-color: var(--yes);
+  background: var(--yes-soft);
+}
+
+.vis-float-ico {
+  font-size: 1.25rem;
+}
+
+.vis-float-err {
+  color: var(--yes);
+}
+
+.vis-meter {
+  flex: 1 1 120px;
+  max-width: 220px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--paper-2);
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.vis-meter i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.35s;
+}
+
+.vis-status-bar.bad .vis-meter i {
+  background: var(--yes);
+}
+
+/* ---------- Item Picker Strip & Speech Bubbles ---------- */
+.vis-item-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vis-item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px 4px 5px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.vis-item-chip:hover,
+.vis-item-chip.sel {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vis-bubbles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.vis-talk {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.vis-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.8px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 1.1rem;
+}
+
+.vis-say {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  font-size: 0.83rem;
+  line-height: 1.35;
+}
+
+.vis-who {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* ---------- Live Vision Telemetry Console ---------- */
+.vis-console {
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #334155;
+  background: #0b1320;
+  color: #cbd5e1;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.vis-console-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  background: #162235;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.vis-console-body {
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  max-height: 98px;
+  overflow-y: auto;
+}
+
+.vis-console-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vis-console-line:last-child {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* ---------- 3×3 Convolution Arithmetic & 8×8 Feature Map ---------- */
+.vis-compact {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.vis-kernel-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vis-kernel-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.vis-conv-eq {
+  display: grid;
+  grid-template-columns: auto auto auto auto minmax(78px, auto);
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  overflow-x: auto;
+}
+
+.vis-mat-box {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.vis-mat {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 2px;
+}
+
+.vis-mat span {
+  display: grid;
+  place-items: center;
+  height: 23px;
+  border-radius: 4px;
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.vis-mat.weight span.pos {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.vis-mat.weight span.neg {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.vis-op {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--ink-2);
+}
+
+.vis-sum-box {
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--accent);
+  background: var(--card);
+  text-align: center;
+}
+
+.vis-sum-box strong {
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.vis-fmap-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.vis-fmap {
+  display: grid;
+  grid-template-columns: repeat(8, 22px);
+  gap: 2px;
+  margin-top: 5px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+}
+
+.vis-fmap-cell {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgb(20 35 58 / 12%);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) calc(var(--heat, 0) * 100%), var(--card));
+  cursor: pointer;
+}
+
+.vis-fmap-cell.sel {
+  outline: 2.5px solid var(--warn);
+  outline-offset: -1px;
+  z-index: 1;
+}
+
+.vis-fmap-legend p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.38;
+}
+
+/* ---------- Explore: Transfer Learning SVG & Scatter Plot ---------- */
+.vis-tl-svg,
+.vis-scatter-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.vis-scatter-section {
+  display: grid;
+  gap: 6px;
+}
+
+.vis-dot-btn {
+  cursor: pointer;
+}
+
+.vis-fp-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+}
+
+.vis-fp-hero p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+}
+
+/* ---------- Train: 3-Class Waste Buckets & Weight Heatmap ---------- */
+.vis-buckets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 10px;
+}
+
+.vis-bucket {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  background: var(--paper);
+}
+
+.vis-bucket.organic {
+  border-top: 4px solid var(--ok);
+}
+
+.vis-bucket.plastic {
+  border-top: 4px solid var(--c5);
+}
+
+.vis-bucket.paper {
+  border-top: 4px solid var(--c2);
+}
+
+.vis-bucket-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.vis-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.vis-sample-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 44px;
+  padding: 5px;
+  border-radius: 7px;
+  background: var(--card);
+  border: 1px dashed var(--line-strong);
+}
+
+.vis-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.vis-thumb:hover {
+  border-color: var(--yes);
+}
+
+.vis-thumb-x {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--card);
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.vis-thumb:hover .vis-thumb-x {
+  opacity: 1;
+}
+
+.vis-cam-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 5px;
+}
+
+.vis-empty {
+  font-size: 0.76rem;
+  align-self: center;
+}
+
+.vis-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.vis-add-row .chip-btn {
+  font-size: 0.73rem;
+  padding: 3px 7px;
+}
+
+.vis-wmap-wrap {
+  display: grid;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.vis-wmap,
+.vis-cm {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.vis-wmap th,
+.vis-wmap td,
+.vis-cm th,
+.vis-cm td {
+  padding: 5px 6px;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.vis-wmap td:first-child,
+.vis-cm th:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+
+.vis-wmap td.w-pos {
+  background: color-mix(in srgb, var(--accent) calc(var(--mag, 0) * 38%), var(--card));
+}
+
+.vis-wmap td.w-neg {
+  background: color-mix(in srgb, var(--warn) calc(var(--mag, 0) * 34%), var(--card));
+}
+
+/* ---------- Evaluate: Score Rings, Cards & Confusion Matrix ---------- */
+.vis-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+.vis-ring {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 124px;
+}
+
+.vis-ring svg {
+  width: 106px;
+  height: 106px;
+  transform: rotate(-90deg);
+}
+
+.vis-ring .bg {
+  fill: none;
+  stroke: var(--paper-2);
+  stroke-width: 11;
+}
+
+.vis-ring .fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 11;
+  stroke-linecap: round;
+  stroke-dasharray: 314.16;
+  transition: stroke-dashoffset 0.55s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.vis-ring.warn .fg {
+  stroke: var(--warn);
+}
+
+.vis-ring-v {
+  position: absolute;
+  top: 34px;
+  font-family: var(--font-display);
+  font-size: 1.32rem;
+  font-weight: 800;
+}
+
+.vis-ring-k {
+  font-size: 0.74rem;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.vis-eval-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  gap: 8px;
+}
+
+.vis-eval-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 8px 28px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  text-align: center;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.vis-eval-card:hover,
+.vis-eval-card.sel {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.vis-stamp {
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border: 1.5px solid;
+  border-radius: 5px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  transform: rotate(-3deg);
+}
+
+.vis-stamp.ok {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--accent-soft);
+}
+
+.vis-stamp.mid {
+  color: var(--c3);
+  border-color: var(--c3);
+  background: var(--paper-2);
+}
+
+.vis-stamp.bad {
+  color: var(--yes);
+  border-color: var(--yes);
+  background: var(--yes-soft);
+}
+
+.vis-cm-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.vis-cm td.cm-ok {
+  background: var(--accent-soft);
+  font-weight: 800;
+}
+
+.vis-cm td.cm-err {
+  background: var(--yes-soft);
+  color: var(--yes);
+  font-weight: 800;
+}
+
+.vis-cm td.cm-zero {
+  color: var(--ink-2);
+}
+
+/* ---------- Optional Local Webcam Box ---------- */
+.vis-webcam-box {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.vis-cam-note {
+  font-size: 0.78rem;
+}
+
+.vis-cam-err {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--warn);
+}
+
+.vis-cam-live {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+}
+
+.vis-cam-feeds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.vis-cam-video {
+  width: 150px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1.5px solid var(--line-strong);
+  background: #0f172a;
+}
+
+.vis-cam-mosaic {
+  display: grid;
+  grid-template-columns: repeat(10, 11px);
+  width: 110px;
+  height: 110px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1.5px solid var(--line-strong);
+}
+
+.vis-cam-pred {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+}
+
+/* ---------- Break-it Switches & Apply Civic Cards ---------- */
+.vis-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vis-switch input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--warn);
+}
+
+.vis-switch.good input {
+  accent-color: var(--accent);
+}
+
+.vis-case-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.vis-case-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.vis-case-card:hover,
+.vis-case-card.sel {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vis-case-ico {
+  font-size: 1.35rem;
+}
+
+.vis-case-card p {
+  margin: 3px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.32;
+}
+
+.vis-recipe {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 9px;
+}
+
+.vis-recipe li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.vis-recipe b {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.78rem;
+}
+
+.vis-handoff {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.vis-controls {
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .vis-float-card {
+    position: static;
+    border-radius: 0;
+    border-width: 0 0 1.5px;
+  }
+  .vis-fmap-wrap {
+    grid-template-columns: 1fr;
+  }
+}

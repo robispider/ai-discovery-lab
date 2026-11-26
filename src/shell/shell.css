@@ -410,6 +410,45 @@
   overflow-wrap: anywhere;
 }
 
+.panel-refs {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.panel-ref-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-ref-list li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.panel-ref-list a {
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.panel-ref-list a:hover {
+  text-decoration: underline;
+}
+
+.panel-ref-list p {
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .pending-tag {
   justify-self: start;
   padding: 1px 8px;

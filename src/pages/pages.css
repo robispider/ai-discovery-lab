@@ -7,26 +7,53 @@
 }
 
 /* Home */
+.home {
+  max-width: 1240px;
+  gap: 36px;
+}
+
+.home-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(20px, 4vw, 48px);
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .home-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .home-hero {
   display: grid;
   gap: 14px;
-  max-width: 62ch;
+  align-content: start;
 }
 
 .home-hero h1 {
-  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-size: clamp(1.9rem, 3.6vw, 2.9rem);
   font-stretch: 78%;
   font-weight: 800;
+  line-height: 1.05;
+  max-width: 16ch;
 }
 
 :root[lang='bn'] .home-hero h1 {
   font-stretch: normal;
   font-weight: 700;
+  line-height: 1.25;
 }
 
 .home-lead {
-  font-size: 1.08rem;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
   color: var(--ink-2);
+}
+
+:root[lang='bn'] .home-lead {
+  font-family: var(--font-bn);
+  font-size: 0.95rem;
 }
 
 .home-actions {
@@ -35,65 +62,322 @@
   gap: 10px;
 }
 
-.home-families {
+/* Family key: the legend for the map. */
+.fam-key {
+  display: grid;
+  gap: 2px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fam-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.fam-row:hover,
+.fam-row.is-focus {
+  background: color-mix(in srgb, var(--fam) 10%, transparent);
+}
+
+.fam-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--fam) 15%, var(--card));
+  color: var(--fam);
+}
+
+.fam-text {
+  display: grid;
+  line-height: 1.2;
+}
+
+.fam-text strong {
+  font-size: 0.9rem;
+}
+
+.fam-text span {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.fam-nums {
+  display: flex;
+  gap: 4px;
+}
+
+.fam-nums span {
+  min-width: 24px;
+  padding: 2px 5px;
+  border: 1.5px solid color-mix(in srgb, var(--fam) 45%, transparent);
+  border-radius: 999px;
+  color: var(--fam);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.fam-nums span.done {
+  background: var(--fam);
+  border-color: var(--fam);
+  color: var(--card);
+}
+
+/* The AI map */
+.ai-map {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  margin: 0;
+}
+
+.ai-map svg {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  overflow: visible;
+}
+
+.ring circle {
+  fill: color-mix(in srgb, var(--fam) 9%, transparent);
+  stroke: color-mix(in srgb, var(--fam) 60%, transparent);
+  stroke-width: 1.5;
+  transition:
+    stroke-width 0.15s,
+    fill 0.15s;
+}
+
+.ring.is-focus circle {
+  stroke: var(--fam);
+  stroke-width: 3;
+  fill: color-mix(in srgb, var(--fam) 16%, transparent);
+}
+
+.ring text,
+.rl-zone text,
+.cap-zone text {
+  fill: var(--fam);
+  font-family: var(--font-display);
+  font-stretch: 78%;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.rl-zone text,
+.cap-zone text {
+  font-size: 10px;
+}
+
+:root[lang='bn'] .ring text,
+:root[lang='bn'] .cap-zone text {
+  font-family: var(--font-bn);
+  letter-spacing: 0;
+  font-size: 11.5px;
+}
+
+.ring:first-child text {
+  fill: var(--ink);
+}
+
+.rl-zone rect {
+  fill: color-mix(in srgb, var(--fam) 12%, var(--card));
+  stroke: var(--fam);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.rl-zone.is-focus rect {
+  stroke-width: 2.5;
+}
+
+.cap-zone path {
+  fill: none;
+  stroke: var(--fam);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+}
+
+.badge {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.15s;
+}
+
+.badge.dim {
+  opacity: 0.25;
+}
+
+.badge-body {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.15s;
+}
+
+.badge:hover .badge-body,
+.badge:focus-visible .badge-body {
+  transform: scale(1.18);
+}
+
+.badge-body > circle {
+  fill: var(--card);
+  stroke: var(--fam);
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 3px rgb(20 35 58 / 18%));
+}
+
+.badge.done .badge-body > circle {
+  fill: color-mix(in srgb, var(--fam) 20%, var(--card));
+}
+
+.badge:focus-visible .badge-body > circle {
+  stroke-width: 3.5;
+}
+
+.badge-body svg {
+  color: var(--fam);
+}
+
+.badge-n rect {
+  fill: var(--fam);
+  stroke: var(--card);
+  stroke-width: 1.5;
+}
+
+.badge-n text {
+  fill: var(--card);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.ai-map figcaption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 2.6em;
+  max-width: 46ch;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cap-hint {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.cap-fam {
+  color: var(--fam);
+}
+
+.cap-n {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--fam);
+  color: var(--card);
+  font-size: 0.78rem;
+}
+
+/* All lessons */
+.home-lessons {
   display: grid;
   gap: 12px;
 }
 
-.family-grid {
+.lesson-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: 14px;
-}
-
-.family {
-  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
   gap: 10px;
-  align-content: start;
-  padding: 14px 16px;
-  background: var(--card);
-  border: 1.5px solid var(--line);
-  border-top: 3px solid var(--fam);
-  border-radius: var(--radius);
-}
-
-.family ul {
-  display: grid;
-  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.family-link {
+.lesson-card {
+  position: relative;
   display: grid;
-  grid-template-columns: 28px 22px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 10px;
   align-items: center;
-  gap: 8px;
-  padding: 6px 6px;
-  border-radius: 8px;
+  height: 100%;
+  padding: 12px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-bottom: 3px solid var(--fam);
+  border-radius: var(--radius);
   color: var(--ink);
   text-decoration: none;
-  font-size: 0.92rem;
-  font-weight: 600;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
 }
 
-.family-link svg {
+.lesson-card:hover,
+.lesson-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--fam);
+  box-shadow: var(--shadow);
+}
+
+.lesson-icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--fam) 13%, var(--card));
   color: var(--fam);
 }
 
-.family-link:hover {
-  background: var(--paper);
+.lesson-card.done .lesson-icon {
+  background: var(--fam);
+  color: var(--card);
 }
 
-.family-n {
+.lesson-n {
+  align-self: end;
+  color: var(--fam);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.lesson-name {
+  align-self: start;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.lesson-flag {
+  position: absolute;
+  top: 8px;
+  right: 10px;
   color: var(--ink-2);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
-.family-done {
+.lesson-flag.ok {
   color: var(--accent);
-  font-weight: 800;
 }
 
 /* Coming soon */

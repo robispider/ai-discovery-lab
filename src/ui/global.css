@@ -97,6 +97,9 @@ code,
 .fam-ml {
   --fam: var(--f-ml);
 }
+.fam-iot {
+  --fam: var(--f-iot);
+}
 .fam-nn {
   --fam: var(--f-nn);
 }

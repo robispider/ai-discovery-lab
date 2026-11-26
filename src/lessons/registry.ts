@@ -1,4 +1,4 @@
-import { defineLesson, type Lesson, type LessonNumber } from './types';
+import { defineLesson, type Lesson, type LessonNumber, type LessonReference } from './types';
 import { LlmGuideControls, LlmGuideStage, llmGuideSteps } from './llm-guide';
 import { RegressionControls, RegressionStage, regressionSteps } from './regression';
 import { TreeControls, TreeStage, treeSteps } from './tree';
@@ -8,7 +8,41 @@ import { NextWordControls, NextWordStage, nextWordSteps } from './next-word';
 import { RightAiControls, RightAiStage, rightAiSteps } from './right-ai';
 import { ClusterControls, ClusterStage, clusterSteps } from './clustering';
 import { ExpertControls, ExpertStage, expertSteps } from './expert-system';
+import { NeuralControls, NeuralStage, neuralSteps } from './neural';
 import { RobotPanelControls, RobotStage, robotSteps } from './robot';
+import { DrainSensorControls, DrainSensorStage, drainSensorSteps } from './drain-sensors';
+import { PumpEdgeControls, PumpEdgeStage, pumpEdgeSteps } from './pump-edge-ai';
+import { VisionControls, VisionStage, visionSteps } from './vision';
+
+const VISION_REFERENCES: LessonReference[] = [
+  {
+    title: { en: 'Google Teachable Machine', bn: 'Google Teachable Machine' },
+    description: {
+      en: 'Train a real MobileNet image classifier with your live webcam and export it for the browser or edge devices',
+      bn: 'সরাসরি ওয়েবক্যাম দিয়ে আসল MobileNet ছবি চেনার মডেল শেখান এবং ব্রাউজার বা এজ ডিভাইসে ব্যবহার করুন',
+    },
+    url: 'https://teachablemachine.withgoogle.com/train/image',
+  },
+];
+
+const IOT_REFERENCES: LessonReference[] = [
+  {
+    title: { en: 'Learn Arduino', bn: 'Learn Arduino (আরডুইনো শিখুন)' },
+    description: {
+      en: 'Interactive 3D Arduino Uno lessons: breadboards, sensors, buzzers, and motors',
+      bn: 'ইন্টারেক্টিভ ৩ডি আরডুইনো উনো পাঠ: ব্রেডবোর্ড, সেন্সর, বাজার ও মোটর',
+    },
+    url: 'https://learn-arduino-red.vercel.app/',
+  },
+  {
+    title: { en: 'Learn ESP32', bn: 'Learn ESP32 (ESP32 শিখুন)' },
+    description: {
+      en: 'Interactive 3D ESP32 lessons: GPIO, Wi-Fi, Bluetooth, ESP-NOW, and HC-SR04P',
+      bn: 'ইন্টারেক্টিভ ৩ডি ESP32 পাঠ: GPIO, ওয়াই-ফাই, ব্লুটুথ, ESP-NOW ও HC-SR04P',
+    },
+    url: 'https://learn-esp32.vercel.app/',
+  },
+];
 
 /*
  * Lessons in teaching order.
@@ -184,22 +218,27 @@ export const LESSONS: Lesson[] = [
     title: { en: 'Watch a neural network learn', bn: 'নিউরাল নেটওয়ার্ককে শিখতে দেখুন' },
     short: { en: 'Neural network', bn: 'নিউরাল নেটওয়ার্ক' },
     summary: {
-      en: 'TensorFlow Playground: a real small neural network training in the browser.',
-      bn: 'TensorFlow Playground: ব্রাউজারেই একটি ছোট আসল নিউরাল নেটওয়ার্কের প্রশিক্ষণ।',
+      en: 'Change the numbers inside a neuron, train it on three examples, and see why a hidden layer helps. Continue to TensorFlow Playground for free play.',
+      bn: 'নিউরনের ভেতরের সংখ্যা বদলান, তিনটি উদাহরণ দিয়ে প্রশিক্ষণ দিন এবং মাঝের স্তর কীভাবে কাজে লাগে দেখুন। নিজের মতো পরীক্ষা করতে TensorFlow Playground-এ যান।',
     },
-    stageCaption: { en: 'Tiny network', bn: 'ছোট নেটওয়ার্ক' },
-    online: { tool: 'TensorFlow Playground', url: 'https://playground.tensorflow.org/' },
+    stageCaption: { en: 'Neural networks with basic arithmetic', bn: 'সহজ পাটিগণিত দিয়ে নিউরাল নেটওয়ার্ক' },
     content: {
       how: {
-        en: 'Each neuron can draw one straight line. Hidden neurons combine several lines into a curve that can wrap around the inner dots.',
+        en: 'A neuron multiplies inputs by weights and adds the results with a bias. Some neurons then apply a rule to that total. Here, the two hidden units turn on at different totals and pass their results to the output.',
+        bn: 'নিউরন ইনপুটগুলোকে গুণক দিয়ে গুণ করে, তারপর বায়াসসহ ফলগুলো যোগ করে। কিছু নিউরন যোগফলের ওপর একটি নিয়ম প্রয়োগ করে। এখানে মাঝের দুটি ইউনিট আলাদা যোগফলে সক্রিয় হয় এবং তাদের ফল আউটপুটে পাঠায়।',
       },
       breakIt: {
-        en: 'Remove every hidden layer and try the circle data. A single straight line cannot separate a ring from its centre.',
+        en: 'One straight line cannot put both circles on one side and both squares on the other. Use Apply to try the divider, then turn on the two hidden units.',
+        bn: 'একটি সরলরেখা দিয়ে দুইটি বৃত্তকে এক পাশে এবং দুইটি বর্গকে অন্য পাশে রাখা যায় না। প্রয়োগ ধাপে রেখাটি ঘোরান, তারপর মাঝের দুটি ইউনিট চালু করুন।',
       },
       notes: {
-        en: 'Opens TensorFlow Playground online. A later phase replaces it with an offline playground.',
+        en: 'Ask someone to guess the output before moving a slider. The trainer searches nearby weights; the crew network uses hand-set weights to make its arithmetic easy to inspect. TensorFlow Playground opens online.',
+        bn: 'স্লাইডার সরানোর আগে কাউকে আউটপুট অনুমান করতে বলুন। প্রশিক্ষণে কাছাকাছি গুণক যাচাই করা হয়। দল পাঠানোর উদাহরণে হিসাব সহজে বোঝাতে গুণক হাতে ঠিক করা হয়েছে। TensorFlow Playground অনলাইনে খোলে।',
       },
     },
+    steps: neuralSteps,
+    Stage: NeuralStage,
+    Controls: NeuralControls,
   }),
   defineLesson({
     n: 7,
@@ -209,20 +248,31 @@ export const LESSONS: Lesson[] = [
     title: { en: 'Train an image recogniser with the webcam', bn: 'ওয়েবক্যাম দিয়ে ছবি চেনার মডেল তৈরি' },
     short: { en: 'Image recogniser', bn: 'ছবি চেনা' },
     summary: {
-      en: 'Google Teachable Machine: three classes (organic, plastic, paper waste), trained live with transfer learning.',
-      bn: 'Google Teachable Machine: তিনটি শ্রেণি (জৈব, প্লাস্টিক, কাগজ বর্জ্য), ট্রান্সফার লার্নিং দিয়ে সরাসরি প্রশিক্ষণ।',
+      en: 'See how pixels, 3×3 CNN filters and transfer learning sort organic, plastic and paper waste — then break it with dim light, tray bias and unseen metal, and continue in Google Teachable Machine.',
+      bn: 'পিক্সেল, ৩×৩ সিএনএন ফিল্টার ও ট্রান্সফার লার্নিং কীভাবে জৈব, প্লাস্টিক ও কাগজ বর্জ্য আলাদা করে তা দেখুন—তারপর কম আলো, ট্রের পক্ষপাত ও অদেখা ধাতব ক্যানে মডেল ভেঙে Google Teachable Machine-এ সরাসরি তৈরি করুন।',
     },
-    stageCaption: { en: 'Waste sorter', bn: 'বর্জ্য বাছাই' },
-    online: { tool: 'Teachable Machine', url: 'https://teachablemachine.withgoogle.com/train/image' },
+    stageCaption: {
+      en: 'Waste sorter · pixels → CNN → transfer learning',
+      bn: 'বর্জ্য বাছাই · পিক্সেল → সিএনএন → ট্রান্সফার লার্নিং',
+    },
+    references: VISION_REFERENCES,
     content: {
       how: {
-        en: 'A network already trained on millions of photos turns each webcam frame into numbers. A small classifier learns organic, plastic and paper from your samples.',
+        en: 'A camera turns light into RGB pixel numbers. Pre-trained CNN filters slide 3×3 windows across those pixels to extract edges, gloss and colour (a frozen backbone trained on millions of photos). Only the tiny 3-class waste head (21 weights) is trained on your organic, plastic and paper samples.',
+        bn: 'ক্যামেরা আলোকে আরজিবি পিক্সেল সংখ্যায় বদলে দেয়। আগে থেকেই লক্ষ লক্ষ ছবিতে শেখা সিএনএন ফিল্টারগুলো ৩×৩ জানালা ঘুরিয়ে ধার, চকচকে ভাব ও রঙ বের করে (স্থির ব্যাকবোন)। আপনার জৈব, প্লাস্টিক ও কাগজের নমুনা দিয়ে শুধু ছোট ৩-শ্রেণির হেডটি (২১টি গুণক) শেখানো হয়।',
       },
       breakIt: {
-        en: 'Dim the lights or show an object it never saw. The model can stay confident and still be wrong.',
+        en: 'Dim the lights, put a banana peel on a blue plastic-training tray, or feed an unseen aluminum can. Because softmax always sums to 100% across its three bins, the model stays highly confident even when completely wrong.',
+        bn: 'আলো কমিয়ে দিন, নীল ট্রেতে কলার খোসা রাখুন বা অদেখা অ্যালুমিনিয়াম ক্যান দিন। সফটম্যাক্স সবসময় তিন বিনে ১০০% ভাগ করে বলে পুরোপুরি ভুল হলেও মডেল অত্যন্ত আত্মবিশ্বাসী থাকে।',
       },
-      notes: { en: 'High confidence is not correctness. Test lighting in the actual room during rehearsal.' },
+      notes: {
+        en: 'High confidence is not correctness. Run the interactive conveyor & transfer-learning lab offline first, then open Google Teachable Machine for a live webcam rehearsal in the actual room lighting.',
+        bn: 'উচ্চ আত্মবিশ্বাস মানেই সঠিকতা নয়। প্রথমে অফলাইনে কনভেয়ার ও ট্রান্সফার লার্নিং ল্যাবটি চালান, তারপর ঘরের আসল আলোতে সরাসরি অনুশীলনের জন্য Google Teachable Machine খুলুন।',
+      },
     },
+    steps: visionSteps,
+    Stage: VisionStage,
+    Controls: VisionControls,
   }),
   defineLesson({
     n: 8,
@@ -415,6 +465,82 @@ export const LESSONS: Lesson[] = [
     steps: llmGuideSteps,
     Stage: LlmGuideStage,
     Controls: LlmGuideControls,
+  }),
+  defineLesson({
+    n: 13,
+    alternative: 14,
+    id: 'drain-sensors',
+    family: 'iot',
+    icon: 'sensor',
+    title: {
+      en: 'Smart drain sensors: noisy streams & early flood warning',
+      bn: 'স্মার্ট ড্রেন সেন্সর: নয়েজি ডেটা ও আগাম জলাবদ্ধতা সতর্কতা',
+    },
+    short: { en: 'Drain sensors', bn: 'ড্রেন সেন্সর' },
+    summary: {
+      en: 'Clean noisy ultrasonic water-level and rain streams, train a 30-minute flood forecaster, and test mud, blackouts and VIP-only sensor bias.',
+      bn: 'নয়েজি আল্ট্রাসনিক ও বৃষ্টির ডেটা পরিষ্কার করুন, ৩০ মিনিট আগের পূর্বাভাস মডেল শেখান, এবং কাদা, নেটওয়ার্ক বন্ধ ও পক্ষপাতদুষ্ট সেন্সর বসানো পরীক্ষা করুন।',
+    },
+    stageCaption: {
+      en: 'Canal & drain telemetry · time-series AI',
+      bn: 'খাল ও ড্রেন টেলিমেট্রি · টাইম-সিরিজ এআই',
+    },
+    references: IOT_REFERENCES,
+    content: {
+      how: {
+        en: 'A median filter drops single-tick splash echoes, a moving window computes 15-minute rise speed, and a linear time-series model combines drain level, upstream canal surge and rainfall to predict water depth 30 minutes ahead.',
+        bn: 'মিডিয়ান ফিল্টার ১ বারের ছিটার স্পাইক বাদ দেয়, চলমান উইন্ডো ১৫ মিনিটে পানি বাড়ার গতি মাপে, আর একটি টাইম-সিরিজ মডেল ড্রেনের উচ্চতা, উজানের ঢল ও বৃষ্টি মিলিয়ে ৩০ মিনিট পরের গভীরতা অনুমান করে।',
+      },
+      breakIt: {
+        en: 'Cover the sensor with mud (flatline), cut storm 4G packets, or install sensors only on VIP avenues. Without sensor-health checks, local Edge triggers and equitable placement, a “Smart City” dashboard misleads.',
+        bn: 'সেন্সরে কাদা লাগিয়ে পাঠ স্থির করে দিন, ঝড়ে ইন্টারনেট বিচ্ছিন্ন করুন বা শুধু ভিআইপি সড়কে সেন্সর বসান। স্বাস্থ্য যাচাই, লোকাল এজ ট্রিগার ও ন্যায্য স্থাপন ছাড়া “স্মার্ট সিটি” ড্যাশবোর্ড বিভ্রান্ত করে।',
+      },
+      notes: {
+        en: 'Connect directly back to Lesson 3: sensors avoid citizen reporting delays, yet placement bias and unmaintained hardware recreate the exact same blind spots.',
+        bn: 'সরাসরি পাঠ ৩-এর সাথে মিলিয়ে দেখান: সেন্সর নাগরিক অভিযোগের বিলম্ব কমায় ঠিকই, কিন্তু ভুল জায়গায় বসানো বা রক্ষণাবেক্ষণহীন সেন্সর একই অন্ধত্ব ফিরিয়ে আনে।',
+      },
+    },
+    steps: drainSensorSteps,
+    Stage: DrainSensorStage,
+    Controls: DrainSensorControls,
+  }),
+  defineLesson({
+    n: 14,
+    alternative: 13,
+    id: 'pump-edge-ai',
+    family: 'iot',
+    icon: 'wave',
+    title: {
+      en: 'Stormwater pump health: vibration sensing & Edge AI',
+      bn: 'পাম্পের স্বাস্থ্য নির্ণয়: ভাইব্রেশন সেন্সর ও এজ এআই',
+    },
+    short: { en: 'Pump Edge AI', bn: 'পাম্প এজ এআই' },
+    summary: {
+      en: 'Turn 200 Hz vibration waves (or your live microphone) into frequency bands, run an 80-byte fault detector on a microcontroller, and compare Edge vs Cloud IoT.',
+      bn: '২০০ Hz কম্পন তরঙ্গকে (বা সরাসরি মাইক্রোফোনকে) ফ্রিকোয়েন্সি ব্যান্ডে রূপ দিন, মাইক্রোকন্ট্রোলারে ৮০-বাইটের ত্রুটি নির্ণায়ক চালান এবং এজ বনাম ক্লাউড আইওটি তুলনা করুন।',
+    },
+    stageCaption: {
+      en: 'Waveform → spectrum → 80-byte Edge AI',
+      bn: 'তরঙ্গ → স্পেকট্রাম → ৮০-বাইট এজ এআই',
+    },
+    references: IOT_REFERENCES,
+    content: {
+      how: {
+        en: 'A Fourier transform splits each 0.64-second vibration window into low hum, mid turbulence and high metallic rattle. Four class centroids (20 numbers, 80 bytes) spot early bearing wear even when total loudness barely changes.',
+        bn: 'ফুরিয়ার ট্রান্সফর্ম প্রতি ০.৬৪ সেকেন্ডের কম্পনকে নিচু গুনগুন, মাঝারি ঘূর্ণি ও উচ্চ ধাতব ঘর্ষণে ভাগ করে। চারটি শ্রেণির কেন্দ্র (২০টি সংখ্যা, ৮০ বাইট) মোট শব্দ প্রায় না বাড়লেও আগাম বিয়ারিং ক্ষয় ধরে ফেলে।',
+      },
+      breakIt: {
+        en: 'Drive a heavy truck past the pump house or bake a cheap sensor in a 45 °C tin shed. Single-window unnormalized models trigger false alarms until persistence debouncing and ratio normalization are enabled.',
+        bn: 'পাম্পঘরের পাশ দিয়ে ভারী ট্রাক চালান বা ৪৫°সে টিনশেডের গরম যোগ করুন। পরপর যাচাই ও অনুপাত নরমালাইজেশন ছাড়া সাধারণ মডেল ভুয়া সতর্কতা বাজায়।',
+      },
+      notes: {
+        en: 'Click “Try live mic sensor” on a laptop to let participants hum (low band) and tap the desk (high band) and watch real physical waves turn into features offline.',
+        bn: 'ল্যাপটপে “সরাসরি মাইক সেন্সর” চালিয়ে অংশগ্রহণকারীদের গুনগুন করতে (নিচু ব্যান্ড) ও টেবিলে টোকা দিতে (উচ্চ ব্যান্ড) বলুন—যাতে সবাই বাস্তব তরঙ্গ থেকে বৈশিষ্ট্য বের হওয়া সরাসরি দেখে।',
+      },
+    },
+    steps: pumpEdgeSteps,
+    Stage: PumpEdgeStage,
+    Controls: PumpEdgeControls,
   }),
 ];
 

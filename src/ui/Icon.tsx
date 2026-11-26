@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ThumbId } from '../lessons/types';
 
-export type RailIconId = 'home' | 'lessons' | 'map' | 'glossary' | 'session' | 'settings';
+export type RailIconId = 'home' | 'lessons' | 'references' | 'map' | 'glossary' | 'session' | 'settings';
 
 const RAIL: Record<RailIconId, ReactNode> = {
   home: <path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" />,
@@ -12,6 +12,9 @@ const RAIL: Record<RailIconId, ReactNode> = {
       <rect x="3" y="14" width="7" height="7" rx="1.5" />
       <rect x="14" y="14" width="7" height="7" rx="1.5" />
     </>
+  ),
+  references: (
+    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8 12h8m-8 4h5" />
   ),
   map: (
     <>
@@ -159,6 +162,19 @@ const THUMB: Record<ThumbId, ReactNode> = {
     <>
       <rect x="4" y="4" width="26" height="26" rx="3" />
       <path d="M4 12h26M4 21h26M12 4v26M21 4v26" />
+    </>
+  ),
+  sensor: (
+    <>
+      <rect x="11" y="3" width="12" height="6" rx="2" fill="currentColor" />
+      <path d="M12 13a7 7 0 0 0 10 0M9 17a11 11 0 0 0 16 0" />
+      <path d="M4 26c3-2 6 2 9 0s6-2 8 0 6 2 9 0" />
+    </>
+  ),
+  wave: (
+    <>
+      <path d="M3 18h4l3-9 4 16 4-19 4 15 3-6h6" />
+      <circle cx="29" cy="15" r="2" fill="currentColor" />
     </>
   ),
 };
