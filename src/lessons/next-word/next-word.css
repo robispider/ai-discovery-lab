@@ -1,0 +1,97 @@
+/* Lesson 9: next-word prediction */
+.nw-prompt {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.nw-vote {
+  font-size: 1rem;
+}
+
+.nw-other {
+  max-width: 220px;
+}
+
+.nw-corpus {
+  min-height: 180px;
+  font-size: 0.88rem;
+}
+
+.nw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.nw-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 1px 4px 1px 0;
+  padding: 2px 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 0.9rem;
+}
+
+.nw-chip small {
+  color: var(--ink-2);
+  font-size: 0.72rem;
+}
+
+.nw-chip.new {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  font-weight: 700;
+}
+
+.nw-more {
+  font-size: 0.85rem;
+}
+
+.nw-out {
+  min-height: 2.4em;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.nw-out .nw-chip {
+  font-size: 1.1rem;
+  background: var(--card);
+}
+
+.nw-note {
+  font-size: 0.9rem;
+}
+
+.nw-radio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.nw-radio label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.nw-radio input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+}
+
+.nw-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.2em;
+}

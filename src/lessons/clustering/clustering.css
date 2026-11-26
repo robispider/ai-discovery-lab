@@ -1,0 +1,99 @@
+/* Lesson 5: clustering */
+.cl-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.cl-feature {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 0.9rem;
+}
+
+.cl-axis {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cl-axis select {
+  width: auto;
+  max-width: 220px;
+  padding-block: 4px;
+  font-size: 0.85rem;
+}
+
+.cl-plot {
+  max-height: 46vh;
+}
+
+.cl-plot text {
+  font-family: var(--font-body);
+}
+
+.cl-note {
+  font-size: 0.8rem;
+}
+
+.cl-status {
+  font-size: 0.88rem;
+}
+
+.cl-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cl-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--warn);
+}
+
+.cl-profiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.cl-prof {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.cl-prof h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.cl-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.cl-prof table {
+  width: 100%;
+  font-size: 0.8rem;
+  border-collapse: collapse;
+}
+
+.cl-prof td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

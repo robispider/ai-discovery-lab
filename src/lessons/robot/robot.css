@@ -1,0 +1,222 @@
+.robot-stage {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+
+.robot-map {
+  display: block;
+  width: 100%;
+  max-height: clamp(190px, 34vh, 325px);
+  margin: 0 auto;
+}
+
+.robot-map-background {
+  fill: var(--paper);
+}
+.robot-block rect {
+  fill: var(--paper-2);
+  stroke: var(--line);
+}
+.robot-block path {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1.4;
+}
+.robot-street {
+  stroke: var(--line-strong);
+  stroke-width: 3;
+}
+.robot-node {
+  fill: var(--card);
+  stroke: var(--line-strong);
+  stroke-width: 1.6;
+}
+.robot-trail {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.robot-landmark {
+  fill: var(--card);
+  stroke: var(--line-strong);
+}
+.robot-stop path,
+.robot-rover path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.robot-stop.collected path {
+  stroke: var(--ink-2);
+  opacity: 0.6;
+}
+.robot-stop text {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+.robot-rover {
+  transition: transform 180ms ease-out;
+}
+.robot-rover-frame {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.robot-rover.flat .robot-rover-frame {
+  fill: var(--warn-soft);
+  stroke: var(--warn);
+}
+.robot-cargo {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 1.4;
+}
+
+.robot-telemetry,
+.robot-actions,
+.robot-test-settings,
+.robot-run-totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.robot-telemetry {
+  margin-block: 11px;
+}
+.robot-telemetry span,
+.robot-attempts,
+.robot-run-totals span {
+  color: var(--ink-2);
+}
+.robot-telemetry b,
+.robot-attempts b,
+.robot-run-totals b {
+  color: var(--ink);
+}
+.robot-battery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.robot-battery meter {
+  width: 54px;
+  height: 12px;
+}
+.robot-battery meter::-webkit-meter-optimum-value {
+  background: var(--accent);
+}
+.robot-battery meter::-moz-meter-bar {
+  background: var(--accent);
+}
+.robot-battery.low meter::-webkit-meter-optimum-value {
+  background: var(--warn);
+}
+.robot-battery.low meter::-moz-meter-bar {
+  background: var(--warn);
+}
+
+.robot-outcome {
+  color: var(--ink-2);
+}
+.robot-outcome.delivered,
+.robot-positive {
+  color: var(--accent);
+}
+.robot-outcome.flat,
+.robot-outcome.timeout {
+  color: var(--warn);
+}
+.robot-actions {
+  column-gap: 8px;
+}
+.robot-actions button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.robot-test-settings {
+  margin-bottom: 10px;
+}
+.robot-attempts b,
+.robot-run-totals b {
+  margin-left: 3px;
+}
+
+.robot-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 12px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+  color: var(--ink-2);
+}
+
+.robot-rules li::before {
+  content: '·';
+  color: var(--accent);
+  margin-right: 5px;
+}
+.robot-detail {
+  color: var(--ink-2);
+  margin: 0 0 8px;
+}
+.robot-actions + .robot-detail {
+  margin: 10px 0 0;
+}
+.robot-table {
+  overflow-x: auto;
+}
+.robot-table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.robot-table th,
+.robot-table td {
+  padding: 7px 10px 7px 0;
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+.robot-table th,
+.robot-table small {
+  color: var(--ink-2);
+}
+.robot-table small {
+  display: block;
+}
+
+.robot-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+.robot-run {
+  min-width: 0;
+}
+.robot-run .robot-map {
+  margin-bottom: 8px;
+}
+.robot-run-totals {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .robot-rover {
+    transition: none;
+  }
+}

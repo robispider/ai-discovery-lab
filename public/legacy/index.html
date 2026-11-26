@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Discovery Lab</title>
+<link rel="stylesheet" href="assets/lab.css">
+<style>
+  .hero { padding: 10px 0 6px; }
+  .hero h1 { font-size: 2.4rem; margin-bottom: .2em; }
+  .map { display: grid; gap: 10px; }
+  .box { border: 2px solid var(--border); border-radius: 14px; padding: 10px 12px 12px; background: var(--surface); }
+  .box > .t { font-weight: 700; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .box > .t small { font-weight: 400; color: var(--muted); }
+  .box .inner { display: grid; gap: 10px; margin-top: 10px; }
+  .box.ai { border-color: var(--text); }
+  .box.sym { border-color: var(--c6); }
+  .box.ml { border-color: var(--c1); }
+  .box.nn { border-color: var(--c3); background: var(--surface-2); }
+  .box.dl { border-color: var(--c4); }
+  .box.llm { border-color: var(--c2); background: var(--accent-2-soft); }
+  .box.rl { border-color: var(--c5); }
+  .two { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+  .mlrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 760px) { .two, .mlrow { grid-template-columns: 1fr; } .hero h1 { font-size: 1.8rem; } }
+  .box a { font-size: .85rem; }
+  .exp { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: start; }
+  .exp .n { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; background: var(--accent-soft); font-size: 1.1rem; }
+  .exp.ext .n { background: var(--surface-2); }
+  .exp h3 { margin: 0 0 2px; }
+  .exp p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .exp .go { white-space: nowrap; }
+  @media (max-width: 640px) { .exp { grid-template-columns: 44px 1fr; } .exp .go { grid-column: 2; } }
+  details { margin-top: 8px; font-size: .92rem; }
+  details summary { cursor: pointer; color: var(--accent); }
+  details ol { margin: 6px 0 0; padding-left: 20px; }
+  .agenda td:first-child { white-space: nowrap; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="lab-header"></div>
+<main class="wrap">
+  <section class="hero">
+    <h1>
+      <span lang="en">AI Discovery Lab</span><span lang="bn">এআই ডিসকভারি ল্যাব</span>
+    </h1>
+    <p class="lead">
+      <span lang="en">Explore · Train · Experiment. A hands-on foundation of artificial intelligence for non-technical professionals: see how machines search, learn rules from examples, discover groups, learn from rewards, and predict the next word, and how they fail.</span>
+      <span lang="bn">অনুসন্ধান · প্রশিক্ষণ · পরীক্ষা। অপ্রযুক্তিগত পেশাজীবীদের জন্য কৃত্রিম বুদ্ধিমত্তার হাতে-কলমে ভিত্তি: যন্ত্র কীভাবে পথ খোঁজে, উদাহরণ থেকে নিয়ম শেখে, লুকানো দল খুঁজে পায়, পুরস্কার থেকে শেখে, পরের শব্দ অনুমান করে, এবং কীভাবে ভুল করে, তা নিজের চোখে দেখুন।</span>
+    </p>
+    <div id="cycle"></div>
+  </section>
+
+  <section class="card">
+    <h2><span lang="en">The families of AI</span><span lang="bn">এআই-এর পরিবারসমূহ</span></h2>
+    <p class="muted" style="font-size:.95rem">
+      <span lang="en">AI is much more than chatbots. Large language models (LLMs) sit <b>inside</b> the neural-network family; they are not a separate kind of AI.</span>
+      <span lang="bn">এআই মানে শুধু চ্যাটবট নয়। বড় ভাষা মডেল (LLM) নিউরাল নেটওয়ার্ক পরিবারের <b>ভেতরেরই</b> অংশ, আলাদা কোনো এআই নয়।</span>
+    </p>
+    <div class="box ai">
+      <div class="t"><span>Artificial Intelligence · <span lang="en">machines doing tasks that need intelligence</span><span lang="bn">বুদ্ধিমত্তা লাগে এমন কাজ করা যন্ত্র</span></span></div>
+      <div class="inner two">
+        <div class="box sym">
+          <div class="t"><span><span lang="en">Symbolic / classical AI</span><span lang="bn">প্রতীকী / ক্লাসিক্যাল এআই</span></span></div>
+          <p style="font-size:.88rem;margin:.3em 0"><span lang="en">Rules, search and reasoning written by humans.</span><span lang="bn">মানুষের লেখা নিয়ম, অনুসন্ধান ও যুক্তি।</span></p>
+          <a href="experiments/route.html">1 · <span lang="en">Route finding</span><span lang="bn">পথ খোঁজা</span></a><br>
+          <a href="experiments/expert.html">2 · <span lang="en">Expert system</span><span lang="bn">এক্সপার্ট সিস্টেম</span></a>
+        </div>
+        <div class="box ml">
+          <div class="t"><span><span lang="en">Machine learning</span><span lang="bn">মেশিন লার্নিং</span></span><small><span lang="en">learns from data</span><span lang="bn">ডেটা থেকে শেখে</span></small></div>
+          <div class="inner mlrow">
+            <div class="box">
+              <div class="t"><span><span lang="en">Traditional ML</span><span lang="bn">প্রথাগত ML</span></span></div>
+              <a href="experiments/tree.html">3 · <span lang="en">Waterlogging tree</span><span lang="bn">জলাবদ্ধতার ডিসিশন ট্রি</span></a><br>
+              <a href="experiments/regression.html">4 · <span lang="en">Waste demand</span><span lang="bn">বর্জ্যের চাহিদা</span></a><br>
+              <a href="experiments/cluster.html">5 · <span lang="en">Hidden groups</span><span lang="bn">লুকানো দল</span></a>
+            </div>
+            <div class="box rl">
+              <div class="t"><span><span lang="en">Reinforcement learning</span><span lang="bn">রিইনফোর্সমেন্ট লার্নিং</span></span></div>
+              <p style="font-size:.88rem;margin:.3em 0"><span lang="en">Learns from rewards.</span><span lang="bn">পুরস্কার ও শাস্তি থেকে শেখে।</span></p>
+              <a href="experiments/traffic.html">8 · <span lang="en">Traffic signal</span><span lang="bn">ট্রাফিক সিগন্যাল</span></a>
+            </div>
+          </div>
+          <div class="inner">
+            <div class="box nn">
+              <div class="t"><span><span lang="en">Neural networks</span><span lang="bn">নিউরাল নেটওয়ার্ক</span></span></div>
+              <a href="#exp6">6 · TensorFlow Playground</a>
+              <div class="inner">
+                <div class="box dl">
+                  <div class="t"><span><span lang="en">Deep learning</span><span lang="bn">ডিপ লার্নিং</span></span></div>
+                  <a href="#exp7">7 · <span lang="en">Image recognition</span><span lang="bn">ছবি চেনা</span></a>
+                  <div class="inner">
+                    <div class="box llm">
+                      <div class="t"><span><span lang="en">Language models (LLMs, GPT, ChatGPT…)</span><span lang="bn">ভাষা মডেল (LLM, GPT, ChatGPT…)</span></span></div>
+                      <a href="experiments/nextword.html">9 · <span lang="en">Next-word prediction</span><span lang="bn">পরের শব্দ অনুমান</span></a> ·
+                      <a href="#exp10">10 · <span lang="en">Inside GPT-2</span><span lang="bn">GPT-2-এর ভেতরে</span></a> ·
+                      <a href="experiments/llm-concepts.html">12 · <span lang="en">Models, GPUs, self-hosting &amp; civic open source</span><span lang="bn">মডেল, GPU, সেল্ফ-হোস্টিং ও সিটি ওপেন সোর্স</span></a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span lang="en">Experiments</span><span lang="bn">পরীক্ষাসমূহ</span></h2>
+    <p class="muted" style="font-size:.92rem">
+      <span class="pill ok">Offline</span> <span lang="en">runs in this lab without internet</span><span lang="bn">ইন্টারনেট ছাড়াই এই ল্যাবে চলে</span> ·
+      <span class="pill warn">Online</span> <span lang="en">opens a well-known external tool (needs internet)</span><span lang="bn">পরিচিত বাইরের টুল খোলে (ইন্টারনেট লাগে)</span>
+    </p>
+    <div class="stack" id="exp-list"></div>
+  </section>
+
+  <section class="card">
+    <h2><span lang="en">Suggested 3-hour session</span><span lang="bn">প্রস্তাবিত ৩ ঘণ্টার সেশন</span></h2>
+    <div class="scroll-x">
+    <table class="data agenda">
+      <tr><th><span lang="en">Time</span><span lang="bn">সময়</span></th><th><span lang="en">Block</span><span lang="bn">অংশ</span></th><th><span lang="en">Experiments</span><span lang="bn">পরীক্ষা</span></th></tr>
+      <tr><td>15 min</td><td><span lang="en">What is intelligence and AI? (the family map above)</span><span lang="bn">বুদ্ধিমত্তা ও এআই কী? (উপরের পরিবার-মানচিত্র)</span></td><td>—</td></tr>
+      <tr><td>20 min</td><td><span lang="en">Classical AI and search</span><span lang="bn">ক্লাসিক্যাল এআই ও অনুসন্ধান</span></td><td>1, 2</td></tr>
+      <tr><td>35 min</td><td><span lang="en">Datasets and traditional ML</span><span lang="bn">ডেটাসেট ও প্রথাগত ML</span></td><td>3, 4, 5</td></tr>
+      <tr><td>25 min</td><td><span lang="en">Neural networks and training</span><span lang="bn">নিউরাল নেটওয়ার্ক ও প্রশিক্ষণ</span></td><td>6</td></tr>
+      <tr><td>20 min</td><td><span lang="en">Live image recognition</span><span lang="bn">সরাসরি ছবি চেনা</span></td><td>7</td></tr>
+      <tr><td>10 min</td><td><span lang="en">Break</span><span lang="bn">বিরতি</span></td><td>—</td></tr>
+      <tr><td>15 min</td><td><span lang="en">Reinforcement learning</span><span lang="bn">রিইনফোর্সমেন্ট লার্নিং</span></td><td>8</td></tr>
+      <tr><td>25 min</td><td><span lang="en">Language models and GPT</span><span lang="bn">ভাষা মডেল ও GPT</span></td><td>9, 10, 12</td></tr>
+      <tr><td>15 min</td><td><span lang="en">The right AI for the job; ethics and discussion</span><span lang="bn">কাজের জন্য সঠিক এআই; নৈতিকতা ও আলোচনা</span></td><td>11</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <p class="footer">
+    <span lang="en">All datasets in this lab are synthetic and created for teaching. They are not real city measurements or real citizen complaints.</span>
+    <span lang="bn">এই ল্যাবের সব ডেটা শিক্ষণের জন্য তৈরি কৃত্রিম ডেটা। এগুলো শহরের প্রকৃত পরিমাপ বা নাগরিকদের প্রকৃত অভিযোগ নয়।</span>
+  </p>
+</main>
+
+<script src="assets/lab.js"></script>
+<script>
+LAB.header({ home: 'index.html' });
+LAB.cycle(document.getElementById('cycle'));
+
+var B = LAB.bi;
+var EXPS = [
+  { n: 1, href: 'experiments/route.html', fam: ['Classical AI', 'ক্লাসিক্যাল এআই'], t: ['Garbage truck route finding', 'ময়লার গাড়ির পথ খোঁজা'],
+    d: ['Draw blocked roads and watch BFS, Dijkstra and A* search the city map. No data, no training.', 'বন্ধ রাস্তা আঁকুন, তারপর BFS, Dijkstra ও A* কীভাবে শহরের মানচিত্রে পথ খোঁজে দেখুন। কোনো ডেটা বা প্রশিক্ষণ নেই।'] },
+  { n: 2, href: 'experiments/expert.html', fam: ['Classical AI', 'ক্লাসিক্যাল এআই'], t: ['Complaint routing expert system', 'অভিযোগ বণ্টনের এক্সপার্ট সিস্টেম'],
+    d: ['Humans write IF-THEN rules; the computer applies them. Edit the rules and find complaints that break them.', 'মানুষ IF-THEN নিয়ম লেখে; কম্পিউটার তা প্রয়োগ করে। নিয়ম বদলান এবং এমন অভিযোগ খুঁজুন যা নিয়মকে ব্যর্থ করে।'] },
+  { n: 3, href: 'experiments/tree.html', fam: ['Machine learning', 'মেশিন লার্নিং'], t: ['Predict waterlogging (decision tree)', 'জলাবদ্ধতার পূর্বাভাস (ডিসিশন ট্রি)'],
+    d: ['Train a decision tree on 800 records, test it on unseen data, overfit it, and see biased records produce biased predictions.', '৮০০টি রেকর্ড দিয়ে ডিসিশন ট্রি শেখান, অদেখা ডেটায় যাচাই করুন, ওভারফিট করুন, এবং পক্ষপাতদুষ্ট রেকর্ড কীভাবে পক্ষপাতদুষ্ট পূর্বাভাস দেয় দেখুন।'] },
+  { n: 4, href: 'experiments/regression.html', fam: ['Machine learning', 'মেশিন লার্নিং'], t: ['Predict daily waste (regression)', 'দৈনিক বর্জ্যের পূর্বাভাস (রিগ্রেশন)'],
+    d: ['Fit a line that predicts tonnes of waste per ward. Watch the error shrink, then add an outlier.', 'ওয়ার্ডপ্রতি কত টন বর্জ্য হবে তা অনুমানের রেখা তৈরি করুন। ভুল কমতে দেখুন, তারপর একটি ব্যতিক্রমী ওয়ার্ড যোগ করুন।'] },
+  { n: 5, href: 'experiments/cluster.html', fam: ['Machine learning', 'মেশিন লার্নিং'], t: ['Discover hidden neighbourhood groups (k-means)', 'এলাকার লুকানো দল খোঁজা (k-means)'],
+    d: ['No correct answers given. The machine groups 200 neighbourhoods; you name the groups.', 'কোনো সঠিক উত্তর দেওয়া হয়নি। যন্ত্র ২০০টি এলাকাকে দলে ভাগ করে; দলগুলোর নাম দেবেন আপনি।'] },
+  { n: 6, id: 'exp6', ext: 'https://playground.tensorflow.org/', fam: ['Neural networks', 'নিউরাল নেটওয়ার্ক'], t: ['Watch a neural network learn', 'নিউরাল নেটওয়ার্ককে শিখতে দেখুন'],
+    d: ['TensorFlow Playground: a real small neural network training in the browser.', 'TensorFlow Playground: ব্রাউজারেই একটি ছোট আসল নিউরাল নেটওয়ার্কের প্রশিক্ষণ।'],
+    steps: [
+      ['Dataset: pick the simple two-blob data. Remove all hidden layers (single neuron). Press ▶. It learns quickly.', 'ডেটাসেট: সহজ দুই-দলের ডেটা নিন। সব hidden layer সরিয়ে দিন (একটি নিউরন)। ▶ চাপুন। দ্রুত শিখে ফেলে।'],
+      ['Switch to the circle dataset. The single neuron fails: it can only draw a straight line.', 'বৃত্তাকার ডেটাসেটে যান। একটি নিউরন ব্যর্থ হয়: সে কেবল সরল রেখা টানতে পারে।'],
+      ['Add one hidden layer with 4 neurons. Train again and watch the boundary bend.', '৪টি নিউরনসহ একটি hidden layer যোগ করুন। আবার শেখান, সীমারেখা বাঁকতে দেখুন।'],
+      ['Try the spiral. Add layers and neurons; point out training loss vs test loss.', 'স্পাইরাল ডেটা নিন। লেয়ার ও নিউরন বাড়ান; training loss আর test loss তুলনা করুন।'],
+      ['Break it: set Noise to 50% and the training ratio to 10%. Test loss rises: memorising, not learning.', 'ভেঙে দেখি: Noise ৫০% এবং training ratio ১০% করুন। test loss বাড়ে: মুখস্থ করছে, শিখছে না।']
+    ] },
+  { n: 7, id: 'exp7', ext: 'https://teachablemachine.withgoogle.com/train/image', fam: ['Deep learning', 'ডিপ লার্নিং'], t: ['Train an image recogniser with the webcam', 'ওয়েবক্যাম দিয়ে ছবি চেনার মডেল তৈরি'],
+    d: ['Google Teachable Machine: three classes (organic, plastic, paper waste), trained live with transfer learning.', 'Google Teachable Machine: তিনটি শ্রেণি (জৈব, প্লাস্টিক, কাগজ বর্জ্য), ট্রান্সফার লার্নিং দিয়ে সরাসরি প্রশিক্ষণ।'],
+    steps: [
+      ['Rename classes: Organic, Plastic, Paper. Add a fourth class "Nothing" for the empty background.', 'শ্রেণির নাম দিন: Organic, Plastic, Paper। খালি পটভূমির জন্য চতুর্থ শ্রেণি "Nothing" যোগ করুন।'],
+      ['Hold each object to the webcam: 30–50 images per class, rotating and moving it.', 'প্রতিটি বস্তু ওয়েবক্যামের সামনে ধরুন: প্রতি শ্রেণিতে ৩০–৫০টি ছবি, ঘুরিয়ে-সরিয়ে।'],
+      ['Train model. Show new, unseen objects and read the confidence bars.', 'Train model চাপুন। নতুন, অদেখা বস্তু দেখান এবং আস্থার বার পড়ুন।'],
+      ['Break it: an unfamiliar object (a phone), dim the lights, change the background. It still answers confidently, and wrongly.', 'ভেঙে দেখি: অপরিচিত বস্তু (মোবাইল), আলো কমান, পটভূমি বদলান। তবুও আত্মবিশ্বাসের সঙ্গে ভুল উত্তর দেয়।'],
+      ['Fix it: add more varied examples and retrain. Lesson: data coverage matters more than the model.', 'ঠিক করুন: আরও বৈচিত্র্যময় উদাহরণ যোগ করে আবার শেখান। শিক্ষা: মডেলের চেয়ে ডেটার বৈচিত্র্য বেশি গুরুত্বপূর্ণ।']
+    ] },
+  { n: 8, href: 'experiments/traffic.html', fam: ['Reinforcement learning', 'রিইনফোর্সমেন্ট লার্নিং'], t: ['Learning traffic signal (Q-learning)', 'শিখতে পারা ট্রাফিক সিগন্যাল (Q-learning)'],
+    d: ['A fixed-time signal versus an agent that learns from rewards, with safety rules it cannot override.', 'নির্দিষ্ট-সময়ের সিগন্যাল বনাম পুরস্কার থেকে শেখা এজেন্ট, এমন নিরাপত্তা নিয়মসহ যা এজেন্ট ভাঙতে পারে না।'] },
+  { n: 9, href: 'experiments/nextword.html', fam: ['Language models', 'ভাষা মডেল'], t: ['Next-word prediction: build a tiny language model', 'পরের শব্দ অনুমান: ছোট্ট একটি ভাষা মডেল তৈরি'],
+    d: ['Audience guessing game, then train a word-level model live on English or Bangla text and generate sentences.', 'দর্শকদের অনুমানের খেলা, তারপর ইংরেজি বা বাংলা লেখায় সরাসরি একটি শব্দভিত্তিক মডেল শিখিয়ে বাক্য তৈরি।'] },
+  { n: 10, id: 'exp10', ext: 'https://poloclub.github.io/transformer-explainer/', fam: ['Language models', 'ভাষা মডেল'], t: ['Look inside a real GPT-2', 'আসল GPT-2-এর ভেতরে দেখা'],
+    d: ['Transformer Explainer runs GPT-2 in the browser and shows tokens, attention and next-token probabilities.', 'Transformer Explainer ব্রাউজারে GPT-2 চালায় এবং টোকেন, attention ও পরের টোকেনের সম্ভাবনা দেখায়।'],
+    steps: [
+      ['Type an English prompt, e.g. "The city corporation collects". See it split into tokens.', 'ইংরেজি প্রম্পট লিখুন, যেমন "The city corporation collects"। টোকেনে ভাগ হওয়া দেখুন।'],
+      ['Read the probability list for the next token. Generate one token at a time.', 'পরের টোকেনের সম্ভাবনার তালিকা পড়ুন। একবারে একটি করে টোকেন তৈরি করুন।'],
+      ['Move the temperature slider: low = safe and repetitive, high = creative and random.', 'temperature স্লাইডার সরান: কম = নিরাপদ ও পুনরাবৃত্ত, বেশি = সৃজনশীল ও এলোমেলো।'],
+      ['Point out: this is inference (using a trained model), not training. ChatGPT is the same idea at enormous scale.', 'লক্ষ করুন: এটা inference (শেখানো মডেল ব্যবহার), প্রশিক্ষণ নয়। ChatGPT একই ধারণা, বিশাল পরিসরে।']
+    ] },
+  { n: 11, href: 'experiments/complaints.html', fam: ['Capstone', 'সমাপনী'], t: ['The right AI for the job: Bangla complaint routing', 'কাজের জন্য সঠিক এআই: বাংলা অভিযোগ বণ্টন'],
+    d: ['Rules vs machine learning (and optionally a local LLM) on the same test set: accuracy, speed, cost and explainability.', 'একই টেস্ট সেটে নিয়ম বনাম মেশিন লার্নিং (ও ইচ্ছা হলে লোকাল LLM): নির্ভুলতা, গতি, খরচ ও ব্যাখ্যাযোগ্যতা।'] },
+  { n: 12, href: 'experiments/llm-concepts.html', fam: ['Language models', 'ভাষা মডেল'], t: ['Visual guide: LLM models, GPU & CUDA cores, self-hosting & civic open source', 'ভিজ্যুয়াল গাইড: LLM মডেল, GPU ও CUDA কোর, সেল্ফ-হোস্টিং ও সিটি ওপেন-সোর্স'],
+    d: ['Animated walkthrough of what a model file holds, CPU vs GPU CUDA core race, cloud GPT vs self-hosted privacy flows, and open-source models for City Corporations.', 'মডেল ফাইলের ভেতরে কী থাকে, CPU বনাম GPU CUDA কোরের দৌড়, ক্লাউড GPT বনাম সেল্ফ-হোস্টেড গোপনীয়তা এবং সিটি কর্পোরেশনের জন্য ওপেন-সোর্স মডেলের অ্যানিমেটেড গাইড।'] }
+];
+
+document.getElementById('exp-list').innerHTML = EXPS.map(function (e) {
+  var ext = !!e.ext;
+  var steps = e.steps ? '<details><summary>' + B('Facilitator steps', 'সহায়কের ধাপ') + '</summary><ol>' +
+    e.steps.map(function (s) { return '<li>' + B(s[0], s[1]) + '</li>'; }).join('') + '</ol></details>' : '';
+  return '<div class="exp' + (ext ? ' ext' : '') + '"' + (e.id ? ' id="' + e.id + '"' : '') + '>' +
+    '<div class="n">' + e.n + '</div>' +
+    '<div><h3>' + B(e.t[0], e.t[1]) + '</h3>' +
+    '<div class="row" style="margin:2px 0 4px"><span class="fam">' + B(e.fam[0], e.fam[1]) + '</span>' +
+    (ext ? '<span class="pill warn">Online</span>' : '<span class="pill ok">Offline</span>') + '</div>' +
+    '<p>' + B(e.d[0], e.d[1]) + '</p>' + steps + '</div>' +
+    '<a class="btn ' + (ext ? '' : 'primary ') + 'go" href="' + (e.href || e.ext) + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>' +
+    (ext ? B('Open tool ↗', 'টুল খুলুন ↗') : B('Open →', 'খুলুন →')) + '</a></div>';
+}).join('');
+</script>
+</body>
+</html>

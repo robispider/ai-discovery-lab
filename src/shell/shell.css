@@ -1,0 +1,623 @@
+/* Shell layout: top bar across, icon rail down the left, routed page in the rest. */
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+  height: 100%;
+}
+
+.shell-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-inline: 16px;
+  background: var(--card);
+  border-bottom: 1.5px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.brand svg {
+  flex: none;
+}
+
+.brand b {
+  display: block;
+  font-family: var(--font-display);
+  font-stretch: 72%;
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+:root[lang='bn'] .brand b {
+  font-family: var(--font-bn);
+  font-stretch: normal;
+  font-size: 1.15rem;
+}
+
+.brand small {
+  display: block;
+  font-family: var(--font-display);
+  font-stretch: 70%;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+:root[lang='bn'] .brand small {
+  font-family: var(--font-bn);
+  letter-spacing: 0.04em;
+}
+
+.progress {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.progress-bar {
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.progress-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.progress-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.synthetic {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warn);
+  border: 1.5px dashed var(--warn);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+/* ---------- Icon rail ---------- */
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-block: 12px;
+  background: var(--card);
+  border-right: 1.5px solid var(--line);
+  overflow-y: auto;
+}
+
+.rail-item {
+  width: calc(var(--rail-w) - 12px);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 8px 0;
+  border-radius: 10px;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 0.64rem;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.rail-item:hover {
+  background: var(--paper);
+}
+
+.rail-item[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.rail-bottom {
+  margin-top: auto;
+}
+
+/* ---------- Lesson view ---------- */
+.lesson {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--panel-w);
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+/* Stage */
+.stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2px dashed transparent;
+  border-radius: var(--radius);
+  pointer-events: none;
+  transition: border-color 0.25s;
+}
+
+.stage.breaking::after {
+  border-color: var(--warn);
+}
+
+.stage-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 0;
+}
+
+.stage-full {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stage-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.stage-placeholder {
+  max-width: 44ch;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.stage-placeholder-icon {
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 24px;
+  border: 1.5px dashed var(--fam);
+  background: var(--card);
+  color: var(--fam);
+}
+
+.stage-placeholder h2 {
+  font-size: 1.35rem;
+  font-stretch: 85%;
+}
+
+.cycle {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px 14px;
+}
+
+.cycle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cycle button b {
+  font-weight: 600;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.cycle button[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--card);
+}
+
+.cycle button.brk[aria-pressed='true'] {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: var(--on-strong);
+}
+
+/* A legacy experiment page running on the stage (Phase 1). */
+.stage-body.embed {
+  display: block;
+  place-items: normal; /* centring would shrink the frame to the iframe's default 300px */
+  overflow: hidden;
+  padding: 10px 16px 4px;
+}
+
+.legacy-frame {
+  position: relative;
+  height: 100%;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.legacy-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.legacy-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+}
+
+/* Panel */
+.panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  /* The tab text keeps at least 150px; the controls take the rest and scroll if they need more. */
+  grid-template-rows: auto auto minmax(150px, 1fr) minmax(0, auto);
+  background: var(--card);
+  border-left: 1.5px solid var(--line);
+}
+
+.panel-head {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px 10px;
+}
+
+.panel-pos {
+  font-size: 0.76rem;
+  color: var(--ink-2);
+}
+
+.panel-online {
+  color: var(--warn);
+}
+
+.panel-title {
+  font-size: 1.2rem;
+  font-stretch: 85%;
+  font-weight: 750;
+}
+
+.tabs {
+  display: flex;
+  padding-inline: 10px;
+  border-bottom: 1.5px solid var(--line);
+  overflow-x: auto;
+}
+
+.tabs button {
+  margin-bottom: -1.5px;
+  padding: 9px 9px;
+  border: 0;
+  border-bottom: 2.5px solid transparent;
+  background: none;
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+:root[lang='bn'] .tabs button {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+:root[data-theme='projector'] .tabs button {
+  padding-inline: 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0;
+}
+
+.tabs button[aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.tabs button.brk[aria-selected='true'] {
+  color: var(--warn);
+  border-bottom-color: var(--warn);
+}
+
+.panel-body {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px 14px;
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.facts dt {
+  color: var(--ink-2);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pending-tag {
+  justify-self: start;
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.try {
+  display: grid;
+  gap: 10px;
+  padding: 14px 18px 16px;
+  border-top: 1.5px solid var(--line);
+  background: var(--paper);
+}
+
+.try .btn {
+  justify-self: start;
+}
+
+.try-note {
+  font-size: 0.86rem;
+}
+
+/* Lesson strip */
+.film {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding-left: 14px;
+  background: var(--card);
+  border-top: 1.5px solid var(--line);
+}
+
+.film-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.66rem;
+}
+
+.strip {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px 12px 0;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.strip li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.film-card {
+  position: relative;
+  width: 138px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 8px;
+  padding: 9px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.film-card svg {
+  grid-row: 1 / 3;
+  color: var(--fam);
+}
+
+.film-card:hover {
+  border-color: var(--fam);
+}
+
+.film-card[aria-current='page'] {
+  border-color: var(--fam);
+  background: var(--card);
+  box-shadow: inset 0 -3px 0 var(--fam);
+}
+
+.film-n {
+  font-size: 0.7rem;
+  color: var(--ink-2);
+}
+
+.film-t {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.film-done {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--card);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.film-online {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--warn);
+  border-radius: 50%;
+  color: var(--warn);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* ---------- Narrow screens: rail becomes a scrolling row, lesson stacks ---------- */
+@media (max-width: 1024px) {
+  .progress-bar {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding-block: 10px;
+  }
+
+  .progress {
+    margin-left: 0;
+  }
+
+  .rail {
+    flex-direction: row;
+    padding: 6px 8px;
+    border-right: 0;
+    border-bottom: 1.5px solid var(--line);
+    overflow-x: auto;
+  }
+
+  .rail-item {
+    width: auto;
+    min-width: 64px;
+    flex: none;
+  }
+
+  .rail-bottom {
+    margin-top: 0;
+  }
+
+  .lesson {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    height: auto;
+  }
+
+  .stage {
+    min-height: 360px;
+  }
+
+  .stage-body {
+    flex: none;
+  }
+
+  /* Stacked layout: give the experiment most of the screen; it scrolls inside its frame. */
+  .stage-body.embed {
+    height: 78svh;
+    padding-inline: 8px;
+  }
+
+  .panel {
+    border-left: 0;
+    border-top: 1.5px solid var(--line);
+  }
+
+  .film {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand small,
+  .synthetic {
+    display: none;
+  }
+}

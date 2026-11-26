@@ -1,0 +1,6 @@
+dist
+dist-classroom
+public/legacy
+/data/
+docs
+package-lock.json

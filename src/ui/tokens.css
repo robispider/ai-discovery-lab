@@ -1,0 +1,189 @@
+/*
+ * AI Discovery Lab design tokens.
+ * Look: drafting paper. Navy ink, teal for "the model / learning", orange for "break it / warnings".
+ * Themes: light (default), dark (OS setting or data-theme="dark"), projector (data-theme="projector":
+ * high contrast, larger type, for the back row of a training room).
+ * Every colour is a token; components never use literal colours.
+ */
+:root {
+  --paper: #edf1ee;
+  --paper-2: #e2e8e4;
+  --card: #fafcfb;
+  --ink: #14233a;
+  --ink-2: #4a5869;
+  --line: #cbd5cf;
+  --line-strong: #a9b7ae;
+  --grid: rgb(20 35 58 / 6.5%);
+  --accent: #0b7a6e;
+  --accent-soft: #d2ece7;
+  --warn: #d9480f;
+  --warn-soft: #fbe3d6;
+  --on-strong: #ffffff;
+
+  /* One colour per AI family (used on chips, lesson cards and thumbnails). */
+  --f-classical: #9a6b00;
+  --f-ml: #0b7a6e;
+  --f-nn: #6b45b5;
+  --f-dl: #b03a73;
+  --f-rl: #3b7f2a;
+  --f-lm: #2f64b0;
+  --f-cap: #14233a;
+
+  /* Data colours for the experiments: two classes, a "good" green, eight series, and a city map. */
+  --yes: #b91c1c;
+  --yes-soft: #fbd5d5;
+  --no: #1d4ed8;
+  --no-soft: #d6e2fb;
+  --ok: #15803d;
+  --c1: #0b7a6e;
+  --c2: #d9480f;
+  --c3: #6d28d9;
+  --c4: #be185d;
+  --c5: #1d4ed8;
+  --c6: #a16207;
+  --c7: #4d7c0f;
+  --c8: #475569;
+  --water: #93c5fd;
+  --building: #cfc8b8;
+  --road: #ffffff;
+  --congested: #fcd9a8;
+  --blocked: #1f2937;
+
+  --shadow: 0 14px 30px -22px rgb(20 35 58 / 45%);
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --font-display: 'Archivo Variable', 'Noto Sans Bengali', system-ui, sans-serif;
+  --font-body: 'Archivo Variable', 'Noto Sans Bengali', system-ui, sans-serif;
+  --font-bn: 'Noto Sans Bengali', 'Archivo Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  --text-base: 15px;
+  --rail-w: 72px;
+  --panel-w: 360px;
+  --topbar-h: 64px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-theme='projector']) {
+    --paper: #0e1620;
+    --paper-2: #142030;
+    --card: #172433;
+    --ink: #e6edf3;
+    --ink-2: #9db0c2;
+    --line: #2a3b4e;
+    --line-strong: #3d5268;
+    --grid: rgb(150 190 230 / 7%);
+    --accent: #3cc2b0;
+    --accent-soft: #12403b;
+    --warn: #ff7a3d;
+    --warn-soft: #4a2412;
+    --on-strong: #0e1620;
+    --f-classical: #e0b23c;
+    --f-ml: #3cc2b0;
+    --f-nn: #a88bf0;
+    --f-dl: #ec7fb3;
+    --f-rl: #7cc66a;
+    --f-lm: #6fa3ef;
+    --f-cap: #e6edf3;
+    --yes: #f87171;
+    --yes-soft: #4c1d1d;
+    --no: #60a5fa;
+    --no-soft: #1e335a;
+    --ok: #4ade80;
+    --c1: #3cc2b0;
+    --c2: #ff7a3d;
+    --c3: #a78bfa;
+    --c4: #f472b6;
+    --c5: #60a5fa;
+    --c6: #facc15;
+    --c7: #a3e635;
+    --c8: #94a3b8;
+    --water: #1e4f8a;
+    --building: #3a4250;
+    --road: #26303c;
+    --congested: #5b3a12;
+    --blocked: #f3f4f6;
+    --shadow: 0 14px 30px -22px rgb(0 0 0 / 80%);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #0e1620;
+  --paper-2: #142030;
+  --card: #172433;
+  --ink: #e6edf3;
+  --ink-2: #9db0c2;
+  --line: #2a3b4e;
+  --line-strong: #3d5268;
+  --grid: rgb(150 190 230 / 7%);
+  --accent: #3cc2b0;
+  --accent-soft: #12403b;
+  --warn: #ff7a3d;
+  --warn-soft: #4a2412;
+  --on-strong: #0e1620;
+  --f-classical: #e0b23c;
+  --f-ml: #3cc2b0;
+  --f-nn: #a88bf0;
+  --f-dl: #ec7fb3;
+  --f-rl: #7cc66a;
+  --f-lm: #6fa3ef;
+  --f-cap: #e6edf3;
+  --yes: #f87171;
+  --yes-soft: #4c1d1d;
+  --no: #60a5fa;
+  --no-soft: #1e335a;
+  --ok: #4ade80;
+  --c1: #3cc2b0;
+  --c2: #ff7a3d;
+  --c3: #a78bfa;
+  --c4: #f472b6;
+  --c5: #60a5fa;
+  --c6: #facc15;
+  --c7: #a3e635;
+  --c8: #94a3b8;
+  --water: #1e4f8a;
+  --building: #3a4250;
+  --road: #26303c;
+  --congested: #5b3a12;
+  --blocked: #f3f4f6;
+  --shadow: 0 14px 30px -22px rgb(0 0 0 / 80%);
+  color-scheme: dark;
+}
+
+/* Projector: white paper, pure-black ink, stronger lines, bigger type. */
+:root[data-theme='projector'] {
+  --paper: #ffffff;
+  --paper-2: #eef0f2;
+  --card: #ffffff;
+  --ink: #000000;
+  --ink-2: #26303b;
+  --line: #8a96a3;
+  --line-strong: #4a5663;
+  --grid: rgb(0 0 0 / 7%);
+  --accent: #00665c;
+  --accent-soft: #c6ebe5;
+  --warn: #c03a00;
+  --warn-soft: #ffe1d1;
+  --yes: #a50000;
+  --yes-soft: #ffd6d6;
+  --no: #0033b0;
+  --no-soft: #d6e2ff;
+  --ok: #006b28;
+  --c1: #00665c;
+  --c2: #c03a00;
+  --c3: #5b1fc7;
+  --c4: #a3004d;
+  --c5: #0033b0;
+  --c6: #855100;
+  --c7: #3d6600;
+  --c8: #26303b;
+  --shadow: none;
+  --text-base: 19px;
+  --rail-w: 84px;
+  --panel-w: 400px;
+  color-scheme: light;
+}
