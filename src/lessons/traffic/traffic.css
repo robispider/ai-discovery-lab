@@ -1,0 +1,404 @@
+/* Lesson 8: a traffic light that learns */
+.tr-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.tr-streets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+
+.tr-street {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+  padding: 10px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.tr-street.agent {
+  border-color: var(--accent);
+}
+
+.tr-street header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tr-street h4 {
+  font-size: 0.92rem;
+}
+
+.tr-street header p {
+  font-size: 0.76rem;
+  color: var(--ink-2);
+}
+
+.tr-badge {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+}
+
+.tr-map {
+  display: block;
+  width: 100%;
+  aspect-ratio: 440 / 324;
+  border-radius: var(--radius-sm);
+  background: #3a464b;
+}
+
+.tr-map-label {
+  fill: #f4f2e4;
+  font: 800 13px var(--font-body);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.tr-map-more {
+  fill: #ffffff;
+  font: 700 11px var(--font-body);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.tr-signal .lamp-red {
+  fill: #683e3f;
+}
+
+.tr-signal .lamp-yellow {
+  fill: #6c593c;
+}
+
+.tr-signal .lamp-green {
+  fill: #345f55;
+}
+
+.tr-signal[data-light='stop'] .lamp-red {
+  fill: #ff7d76;
+}
+
+.tr-signal[data-light='yellow'] .lamp-yellow {
+  fill: #ffcf62;
+}
+
+.tr-signal[data-light='go'] .lamp-green {
+  fill: #8ef7b3;
+}
+
+.tr-signal-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tr-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.tr-dot[data-light='yellow'] {
+  background: #cc851c;
+}
+
+.tr-dot[data-light='stop'] {
+  background: var(--yes);
+}
+
+.tr-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+}
+
+.tr-stats div {
+  display: grid;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.tr-stats dt {
+  font-size: 0.68rem;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.tr-stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-key {
+  display: inline-block;
+  width: 0.62em;
+  height: 0.62em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+}
+
+.tr-key.ns {
+  background: var(--no);
+}
+
+.tr-key.ew {
+  background: var(--warn);
+}
+
+.tr-clock {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.tr-clock b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-playback {
+  gap: 8px;
+}
+
+.tr-speed {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.tr-speed input {
+  width: 110px;
+  accent-color: var(--accent);
+}
+
+.tr-note,
+.tr-small {
+  font-size: 0.8rem;
+}
+
+.tr-flow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tr-stage {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.tr-stage h4 {
+  font-size: 0.72rem;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tr-stage strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.tr-stage p {
+  font-size: 0.76rem;
+  color: var(--ink-2);
+}
+
+.tr-stage.reward strong {
+  color: var(--warn);
+}
+
+.tr-stage-icon {
+  font-size: 1.2rem;
+}
+
+.tr-arrow {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-2);
+}
+
+.tr-reward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.86rem;
+}
+
+.tr-reward legend {
+  padding: 0 4px;
+  font-size: 0.76rem;
+  color: var(--ink-2);
+}
+
+.tr-reward label,
+.tr-live {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+
+.tr-reward input,
+.tr-live input {
+  accent-color: var(--accent);
+}
+
+.tr-progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.tr-policy-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.tr-policy-legend span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.tr-policy {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tr-policy-table {
+  width: 100%;
+  table-layout: fixed;
+  border-spacing: 2px;
+  text-align: center;
+}
+
+.tr-policy-table caption {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.tr-policy-table th {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.tr-policy-table td {
+  padding: 0;
+}
+
+.tr-policy-table button,
+.tr-policy-legend i {
+  display: inline-grid;
+  place-items: center;
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 0.7rem;
+}
+
+.tr-policy-table button {
+  width: 100%;
+  min-height: 24px;
+  cursor: pointer;
+}
+
+.tr-policy-legend i {
+  width: 18px;
+  height: 18px;
+}
+
+.tr-policy-table .keep,
+.tr-policy-legend .keep {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tr-policy-table .switch,
+.tr-policy-legend .switch {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.tr-policy-table .unseen,
+.tr-policy-legend .unseen {
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
+.tr-policy-table .current,
+.tr-policy-legend .current {
+  border-color: var(--ink);
+}
+
+.tr-policy-table .selected {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.tr-explain summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.tr-explain p {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+
+@media (max-width: 700px) {
+  .tr-flow,
+  .tr-policy {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tr-arrow {
+    display: none;
+  }
+
+  .tr-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

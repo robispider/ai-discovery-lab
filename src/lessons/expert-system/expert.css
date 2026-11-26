@@ -1,0 +1,172 @@
+/* Lesson 2: expert system */
+.ex-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+}
+
+.ex-flow-box {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 0.9rem;
+}
+
+.ex-flow-box.rules {
+  border-color: var(--fam);
+  border-style: dashed;
+}
+
+.ex-flow-box.out {
+  border-color: var(--accent);
+}
+
+.ex-flow-arrow {
+  align-self: center;
+  font-size: 1.4rem;
+  color: var(--ink-2);
+}
+
+.ex-depts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ex-dept {
+  padding: 6px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ex-rules {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ex-rules li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(150px, 190px) auto;
+  align-items: end;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.ex-rules.readonly li {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 6px 10px;
+  font-size: 0.84rem;
+}
+
+.ex-rules li.fired {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ex-rules li.winner {
+  border-color: var(--warn);
+  background: var(--accent-soft);
+  box-shadow: inset 4px 0 0 var(--warn);
+}
+
+.ex-no {
+  align-self: center;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.ex-field {
+  display: grid;
+  gap: 2px;
+}
+
+.ex-kw {
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.ex-words {
+  overflow-wrap: anywhere;
+}
+
+.ex-then {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ex-tools {
+  display: flex;
+  gap: 4px;
+}
+
+.ex-decision {
+  display: grid;
+  gap: 2px;
+}
+
+.ex-none {
+  font-size: 1.15rem;
+}
+
+.ex-text {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.ex-trace {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.88rem;
+}
+
+.ex-conflict {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft);
+  font-size: 0.86rem;
+}
+
+.ex-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+@media (max-width: 700px) {
+  .ex-flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ex-flow-arrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .ex-rules li {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  .ex-rules li > :nth-child(n + 3) {
+    grid-column: 2;
+  }
+}

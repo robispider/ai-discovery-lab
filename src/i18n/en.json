@@ -66,5 +66,11 @@
   "settings.progress": "Progress",
   "settings.progressHint": "Progress is stored only in this browser.",
   "settings.reset": "Clear my progress",
-  "settings.resetDone": "Progress cleared."
+  "settings.resetDone": "Progress cleared.",
+  "kit.lesson": "Lesson",
+  "kit.reset": "Reset",
+  "kit.presets": "Jump to",
+  "kit.step": "Step {n} of 6",
+  "kit.next": "Next step",
+  "panel.previous": "Previous version"
 }

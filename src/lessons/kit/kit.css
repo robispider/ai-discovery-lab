@@ -1,0 +1,456 @@
+/* Shared look for ported experiments: drafting-paper cards, teal for the model, orange for Break it. */
+
+.lab-view {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.lab-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.lab-cols.wide-left {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+}
+
+.lab-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.lab-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.lab-card h3 {
+  font-size: 1rem;
+  font-stretch: 85%;
+  font-weight: 750;
+}
+
+.lab-card p + p {
+  margin-top: 0.5em;
+}
+
+.lab-lead {
+  max-width: 72ch;
+  color: var(--ink-2);
+}
+
+.lab-lead b,
+.lab-lead strong {
+  color: var(--ink);
+}
+
+.lab-callout {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.lab-callout.break {
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.lab-callout .eyebrow {
+  color: var(--accent);
+}
+
+.lab-callout.break .eyebrow {
+  color: var(--warn);
+}
+
+/* Step brief: what to do on this step of the cycle. */
+.step-brief {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 10px 18px 0;
+  padding: 9px 12px;
+  border: 1.5px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.step-brief.brk {
+  border-left-color: var(--warn);
+}
+
+.step-brief-n {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-strong);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.step-brief.brk .step-brief-n {
+  background: var(--warn);
+}
+
+.step-brief b {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.step-brief p {
+  font-size: 0.86rem;
+  color: var(--ink-2);
+}
+
+.step-brief .btn {
+  padding: 5px 11px;
+  font-size: 0.8rem;
+}
+
+/* Numbers */
+.lab-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lab-stat {
+  display: grid;
+  min-width: 96px;
+  padding: 7px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.lab-stat-k {
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.lab-stat-v {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-stat.good .lab-stat-v {
+  color: var(--ok);
+}
+
+.lab-stat.bad .lab-stat-v {
+  color: var(--warn);
+}
+
+.lab-big {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* Bars */
+.lab-bars {
+  display: grid;
+  gap: 5px;
+}
+
+.lab-bar {
+  display: grid;
+  grid-template-columns: minmax(80px, 34%) minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+
+.lab-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lab-bar-track {
+  height: 16px;
+  border-radius: 5px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.lab-bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--accent);
+  transition: width 0.35s;
+}
+
+.lab-bar.top .lab-bar-track i {
+  background: var(--warn);
+}
+
+.lab-bar-v {
+  text-align: right;
+  font-size: 0.8rem;
+}
+
+/* Charts */
+.lab-chart-wrap {
+  margin: 0;
+}
+
+.lab-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.lab-chart text {
+  fill: var(--ink-2);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.lab-chart .axis {
+  stroke: var(--line);
+}
+
+.lab-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.lab-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.lab-canvas {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  touch-action: none;
+}
+
+/* Inputs */
+.lab-slider {
+  display: grid;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.lab-slider-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-2);
+}
+
+.lab-slider-head b {
+  color: var(--ink);
+}
+
+.lab-slider input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.lab-input,
+.lab-card textarea,
+.lab-card select,
+.try textarea,
+.try select,
+.try input[type='text'] {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.lab-card textarea,
+.try textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.lab-choice {
+  flex-wrap: wrap;
+}
+
+.btn.small {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn.on {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chip-btn {
+  padding: 4px 11px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chip-btn:hover {
+  border-color: var(--accent);
+}
+
+.chip-btn.brk {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.chip-btn[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--card);
+}
+
+.lab-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.lab-presets .eyebrow {
+  width: 100%;
+}
+
+/* Tags and tables */
+.lab-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lab-pill.ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.lab-pill.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.lab-pill.yes {
+  background: var(--yes-soft);
+  color: var(--yes);
+}
+
+.lab-pill.no {
+  background: var(--no-soft);
+  color: var(--no);
+}
+
+.lab-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-table th,
+.lab-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.lab-table th {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+mark {
+  padding: 0 2px;
+  border-radius: 4px;
+  background: var(--warn-soft);
+  color: inherit;
+}
+
+/* A ported lesson's stage scrolls as a page; the panel's controls scroll on their own. */
+.stage-body.ported {
+  display: block;
+  place-items: normal;
+  padding: 12px 18px 16px;
+}
+
+.try {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (max-width: 860px) {
+  .lab-cols.wide-left {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .step-brief {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .step-brief .btn {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

@@ -76,7 +76,7 @@ export function LessonPanel({ lesson }: { lesson: Lesson }) {
               <dd>{t(lesson.online ? 'panel.runsOnline' : 'panel.runsOffline')}</dd>
               {lesson.legacy && (
                 <>
-                  <dt>{t('panel.current')}</dt>
+                  <dt>{t(lesson.Stage ? 'panel.previous' : 'panel.current')}</dt>
                   <dd className="mono">
                     <a href={legacyUrl(lesson.legacy)} target="_blank" rel="noopener">
                       {lesson.legacy}
@@ -110,7 +110,7 @@ export function LessonPanel({ lesson }: { lesson: Lesson }) {
           </a>
         ) : (
           <p className="muted try-note">
-            {t(lesson.legacy ? 'panel.controlsInStage' : 'panel.controlsSoon')}
+            {t(lesson.legacy && !lesson.Stage ? 'panel.controlsInStage' : 'panel.controlsSoon')}
           </p>
         )}
       </div>

@@ -1,4 +1,13 @@
 import { defineLesson, type Lesson } from './types';
+import { LlmGuideControls, LlmGuideStage, llmGuideSteps } from './llm-guide';
+import { RegressionControls, RegressionStage, regressionSteps } from './regression';
+import { TreeControls, TreeStage, treeSteps } from './tree';
+import { TrafficPanelControls, TrafficStage, trafficSteps } from './traffic';
+import { RouteControls, RouteStage, routeSteps } from './route';
+import { NextWordControls, NextWordStage, nextWordSteps } from './next-word';
+import { RightAiControls, RightAiStage, rightAiSteps } from './right-ai';
+import { ClusterControls, ClusterStage, clusterSteps } from './clustering';
+import { ExpertControls, ExpertStage, expertSteps } from './expert-system';
 
 /*
  * The 12 lessons, in teaching order. Titles and summaries come from the previous index.html.
@@ -23,14 +32,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'The ward is a grid. BFS explores outward ring by ring. A* adds a hint, the distance to the goal, so it explores fewer cells for the same route.',
+        bn: 'ওয়ার্ডটি একটি গ্রিড। BFS বৃত্তের মতো চারপাশে ছড়িয়ে খোঁজে। A* একটি ইঙ্গিত যোগ করে, স্টেশন পর্যন্ত দূরত্ব, তাই একই পথের জন্য কম ঘর যাচাই করে।',
       },
       breakIt: {
         en: 'Close a bridge. Both searches still find a route, but A* now explores far more cells because its hint keeps pointing at the closed crossing.',
+        bn: 'একটি সেতু বন্ধ করুন। দুই অনুসন্ধানই তবু পথ পায়, কিন্তু A* এখন অনেক বেশি ঘর যাচাই করে, কারণ তার ইঙ্গিত বারবার বন্ধ পারাপারের দিকেই দেখায়।',
       },
       notes: {
         en: 'Ask the room: did the computer learn anything? No data and no training, and it is still AI.',
+        bn: 'দলকে জিজ্ঞেস করুন: কম্পিউটার কি কিছু শিখেছে? কোনো ডেটা নেই, কোনো প্রশিক্ষণ নেই, তবুও এটি এআই।',
       },
     },
+    steps: routeSteps,
+    Stage: RouteStage,
+    Controls: RouteControls,
   }),
   defineLesson({
     n: 2,
@@ -49,14 +64,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'Each rule says: IF the complaint contains this word, THEN send it to this department. The lab shows which rule fired and why.',
+        bn: 'প্রতিটি নিয়ম বলে: যদি অভিযোগে এই শব্দ থাকে, তবে এই বিভাগে পাঠাও। কোন নিয়ম কাজ করল এবং কেন, ল্যাব তা দেখায়।',
       },
       breakIt: {
         en: 'Find a complaint where two rules fire and the system cannot choose, and one where no rule fires at all.',
+        bn: 'এমন অভিযোগ খুঁজুন যেখানে দুটি নিয়ম কাজ করে আর সিস্টেম বাছতে পারে না, আর এমন একটি যেখানে কোনো নিয়মই কাজ করে না।',
       },
       notes: {
         en: 'Let one participant add a rule, then find a complaint it misroutes. Rules only know what a person wrote down.',
+        bn: 'একজন অংশগ্রহণকারীকে একটি নিয়ম যোগ করতে দিন, তারপর এমন অভিযোগ খুঁজুন যা সেটি ভুল জায়গায় পাঠায়। মানুষ যা লিখেছে, নিয়ম শুধু ততটুকুই জানে।',
       },
     },
+    steps: expertSteps,
+    Stage: ExpertStage,
+    Controls: ExpertControls,
   }),
   defineLesson({
     n: 3,
@@ -75,14 +96,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'The tree picks the one question that best separates flooded days from dry ones, then asks a new question inside each branch, and repeats.',
+        bn: 'ট্রি সেই একটি প্রশ্ন বাছে যা পানি জমা দিন আর শুকনো দিনকে সবচেয়ে ভালো আলাদা করে, তারপর প্রতিটি শাখার ভেতরে নতুন প্রশ্ন করে, এবং এভাবে চলতে থাকে।',
       },
       breakIt: {
         en: 'Make the tree very deep. Accuracy on the training records reaches 100% while accuracy on unseen days falls: the tree has memorised the data.',
+        bn: 'ট্রিকে অনেক গভীর করুন। প্রশিক্ষণের রেকর্ডে নির্ভুলতা ১০০%-এ পৌঁছায়, কিন্তু অদেখা দিনে কমে যায়: ট্রি ডেটা মুখস্থ করেছে।',
       },
       notes: {
         en: 'Show overfitting first, then switch on under-reported wards to show how biased records produce biased predictions.',
+        bn: 'প্রথমে ওভারফিটিং দেখান, তারপর কম-জানানো ওয়ার্ডের সুইচ চালু করে দেখান পক্ষপাতদুষ্ট রেকর্ড কীভাবে পক্ষপাতদুষ্ট পূর্বাভাস দেয়।',
       },
     },
+    steps: treeSteps,
+    Stage: TreeStage,
+    Controls: TreeControls,
   }),
   defineLesson({
     n: 4,
@@ -101,14 +128,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'A straight line through population and tonnes per day, placed so the average distance from the points (the error) is as small as possible.',
+        bn: 'জনসংখ্যা ও দৈনিক টনের মধ্য দিয়ে একটি সরলরেখা, এমনভাবে বসানো যাতে বিন্দুগুলো থেকে গড় দূরত্ব (ভুল) যতটা সম্ভব কম হয়।',
       },
       breakIt: {
         en: 'Add a market ward. One unusual ward drags the line, and the prediction for every other ward changes with it.',
+        bn: 'একটি বাজার-ওয়ার্ড যোগ করুন। একটি ব্যতিক্রমী ওয়ার্ড রেখাকে টেনে নেয়, আর তার সাথে বাকি সব ওয়ার্ডের অনুমানও বদলে যায়।',
       },
       notes: {
         en: 'Correlation is not causation: population does not create waste by itself. Ask what else could explain the market ward.',
+        bn: 'সম্পর্ক মানেই কারণ নয়: জনসংখ্যা নিজে বর্জ্য তৈরি করে না। জিজ্ঞেস করুন, বাজার-ওয়ার্ডকে আর কী ব্যাখ্যা করতে পারে।',
       },
     },
+    steps: regressionSteps,
+    Stage: RegressionStage,
+    Controls: RegressionControls,
   }),
   defineLesson({
     n: 5,
@@ -127,14 +160,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'k-means drops k centres, gives each neighbourhood to its nearest centre, moves each centre to the middle of its group, and repeats until nothing changes.',
+        bn: 'k-means k-টি কেন্দ্র বসায়, প্রতিটি এলাকাকে নিকটতম কেন্দ্রে দেয়, প্রতিটি কেন্দ্রকে তার দলের মাঝখানে সরায়, এবং কিছু না বদলানো পর্যন্ত এভাবে চলতে থাকে।',
       },
       breakIt: {
         en: 'Change k. The same data tells one story with 2 groups and a different one with 6. The machine never says which is right.',
+        bn: 'k বদলান। একই ডেটা ২টি দলে এক গল্প বলে, ৬টি দলে আরেক গল্প। কোনটি ঠিক, যন্ত্র কখনো বলে না।',
       },
       notes: {
         en: 'Have the room name each group. The machine does not know what a market area or a dense settlement is; people do.',
+        bn: 'পুরো দলকে প্রতিটি দলের নাম দিতে বলুন। বাজার এলাকা বা ঘনবসতি কী, যন্ত্র জানে না; মানুষ জানে।',
       },
     },
+    steps: clusterSteps,
+    Stage: ClusterStage,
+    Controls: ClusterControls,
   }),
   defineLesson({
     n: 6,
@@ -201,14 +240,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'The agent sees the queue on each road, chooses to keep or switch the green, and is rewarded for fewer waiting vehicles. Over many runs it learns which choice pays.',
+        bn: 'এজেন্ট প্রতিটি রাস্তার সারি দেখে, সবুজ রাখবে না বদলাবে তা বাছে, এবং কম অপেক্ষমাণ গাড়ির জন্য পুরস্কার পায়। অনেকবার চালানোর পর সে শেখে কোন সিদ্ধান্তে লাভ।',
       },
       breakIt: {
         en: 'Train on morning traffic, then test on evening traffic. The learned policy no longer fits.',
+        bn: 'সকালের যানবাহনে শেখান, তারপর সন্ধ্যার যানবাহনে পরীক্ষা করুন। শেখা কৌশল আর খাপ খায় না।',
       },
       notes: {
         en: 'The safety shield sits outside the agent: minimum green and all-red are engineered, not learned.',
+        bn: 'নিরাপত্তার সুরক্ষা এজেন্টের বাইরে থাকে: ন্যূনতম সবুজ ও সবদিকে লাল প্রকৌশল দিয়ে ঠিক করা, শেখা নয়।',
       },
     },
+    steps: trafficSteps,
+    Stage: TrafficStage,
+    Controls: TrafficPanelControls,
   }),
   defineLesson({
     n: 9,
@@ -230,12 +275,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'Count which word follows which in a text, then turn the counts into probabilities. Temperature controls how often a less likely word is picked.',
+        bn: 'একটি লেখায় কোন শব্দের পরে কোন শব্দ আসে গুনুন, তারপর গণনাকে সম্ভাবনায় রূপ দিন। কম সম্ভাব্য শব্দ কতবার বাছা হবে, টেম্পারেচার তা ঠিক করে।',
       },
-      breakIt: { en: 'Raise the temperature. Unlikely words start to win and the sentences ramble.' },
+      breakIt: {
+        en: 'Raise the temperature. Unlikely words start to win and the sentences ramble.',
+        bn: 'টেম্পারেচার বাড়ান। কম সম্ভাব্য শব্দ জিততে শুরু করে এবং বাক্যগুলো এলোমেলো হয়ে যায়।',
+      },
       notes: {
         en: 'Run the audience guessing game first, then show that the model does the same thing with counts.',
+        bn: 'প্রথমে দর্শকদের অনুমানের খেলাটি চালান, তারপর দেখান যে মডেলও গণনা দিয়ে একই কাজ করে।',
       },
     },
+    steps: nextWordSteps,
+    Stage: NextWordStage,
+    Controls: NextWordControls,
   }),
   defineLesson({
     n: 10,
@@ -280,14 +333,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'Three approaches sort the same held-out Bangla complaints: keyword rules, a Naive Bayes classifier, and optionally a local language model.',
+        bn: 'তিনটি পদ্ধতি একই আলাদা রাখা বাংলা অভিযোগ বণ্টন করে: কীওয়ার্ড নিয়ম, একটি নাইভ বেইজ ক্লাসিফায়ার, এবং ইচ্ছা হলে একটি লোকাল ভাষা মডেল।',
       },
       breakIt: {
         en: 'Add Banglish spellings. Rules miss them, Naive Bayes copes partly, and a language model copes best but is slower and harder to explain.',
+        bn: 'Banglish বানান যোগ করুন। নিয়ম সেগুলো ধরতে পারে না, নাইভ বেইজ আংশিক পারে, আর ভাষা মডেল সবচেয়ে ভালো পারে কিন্তু ধীর ও ব্যাখ্যা করা কঠিন।',
       },
       notes: {
         en: 'Close the session here: the most sophisticated AI is not always the most appropriate one.',
+        bn: 'সেশন এখানে শেষ করুন: সবচেয়ে উন্নত এআই সবসময় সবচেয়ে উপযুক্ত নয়।',
       },
     },
+    steps: rightAiSteps,
+    Stage: RightAiStage,
+    Controls: RightAiControls,
   }),
   defineLesson({
     n: 12,
@@ -309,12 +368,20 @@ export const LESSONS: Lesson[] = [
     content: {
       how: {
         en: 'A model file is a very large table of numbers. Running it means many small multiplications, and a GPU does thousands of them at the same moment.',
+        bn: 'মডেল ফাইল হলো সংখ্যার একটি বিশাল টেবিল। এটি চালানো মানে অনেক ছোট ছোট গুণ, আর একটি GPU একই মুহূর্তে হাজারটি গুণ করে।',
       },
       breakIt: {
         en: 'Follow a citizen complaint to a cloud model and to a city server. Where does the personal data end up in each case?',
+        bn: 'একটি নাগরিক অভিযোগকে ক্লাউড মডেলে আর সিটি সার্ভারে পাঠিয়ে দেখুন। প্রতিটি ক্ষেত্রে ব্যক্তিগত তথ্য কোথায় গিয়ে পৌঁছায়?',
       },
-      notes: { en: 'Use the self-hosting part with IT staff. Skip the CUDA detail for a general audience.' },
+      notes: {
+        en: 'Use the self-hosting part with IT staff. Skip the CUDA detail for a general audience.',
+        bn: 'সেল্ফ-হোস্টিংয়ের অংশটি আইটি কর্মীদের সাথে ব্যবহার করুন। সাধারণ দর্শকের জন্য CUDA-র খুঁটিনাটি বাদ দিন।',
+      },
     },
+    steps: llmGuideSteps,
+    Stage: LlmGuideStage,
+    Controls: LlmGuideControls,
   }),
 ];
 

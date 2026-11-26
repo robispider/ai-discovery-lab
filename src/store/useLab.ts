@@ -10,6 +10,14 @@ export type CycleStep = (typeof CYCLE)[number];
 export const TABS = ['overview', 'how', 'break', 'notes'] as const;
 export type PanelTab = (typeof TABS)[number];
 
+/** Puts the theme on <html>, where the CSS tokens pick it up. */
+export function applyThemeAttr(theme: Theme) {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (theme === 'system') delete root.dataset.theme;
+  else root.dataset.theme = theme;
+}
+
 interface LabState {
   lang: Lang;
   theme: Theme;
@@ -37,7 +45,11 @@ export const useLab = create<LabState>()(
       step: 'understand',
       tab: 'overview',
       setLang: (lang) => set({ lang }),
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        // Before React re-renders, so canvases that read tokens while rendering see the new theme.
+        applyThemeAttr(theme);
+        set({ theme });
+      },
       visit: (n) =>
         set((s) => ({
           lastLesson: n,

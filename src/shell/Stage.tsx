@@ -22,7 +22,8 @@ export function Stage({ lesson }: { lesson: Lesson }) {
           </a>
         )}
       </div>
-      <div className={embedded ? 'stage-body embed' : 'stage-body'}>
+      {LessonStage && lesson.steps && <StepBrief lesson={lesson} />}
+      <div className={LessonStage ? 'stage-body ported' : embedded ? 'stage-body embed' : 'stage-body'}>
         {LessonStage ? (
           <LessonStage />
         ) : embedded && lesson.legacy ? (
@@ -37,6 +38,35 @@ export function Stage({ lesson }: { lesson: Lesson }) {
         {t(`cycle.${step}`)}
       </span>
     </section>
+  );
+}
+
+/** What to do on the current step, with a button on to the next one. */
+function StepBrief({ lesson }: { lesson: Lesson }) {
+  const { t, pick, num } = useT();
+  const step = useLab((s) => s.step);
+  const setStep = useLab((s) => s.setStep);
+  const i = CYCLE.indexOf(step);
+  const next = CYCLE[i + 1];
+  if (!lesson.steps) return null;
+  return (
+    <div className={step === 'break' ? 'step-brief brk' : 'step-brief'}>
+      <span className="step-brief-n" aria-hidden="true">
+        {num(i + 1)}
+      </span>
+      <div>
+        <b>
+          <span className="visually-hidden">{t('kit.step', { n: i + 1 })} · </span>
+          {t(`cycle.${step}`)}
+        </b>
+        <p>{pick(lesson.steps[step])}</p>
+      </div>
+      {next && (
+        <button type="button" className="btn ghost" onClick={() => setStep(next)}>
+          {t('kit.next')} →
+        </button>
+      )}
+    </div>
   );
 }
 

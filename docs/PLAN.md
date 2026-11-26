@@ -17,6 +17,12 @@ city corporation officers, social science students, teachers.*
 > iframe (`?embed=1`), following the shell's language and theme without reloading. Lessons 6, 7 and
 > 10 stay as links to their online tools. Next: port the experiments into React one at a time,
 > starting with the shortest (expert system, 155 lines).
+>
+> **Update (2026-11-26, Phase 2):** all nine built-in experiments are ported to React in the new
+> lab's design. Each lesson has six step views (understand → apply), step briefs in EN and BN,
+> Break-it presets and a reset in the panel. Engines live in `src/engines/` with known-answer tests
+> that match the legacy pages' numbers. Conventions: [PORTING.md](PORTING.md). Still to do: Bangla
+> review of new step text, facilitator notes per lesson, and the AI map, glossary and session pages.
 
 This plan turns the lab concept (ten live experiments, six modules,
 "25% presentation, 75% experimentation") into a buildable product. It covers what

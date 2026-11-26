@@ -1,0 +1,515 @@
+/* Lesson 4: ward waste regression */
+.rg-talk {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.rg-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 1.05rem;
+}
+
+.rg-say {
+  padding: 8px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  font-size: 0.88rem;
+}
+
+.rg-who {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.rg-q {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.rg-small {
+  font-size: 0.8rem;
+}
+
+.rg-word {
+  font-size: 0.78rem;
+}
+
+.rg-word.warn {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.rg-scene-wrap {
+  position: relative;
+}
+
+.rg-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.rg-scene-label {
+  fill: #ffffff;
+  font: 700 14px var(--font-body);
+}
+
+.rg-forecast {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 0.86rem;
+}
+
+.rg-forecast.warn {
+  border-color: var(--warn);
+}
+
+.rg-forecast .eyebrow {
+  font-size: 0.62rem;
+}
+
+.rg-ops {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.rg-ops div {
+  display: grid;
+  padding: 6px 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: 0.74rem;
+  color: var(--ink-2);
+}
+
+.rg-ops b {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+
+.rg-recs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.rg-rec {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 0.8rem;
+}
+
+.rg-rec.bazaar {
+  border-color: var(--warn);
+  border-style: dashed;
+}
+
+.rg-rec-h {
+  font-weight: 700;
+}
+
+.rg-rec-cl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 0.74rem;
+}
+
+.rg-rec-note {
+  color: var(--warn);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.rg-stamp {
+  justify-self: start;
+  padding: 1px 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.rg-stamp.mkt {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.rg-seesaw {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 10px 12px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.rg-seesaw-svg {
+  width: 100%;
+  max-width: 340px;
+}
+
+.rg-seesaw-svg .axis {
+  stroke: var(--line-strong);
+}
+
+/* Plot */
+.rg-plot-wrap {
+  position: relative;
+}
+
+.rg-plot.hand {
+  cursor: grab;
+}
+
+.rg-ward {
+  fill: var(--accent);
+  opacity: 0.75;
+  transition: r 0.15s;
+}
+
+.rg-bazaar {
+  fill: var(--warn);
+}
+
+.rg-line {
+  stroke: var(--c3);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.rg-ghost {
+  stroke: var(--ink-2);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+}
+
+.rg-res {
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.rg-res.under {
+  stroke: var(--yes);
+}
+
+.rg-res.over {
+  stroke: var(--no);
+}
+
+.rg-extrap {
+  fill: var(--warn-soft);
+  opacity: 0.55;
+}
+
+.rg-new line {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+
+.rg-new circle {
+  fill: var(--warn);
+  stroke: var(--card);
+  stroke-width: 3;
+}
+
+.rg-new text {
+  fill: var(--ink);
+  font-weight: 700;
+  font-family: var(--font-body);
+}
+
+.rg-new.walk line {
+  stroke: var(--warn);
+  stroke-width: 3;
+}
+
+.rg-handle {
+  cursor: ns-resize;
+}
+
+.rg-handle circle {
+  fill: var(--card);
+  stroke: var(--c3);
+  stroke-width: 3;
+}
+
+.rg-handle text {
+  fill: var(--c3);
+  font-weight: 800;
+}
+
+.rg-tip {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.rg-badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.rg-badge.running {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.rg-badge.hand {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.rg-speed {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rg-speed input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.rg-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.rg-check input {
+  accent-color: var(--warn);
+}
+
+.rg-check.strong {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Evaluate */
+.rg-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+.rg-ring {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 150px;
+}
+
+.rg-ring svg {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.rg-ring .bg {
+  fill: none;
+  stroke: var(--paper-2);
+  stroke-width: 12;
+}
+
+.rg-ring .fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-dasharray: 314.16;
+  transition: stroke-dashoffset 0.6s;
+}
+
+.rg-ring.low .fg {
+  stroke: var(--warn);
+}
+
+.rg-ring.tk .fg {
+  stroke: var(--c3);
+}
+
+.rg-ring-v {
+  position: absolute;
+  top: 40px;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.rg-ring-k {
+  font-size: 0.76rem;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.rg-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rg-tile {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.rg-tile.good {
+  border-color: var(--accent);
+}
+
+.rg-tile.bad {
+  border-color: var(--warn);
+}
+
+.rg-tile.worst {
+  background: var(--warn-soft);
+}
+
+.rg-tile-t {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.rg-tile-n {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.rg-tile-n small {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.rg-tile-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.rg-tile-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.rg-tile.bad .rg-tile-bar i {
+  background: var(--warn);
+}
+
+.rg-tile-d {
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.rg-fleet {
+  display: grid;
+  gap: 4px;
+}
+
+.rg-fleet-h {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.84rem;
+}
+
+.rg-fleet-h .ok {
+  color: var(--ok);
+}
+
+.rg-fleet-h .warn {
+  color: var(--warn);
+}
+
+.rg-fleet-h .yes {
+  color: var(--yes);
+}
+
+.rg-fleet-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.rg-truck {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 26px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  font-size: 0.95rem;
+}
+
+.rg-truck.extra {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.rg-truck.miss {
+  border: 1.5px dashed var(--yes);
+  background: var(--yes-soft);
+}
+
+@media (max-width: 560px) {
+  .rg-forecast {
+    position: static;
+    margin-top: 8px;
+  }
+
+  .rg-tiles {
+    grid-template-columns: 1fr;
+  }
+}

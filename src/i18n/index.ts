@@ -46,5 +46,7 @@ export function useT() {
   );
   const pick = useCallback((text: Bi) => pickBi(text, lang).text, [lang]);
   const num = useCallback((value: number | string) => digits(value, lang), [lang]);
-  return { t, pick, num, lang };
+  /** Inline text in both languages, for experiment copy that lives with its lesson. */
+  const bi = useCallback((en: string, bn: string) => (lang === 'bn' ? bn : en), [lang]);
+  return { t, pick, num, bi, lang };
 }

@@ -5,9 +5,10 @@ non-technical professionals (city corporation officers, social science students)
 
 ## Run it
 
-The lab is being rebuilt as a React app (see [docs/PLAN.md](docs/PLAN.md)). The new shell is in `src/`.
-Until each experiment is ported, the shell runs the previous plain-HTML version of it from
-`public/legacy/` inside the stage, and keeps its language and theme in step with the shell.
+The lab is a React app (see [docs/PLAN.md](docs/PLAN.md)). All nine built-in experiments now run
+natively in the new lab: each one follows the six-step learning cycle (understand, explore data,
+train, evaluate, break it, apply) on the stage, with presets and reset in the side panel. The
+previous plain-HTML version stays in `public/legacy/` and each lesson links to it.
 
 Requires Node.js 20 or newer.
 
@@ -28,7 +29,7 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Vitest: UI strings in both languages, lesson registry, store, shell rendering, the shell ↔ legacy page bridge |
+| `npm test` | Vitest: UI strings in both languages, lesson registry, store, shell rendering, known-answer tests for every engine (same numbers as the legacy pages), the legacy page bridge |
 | `npm run lint` | ESLint (TypeScript, React hooks) |
 | `npm run typecheck` | TypeScript |
 
@@ -53,7 +54,10 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
   language, theme and progress. Fonts (Archivo, Noto Sans Bengali, JetBrains Mono) are bundled, so
   Bangla renders the same on every machine, offline.
 - Themes: light, dark, and a high-contrast projector theme (Settings).
-- Legacy experiments on the stage: the shell loads `legacy/experiments/<page>.html?embed=1&lang=…&theme=…`
+- Ported experiments: algorithms are plain TypeScript in `src/engines/` (no React, unit-tested),
+  seeded synthetic data in `src/data/`, and each lesson's views in `src/lessons/<id>/`. How to port
+  or add a lesson: [docs/PORTING.md](docs/PORTING.md).
+- Legacy pages on the stage (used only for a lesson without a React port): the shell loads `legacy/experiments/<page>.html?embed=1&lang=…&theme=…`
   in an iframe. In embed mode `public/legacy/assets/lab.js` hides the page's own top bar and cycle,
   and later language or theme changes arrive as `{type: 'lab:prefs'}` messages, so the experiment
   is never reloaded. Opened on its own, a legacy page behaves exactly as before. The shell side is
@@ -66,7 +70,9 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
 ```
 src/app/        App, routes, language and theme sync
 src/shell/      TopBar, IconRail, Stage + learning cycle, LessonPanel, Filmstrip
-src/lessons/    registry.ts: the 12 lessons (titles, family, content); types.ts: defineLesson
+src/lessons/    registry.ts: the 12 lessons; kit/: shared cards, charts, sliders; one folder per lesson
+src/engines/    search, rules, tree, regression, cluster, rl, ngram, text (Naive Bayes), metrics
+src/data/       seeded synthetic datasets (complaints, wards, rainy days, neighbourhoods, corpus)
 src/i18n/       en.json, bn.json, useT()
 src/store/      useLab: language, theme, progress, cycle step
 src/ui/         design tokens, global styles, icons

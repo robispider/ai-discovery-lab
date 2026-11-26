@@ -66,5 +66,11 @@
   "settings.progress": "অগ্রগতি",
   "settings.progressHint": "অগ্রগতি শুধু এই ব্রাউজারেই সংরক্ষিত থাকে।",
   "settings.reset": "আমার অগ্রগতি মুছুন",
-  "settings.resetDone": "অগ্রগতি মুছে ফেলা হয়েছে।"
+  "settings.resetDone": "অগ্রগতি মুছে ফেলা হয়েছে।",
+  "kit.lesson": "শিক্ষা",
+  "kit.reset": "রিসেট",
+  "kit.presets": "সরাসরি যান",
+  "kit.step": "ধাপ {n} / ৬",
+  "kit.next": "পরের ধাপ",
+  "panel.previous": "আগের সংস্করণ"
 }

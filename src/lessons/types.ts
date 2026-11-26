@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { Bi } from '../i18n';
+import type { CycleStep } from '../store/useLab';
 
 export type FamilyId = 'classical' | 'ml' | 'nn' | 'dl' | 'rl' | 'lm' | 'cap';
 
@@ -40,8 +41,14 @@ export interface Lesson {
     breakIt?: Bi;
     notes?: Bi;
   };
-  /** The interactive experiment. Undefined until the lesson is ported (Phase 2). */
+  /** What to do on each step of the learning cycle; shown above the stage. */
+  steps?: Record<CycleStep, Bi>;
+  /**
+   * The interactive experiment, drawn on the stage for the current cycle step. Until a lesson is
+   * ported, the previous page runs on the stage instead.
+   */
   Stage?: ComponentType;
+  /** Compact controls for the panel's "Try it yourself" area: presets, reset, key settings. */
   Controls?: ComponentType;
 }
 

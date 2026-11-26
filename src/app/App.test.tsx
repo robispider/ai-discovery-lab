@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
@@ -41,26 +41,22 @@ describe('lab shell', () => {
       screen.getByRole('heading', { level: 1, name: 'জলাবদ্ধতার পূর্বাভাস (ডিসিশন ট্রি)' }),
     ).toBeInTheDocument();
     expect(screen.getByText('পাঠ ৩ / ১২')).toBeInTheDocument();
-    // Draft tab text has no Bangla yet, so the panel says so.
+    // Ported lessons carry their tab text and step briefs in Bangla too.
     await user.click(screen.getByRole('tab', { name: 'কীভাবে কাজ করে' }));
-    expect(screen.getByText('আপাতত শুধু ইংরেজি')).toBeInTheDocument();
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('ট্রি সেই একটি প্রশ্ন বাছে');
+    expect(screen.queryByText('আপাতত শুধু ইংরেজি')).not.toBeInTheDocument();
   });
 
-  it('runs the legacy experiment on the stage and keeps it in step with the shell', async () => {
+  it('runs a ported lesson on the stage with step briefs and panel controls', async () => {
     const user = userEvent.setup();
-    renderAt('/lesson/1');
-    const frame = screen.getByTitle<HTMLIFrameElement>('Garbage truck route finding');
-    expect(frame.getAttribute('src')).toBe('/legacy/experiments/route.html?embed=1&lang=en&theme=system');
-    expect(screen.getByText(/controls are inside the experiment/)).toBeInTheDocument();
-
-    const post = vi.spyOn(frame.contentWindow!, 'postMessage');
-    await user.click(screen.getByRole('button', { name: 'বাংলা' }));
-    expect(post).toHaveBeenLastCalledWith(
-      { type: 'lab:prefs', lang: 'bn', theme: 'system' },
-      expect.any(String),
-    );
-    // The frame is not reloaded, so the experiment keeps its state.
-    expect(frame.getAttribute('src')).toContain('lang=en');
+    renderAt('/lesson/2');
+    expect(screen.getByText(/An officer writes the knowledge as IF/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Next step/ }));
+    expect(useLab.getState().step).toBe('explore');
+    // A Break it preset in the panel loads a tricky complaint and moves the cycle to Break it.
+    await user.click(screen.getByRole('button', { name: /Street light says/ }));
+    expect(useLab.getState().step).toBe('break');
+    expect(screen.getByText(/Conflict: rules point to different departments/)).toBeInTheDocument();
   });
 
   it('offers the online tool for online lessons', () => {
