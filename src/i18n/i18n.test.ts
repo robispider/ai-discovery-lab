@@ -17,8 +17,8 @@ describe('UI strings', () => {
   });
 
   it('fills placeholders and writes Bangla digits in Bangla', () => {
-    expect(translate('en', 'lesson.position', { n: 3, total: 12 })).toBe('Lesson 3 of 12');
-    expect(translate('bn', 'lesson.position', { n: 3, total: 12 })).toBe('পাঠ ৩ / ১২');
+    expect(translate('en', 'lesson.number', { n: '8B' })).toBe('Lesson 8B');
+    expect(translate('bn', 'lesson.number', { n: '8B' })).toBe('পাঠ ৮B');
     expect(digits('2026', 'bn')).toBe('২০২৬');
   });
 

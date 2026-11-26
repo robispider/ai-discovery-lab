@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useT } from '../i18n';
 import { LESSONS } from '../lessons/registry';
-import { FAMILIES, FAMILY_ORDER } from '../lessons/types';
+import { FAMILIES, FAMILY_ORDER, lessonLabel } from '../lessons/types';
 import { legacyUrl } from '../shell/links';
 import { useLab } from '../store/useLab';
 import { LessonThumb } from '../ui/Icon';
@@ -21,7 +21,7 @@ export function Home() {
         <p className="home-lead">{t('home.lead')}</p>
         <div className="home-actions">
           <Link className="btn" to={`/lesson/${started ? lastLesson : 1}`}>
-            {started ? t('home.continue', { n: lastLesson }) : t('home.start')} →
+            {started ? t('home.continue', { n: lessonLabel(lastLesson) }) : t('home.start')} →
           </Link>
           <a className="btn ghost" href={legacyUrl('index.html')}>
             {t('home.legacy')}
@@ -44,7 +44,7 @@ export function Home() {
                     <li key={l.id}>
                       <Link to={`/lesson/${l.n}`} className="family-link">
                         <LessonThumb id={l.icon} size={28} />
-                        <span className="mono family-n">{num(l.n)}</span>
+                        <span className="mono family-n">{num(lessonLabel(l.n))}</span>
                         <span>{pick(l.title)}</span>
                         {visited.includes(l.n) && <span className="family-done">✓</span>}
                       </Link>

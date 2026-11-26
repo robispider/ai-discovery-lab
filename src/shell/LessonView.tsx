@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 import { useT } from '../i18n';
-import { getLesson, LESSONS } from '../lessons/registry';
+import { getLesson } from '../lessons/registry';
 import { useLab } from '../store/useLab';
 import { Stage } from './Stage';
 import { LessonPanel } from './LessonPanel';
@@ -9,7 +9,8 @@ import { Filmstrip } from './Filmstrip';
 
 export function LessonView() {
   const { n: param } = useParams();
-  const n = Number(param);
+  const slug = param?.toLowerCase();
+  const n = slug === '8b' ? slug : slug === '8a' ? 8 : Number(param);
   const lesson = getLesson(n);
   const visit = useLab((s) => s.visit);
   const setStep = useLab((s) => s.setStep);
@@ -25,9 +26,9 @@ export function LessonView() {
   if (!lesson) {
     return (
       <div className="page-pad">
-        <p>{t('lesson.notFound', { n: param ?? '', total: LESSONS.length })}</p>
+        <p>{t('lesson.notFound', { n: param ?? '' })}</p>
         <p>
-          <Link to="/lesson/1">{t('home.start')}</Link>
+          <Link to="/">{t('nav.home')}</Link>
         </p>
       </div>
     );

@@ -5,10 +5,10 @@ non-technical professionals (city corporation officers, social science students)
 
 ## Run it
 
-The lab is a React app (see [docs/PLAN.md](docs/PLAN.md)). All nine built-in experiments now run
+The lab is a React app (see [docs/PLAN.md](docs/PLAN.md)). All ten built-in experiments now run
 natively in the new lab: each one follows the six-step learning cycle (understand, explore data,
 train, evaluate, break it, apply) on the stage, with presets and reset in the side panel. The
-previous plain-HTML version stays in `public/legacy/` and each lesson links to it.
+previous plain-HTML version stays in `public/legacy/` and ported lessons link to it.
 
 Requires Node.js 20 or newer.
 
@@ -44,7 +44,8 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
 | 5 | Neighbourhood clustering (k-means, scaling) | Unsupervised learning | built in |
 | 6 | Neural network training | Neural networks | TensorFlow Playground (online) |
 | 7 | Webcam image recognition | Deep learning | Teachable Machine (online) |
-| 8 | Learning traffic signal (Q-learning + safety rules) | Reinforcement learning | built in |
+| 8A | Learning traffic signal (Q-learning + safety rules) | Reinforcement learning | built in |
+| 8B | Waste-collection robot (Q-learning + delayed reward) | Reinforcement learning | built in |
 | 9 | Next-word prediction: train a tiny language model | Language models | built in |
 | 10 | Inside GPT-2 | Language models | Transformer Explainer (online) |
 | 11 | Bangla complaint routing: rules vs ML vs local LLM | Capstone | built in |
@@ -70,7 +71,7 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
 ```
 src/app/        App, routes, language and theme sync
 src/shell/      TopBar, IconRail, Stage + learning cycle, LessonPanel, Filmstrip
-src/lessons/    registry.ts: the 12 lessons; kit/: shared cards, charts, sliders; one folder per lesson
+src/lessons/    registry.ts: the lessons; kit/: shared cards, charts, sliders; one folder per lesson
 src/engines/    search, rules, tree, regression, cluster, rl, ngram, text (Naive Bayes), metrics
 src/data/       seeded synthetic datasets (complaints, wards, rainy days, neighbourhoods, corpus)
 src/i18n/       en.json, bn.json, useT()

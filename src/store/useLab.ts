@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { LessonNumber } from '../lessons/types';
 
 export type Lang = 'en' | 'bn';
 export type Theme = 'system' | 'light' | 'dark' | 'projector';
@@ -21,14 +22,14 @@ export function applyThemeAttr(theme: Theme) {
 interface LabState {
   lang: Lang;
   theme: Theme;
-  /** Lesson numbers (1-based) the viewer has opened. */
-  visited: number[];
-  lastLesson: number;
+  /** Lesson numbers the viewer has opened. */
+  visited: LessonNumber[];
+  lastLesson: LessonNumber;
   step: CycleStep;
   tab: PanelTab;
   setLang: (lang: Lang) => void;
   setTheme: (theme: Theme) => void;
-  visit: (n: number) => void;
+  visit: (n: LessonNumber) => void;
   resetProgress: () => void;
   /** Choosing "Break it" in the cycle also opens the Break it tab, and the other way round. */
   setStep: (step: CycleStep) => void;
@@ -53,7 +54,9 @@ export const useLab = create<LabState>()(
       visit: (n) =>
         set((s) => ({
           lastLesson: n,
-          visited: s.visited.includes(n) ? s.visited : [...s.visited, n].sort((a, b) => a - b),
+          visited: s.visited.includes(n)
+            ? s.visited
+            : [...s.visited, n].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true })),
         })),
       resetProgress: () => set({ visited: [], lastLesson: 1 }),
       setStep: (step) =>

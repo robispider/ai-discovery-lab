@@ -1,7 +1,8 @@
 import { useRef, type KeyboardEvent } from 'react';
+import { Link } from 'react-router';
 import { pickBi, useT, type Bi, type MessageKey } from '../i18n';
-import { LESSONS } from '../lessons/registry';
-import { FAMILIES, type Lesson } from '../lessons/types';
+import { getLesson } from '../lessons/registry';
+import { FAMILIES, lessonLabel, type Lesson } from '../lessons/types';
 import { TABS, useLab, type PanelTab } from '../store/useLab';
 import { legacyUrl } from './links';
 
@@ -18,6 +19,7 @@ export function LessonPanel({ lesson }: { lesson: Lesson }) {
   const setTab = useLab((s) => s.setTab);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const Controls = lesson.Controls;
+  const alternative = lesson.alternative === undefined ? undefined : getLesson(lesson.alternative);
 
   // Arrow keys move between tabs, as in any tab list.
   const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -38,10 +40,15 @@ export function LessonPanel({ lesson }: { lesson: Lesson }) {
       <div className="panel-head">
         <span className="chip">{pick(FAMILIES[lesson.family])}</span>
         <span className="panel-pos mono">
-          {t('lesson.position', { n: lesson.n, total: LESSONS.length })}
+          {t('lesson.number', { n: lessonLabel(lesson.n) })}
           {lesson.online && <b className="panel-online"> · {t('lesson.onlineTool')}</b>}
         </span>
         <h1 className="panel-title">{pick(lesson.title)}</h1>
+        {alternative && (
+          <Link className="btn ghost" to={`/lesson/${alternative.n}`}>
+            {t('lesson.alternative', { n: lessonLabel(alternative.n), title: pick(alternative.short) })}
+          </Link>
+        )}
       </div>
 
       <div className="tabs" role="tablist" aria-label={t('tabs.label')} onKeyDown={onTabKey}>

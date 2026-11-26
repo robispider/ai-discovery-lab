@@ -3,6 +3,13 @@ import type { Bi } from '../i18n';
 import type { CycleStep } from '../store/useLab';
 
 export type FamilyId = 'classical' | 'ml' | 'nn' | 'dl' | 'rl' | 'lm' | 'cap';
+export type LessonNumber = number | '8b';
+
+export function lessonLabel(n: LessonNumber): number | string {
+  if (n === 8) return '8A';
+  if (n === '8b') return '8B';
+  return n;
+}
 
 export type ThumbId =
   | 'route'
@@ -13,14 +20,16 @@ export type ThumbId =
   | 'network'
   | 'camera'
   | 'signal'
+  | 'robot'
   | 'bars'
   | 'tokens'
   | 'compare'
   | 'chip';
 
 export interface Lesson {
-  /** Position in the lab, 1-based. Also the URL: #/lesson/3 */
-  n: number;
+  /** Stable lesson number or alternate, used in the URL (for example, #/lesson/8b). */
+  n: LessonNumber;
+  alternative?: LessonNumber;
   id: string;
   family: FamilyId;
   icon: ThumbId;

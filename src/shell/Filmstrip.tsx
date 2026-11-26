@@ -2,11 +2,12 @@ import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { useT } from '../i18n';
 import { LESSONS } from '../lessons/registry';
+import { lessonLabel, type LessonNumber } from '../lessons/types';
 import { useLab } from '../store/useLab';
 import { LessonThumb } from '../ui/Icon';
 
 /** Every lesson along the bottom, coloured by AI family; ticked once visited, tagged when online. */
-export function Filmstrip({ current }: { current: number }) {
+export function Filmstrip({ current }: { current: LessonNumber }) {
   const { t, pick, num } = useT();
   const visited = useLab((s) => s.visited);
   const stripRef = useRef<HTMLOListElement>(null);
@@ -37,7 +38,7 @@ export function Filmstrip({ current }: { current: number }) {
                 aria-current={l.n === current ? 'page' : undefined}
               >
                 <LessonThumb id={l.icon} />
-                <span className="film-n mono">{num(String(l.n).padStart(2, '0'))}</span>
+                <span className="film-n mono">{num(String(lessonLabel(l.n)).padStart(2, '0'))}</span>
                 <span className="film-t">{pick(l.short)}</span>
                 {l.online ? (
                   <span

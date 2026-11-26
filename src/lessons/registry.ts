@@ -1,4 +1,4 @@
-import { defineLesson, type Lesson } from './types';
+import { defineLesson, type Lesson, type LessonNumber } from './types';
 import { LlmGuideControls, LlmGuideStage, llmGuideSteps } from './llm-guide';
 import { RegressionControls, RegressionStage, regressionSteps } from './regression';
 import { TreeControls, TreeStage, treeSteps } from './tree';
@@ -8,9 +8,10 @@ import { NextWordControls, NextWordStage, nextWordSteps } from './next-word';
 import { RightAiControls, RightAiStage, rightAiSteps } from './right-ai';
 import { ClusterControls, ClusterStage, clusterSteps } from './clustering';
 import { ExpertControls, ExpertStage, expertSteps } from './expert-system';
+import { RobotPanelControls, RobotStage, robotSteps } from './robot';
 
 /*
- * The 12 lessons, in teaching order. Titles and summaries come from the previous index.html.
+ * Lessons in teaching order.
  * "How it works", "Break it" and "Notes" are English drafts; Bangla is added when each lesson is
  * rebuilt in Phase 2 (the panel marks the fallback). Stage and Controls are added in Phase 2 too.
  */
@@ -225,6 +226,7 @@ export const LESSONS: Lesson[] = [
   }),
   defineLesson({
     n: 8,
+    alternative: '8b',
     id: 'traffic-signal',
     family: 'rl',
     icon: 'signal',
@@ -254,6 +256,37 @@ export const LESSONS: Lesson[] = [
     steps: trafficSteps,
     Stage: TrafficStage,
     Controls: TrafficPanelControls,
+  }),
+  defineLesson({
+    n: '8b',
+    alternative: 8,
+    id: 'waste-collection-robot',
+    family: 'rl',
+    icon: 'robot',
+    title: { en: 'Waste-collection robot (Q-learning)', bn: 'বর্জ্য সংগ্রহের রোবট (Q-learning)' },
+    short: { en: 'Waste robot', bn: 'বর্জ্য সংগ্রহের রোবট' },
+    summary: {
+      en: 'Drive a robot on a small ward map, then train it to find a charging detour and bring the waste back to the depot.',
+      bn: 'ওয়ার্ডের ছোট মানচিত্রে রোবট চালান। তারপর চার্জারের কাছে ঘুরে বর্জ্য ডিপোতে ফেরত আনার কৌশল শেখান।',
+    },
+    stageCaption: { en: 'Ward map · Robot and charger', bn: 'ওয়ার্ডের মানচিত্র · রোবট ও চার্জার' },
+    content: {
+      how: {
+        en: 'The robot sees its position, remaining battery and whether it carries waste. It updates a table of action values from each experience. Recharging costs a turn, but makes the delivery reward possible.',
+        bn: 'রোবট তার অবস্থান, অবশিষ্ট চার্জ ও বর্জ্য আছে কি না দেখে। প্রতিটি অভিজ্ঞতা থেকে চালগুলোর মানের সারণি বদলায়। চার্জ দিতে একটি চাল লাগে, কিন্তু তাতে বর্জ্য জমা দিয়ে পুরস্কার পাওয়া সম্ভব হয়।',
+      },
+      breakIt: {
+        en: 'Change the starting battery in the comparison and replay the same learned policy. Training always starts with five units.',
+        bn: 'তুলনার সময় শুরুর চার্জ বদলে একই শেখা কৌশল আবার চালান। প্রশিক্ষণে সব সময় পাঁচ ইউনিট চার্জ দিয়ে শুরু হয়।',
+      },
+      notes: {
+        en: 'Let someone try the direct trip first. Ask what makes charging worthwhile when it earns no points on its own.',
+        bn: 'প্রথমে একজনকে সরাসরি পথে যেতে দিন। চার্জ দিলে পয়েন্ট পাওয়া যায় না, তবু চার্জ দেওয়া কেন কাজে লাগে তা জানতে চান।',
+      },
+    },
+    steps: robotSteps,
+    Stage: RobotStage,
+    Controls: RobotPanelControls,
   }),
   defineLesson({
     n: 9,
@@ -385,6 +418,6 @@ export const LESSONS: Lesson[] = [
   }),
 ];
 
-export function getLesson(n: number): Lesson | undefined {
+export function getLesson(n: LessonNumber): Lesson | undefined {
   return LESSONS.find((l) => l.n === n);
 }

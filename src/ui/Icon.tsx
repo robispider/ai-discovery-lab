@@ -127,6 +127,12 @@ const THUMB: Record<ThumbId, ReactNode> = {
       <circle cx="17" cy="25" r="2" fill="currentColor" />
     </>
   ),
+  robot: (
+    <>
+      <rect x="6" y="8" width="22" height="17" rx="4" />
+      <path d="M17 8V4m-5 12h.1m9.9 0h.1M14 20h6M10 25v4m14-4v4" />
+    </>
+  ),
   bars: (
     <>
       <rect x="4" y="6" width="22" height="5" rx="2" fill="currentColor" />

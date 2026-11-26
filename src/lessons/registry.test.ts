@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { getLesson, LESSONS } from './registry';
 
 describe('lesson registry', () => {
-  it('has 12 lessons numbered 1 to 12 in order', () => {
-    expect(LESSONS.map((l) => l.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  it('puts lesson 8B beside lesson 8 and preserves the other lesson numbers', () => {
+    expect(LESSONS.map((l) => l.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, '8b', 9, 10, 11, 12]);
   });
 
   it('uses unique ids', () => {
@@ -20,9 +20,9 @@ describe('lesson registry', () => {
     }
   });
 
-  it('gives each lesson either a current page or an online tool', () => {
+  it('gives each lesson a built-in stage, a legacy page or an online tool', () => {
     for (const l of LESSONS) {
-      expect(Boolean(l.legacy) !== Boolean(l.online), l.id).toBe(true);
+      expect(Boolean(l.Stage || l.legacy) !== Boolean(l.online), l.id).toBe(true);
     }
   });
 
@@ -34,6 +34,7 @@ describe('lesson registry', () => {
 
   it('finds lessons by number', () => {
     expect(getLesson(3)?.id).toBe('waterlogging-tree');
+    expect(getLesson('8b')?.id).toBe('waste-collection-robot');
     expect(getLesson(13)).toBeUndefined();
   });
 });
