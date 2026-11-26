@@ -154,3 +154,8 @@ canvas, svg { display: block; max-width: 100%; }
 .muted { color: var(--muted); }
 .hidden { display: none !important; }
 .kbd { font-family: ui-monospace, Consolas, monospace; font-size: .8rem; border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
+
+/* Embed mode (?embed=1): shown on the new lab's stage, which supplies the top bar and cycle. */
+:root[data-embed="1"] #lab-header, :root[data-embed="1"] #cycle { display: none !important; }
+:root[data-embed="1"] .wrap { padding-top: 14px; padding-bottom: 28px; }
+:root[data-embed="1"] .talk { top: 0 !important; }

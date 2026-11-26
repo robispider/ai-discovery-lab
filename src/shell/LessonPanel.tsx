@@ -109,7 +109,9 @@ export function LessonPanel({ lesson }: { lesson: Lesson }) {
             {t('stage.openTool', { tool: lesson.online.tool })} ↗
           </a>
         ) : (
-          <p className="muted try-note">{t('panel.controlsSoon')}</p>
+          <p className="muted try-note">
+            {t(lesson.legacy ? 'panel.controlsInStage' : 'panel.controlsSoon')}
+          </p>
         )}
       </div>
     </aside>

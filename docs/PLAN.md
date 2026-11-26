@@ -12,6 +12,11 @@ city corporation officers, social science students, teachers.*
 > **Update (2026-11-26):** the React shell (Vite + React + TS) now exists in `src/`, with the previous
 > lab moved unchanged to `public/legacy/`. Next: show each legacy experiment inside the shell's stage,
 > then port the experiments one at a time.
+>
+> **Update (2026-11-26, later):** the nine built-in experiments now run on the shell's stage in an
+> iframe (`?embed=1`), following the shell's language and theme without reloading. Lessons 6, 7 and
+> 10 stay as links to their online tools. Next: port the experiments into React one at a time,
+> starting with the shortest (expert system, 155 lines).
 
 This plan turns the lab concept (ten live experiments, six modules,
 "25% presentation, 75% experimentation") into a buildable product. It covers what

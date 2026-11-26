@@ -6,20 +6,69 @@
   function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
   var root = document.documentElement;
-  LAB.lang = load('lab-lang', 'en');
+
+  /*
+   * Embed mode: the new lab shows this page on its stage, in an iframe, as
+   *   experiment.html?embed=1&lang=bn&theme=dark
+   * The shell supplies the top bar and the learning cycle, so the page hides its own. Language
+   * and theme come from the URL at load and from postMessage afterwards, and are not saved, so
+   * they never overwrite the choices made when the page is opened on its own.
+   */
+  var params = new URLSearchParams(location.search);
+  LAB.embedded = params.get('embed') === '1';
+  var LANGS = ['en', 'bn'];
+  var THEMES = ['system', 'light', 'dark', 'projector'];
+
+  /** Shell theme -> this page's attributes. Projector is the light theme with bigger text. */
+  function applyTheme(t) {
+    if (t === 'system') delete root.dataset.theme;
+    else root.dataset.theme = t === 'projector' ? 'light' : t;
+    if (t === 'projector') root.dataset.big = '1';
+    else delete root.dataset.big;
+  }
+
+  if (LAB.embedded) {
+    root.dataset.embed = '1';
+    LAB.lang = LANGS.indexOf(params.get('lang')) >= 0 ? params.get('lang') : 'en';
+    applyTheme(THEMES.indexOf(params.get('theme')) >= 0 ? params.get('theme') : 'system');
+  } else {
+    LAB.lang = load('lab-lang', 'en');
+    var theme = load('lab-theme', '');
+    if (theme) root.dataset.theme = theme;
+    if (load('lab-big', '') === '1') root.dataset.big = '1';
+  }
   root.dataset.lang = LAB.lang;
-  var theme = load('lab-theme', '');
-  if (theme) root.dataset.theme = theme;
-  if (load('lab-big', '') === '1') root.dataset.big = '1';
 
   /** Pick text for the current language. */
   LAB.t = function (en, bn) { return LAB.lang === 'bn' && bn != null ? bn : en; };
   /** Bilingual HTML snippet that switches with the toggle (no re-render needed). */
   LAB.bi = function (en, bn) { return '<span lang="en">' + en + '</span><span lang="bn">' + bn + '</span>'; };
   LAB.setLang = function (l) {
-    LAB.lang = l; root.dataset.lang = l; save('lab-lang', l);
+    LAB.lang = l; root.dataset.lang = l;
+    if (!LAB.embedded) save('lab-lang', l);
     document.dispatchEvent(new Event('langchange'));
   };
+
+  // Messages from the shell: {type: 'lab:prefs', lang, theme}. Only the parent window is listened
+  // to, and only known values are applied. From file:// every origin is "null", so the origin
+  // check applies to served pages only.
+  if (LAB.embedded) {
+    window.addEventListener('message', function (e) {
+      if (e.source !== window.parent) return;
+      if (location.protocol !== 'file:' && e.origin !== location.origin) return;
+      var d = e.data;
+      if (!d || d.type !== 'lab:prefs') return;
+      if (LANGS.indexOf(d.lang) >= 0 && d.lang !== LAB.lang) LAB.setLang(d.lang);
+      if (THEMES.indexOf(d.theme) >= 0) {
+        var before = (root.dataset.theme || '') + '|' + (root.dataset.big || '');
+        applyTheme(d.theme);
+        if (before !== (root.dataset.theme || '') + '|' + (root.dataset.big || '')) {
+          document.dispatchEvent(new Event('themechange'));
+          document.dispatchEvent(new Event('labresize'));
+        }
+      }
+    });
+  }
   LAB.onLang = function (fn) { document.addEventListener('langchange', fn); };
 
   LAB.css = function (name) { return getComputedStyle(root).getPropertyValue(name).trim(); };
@@ -110,6 +159,7 @@
     opts = opts || {};
     var el = document.getElementById('lab-header');
     if (!el) return;
+    if (LAB.embedded) { el.hidden = true; return; }
     el.className = 'topbar';
     el.innerHTML =
       '<a class="brand" href="' + (opts.home || 'index.html') + '"><span class="logo">AI</span>' +
@@ -139,6 +189,7 @@
   LAB.cycle = function (el) {
     var steps = [['Understand', 'বুঝি'], ['Explore data', 'ডেটা দেখি'], ['Train', 'শেখাই'], ['Evaluate', 'যাচাই'], ['Break it', 'ভেঙে দেখি'], ['Apply', 'প্রয়োগ']];
     el.className = 'cycle';
+    if (LAB.embedded) { el.hidden = true; return; }
     el.innerHTML = steps.map(function (s, i) { return '<span>' + (i + 1) + '. ' + LAB.bi(s[0], s[1]) + '</span>'; }).join('');
   };
 })();

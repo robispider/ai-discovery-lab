@@ -5,9 +5,9 @@ non-technical professionals (city corporation officers, social science students)
 
 ## Run it
 
-The lab is being rebuilt as a React app (see [docs/PLAN.md](docs/PLAN.md)). The new shell is in `src/`;
-the twelve experiments still run from the previous plain-HTML version in `public/legacy/`, which the
-new shell links to until each one is ported.
+The lab is being rebuilt as a React app (see [docs/PLAN.md](docs/PLAN.md)). The new shell is in `src/`.
+Until each experiment is ported, the shell runs the previous plain-HTML version of it from
+`public/legacy/` inside the stage, and keeps its language and theme in step with the shell.
 
 Requires Node.js 20 or newer.
 
@@ -15,11 +15,12 @@ Requires Node.js 20 or newer.
 npm install
 npm run dev               # develop at http://localhost:5173
 npm run build             # static site in dist/ (Vercel, GitHub Pages, or serve.js)
-npm run build:classroom   # one self-contained dist-classroom/index.html for offline venues
+npm run build:classroom   # dist-classroom/: the app in one index.html, plus legacy/ beside it
 node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm run build)
 ```
 
-- **Offline venue:** copy `dist-classroom/` to the laptop or a USB stick and double-click `index.html`.
+- **Offline venue:** copy the whole `dist-classroom/` folder (not only `index.html`: the experiments
+  load from `legacy/` beside it) to the laptop or a USB stick and double-click `index.html`.
   No server and no internet are needed.
 - **Phones on the same Wi-Fi:** `npm run build`, then `node serve.js`, and share the printed
   `http://192.168.x.x:8000/` address.
@@ -27,7 +28,7 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
 
 | Command | What it checks |
 | --- | --- |
-| `npm test` | Vitest: UI strings in both languages, lesson registry, store, shell rendering |
+| `npm test` | Vitest: UI strings in both languages, lesson registry, store, shell rendering, the shell ↔ legacy page bridge |
 | `npm run lint` | ESLint (TypeScript, React hooks) |
 | `npm run typecheck` | TypeScript |
 
@@ -52,6 +53,11 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
   language, theme and progress. Fonts (Archivo, Noto Sans Bengali, JetBrains Mono) are bundled, so
   Bangla renders the same on every machine, offline.
 - Themes: light, dark, and a high-contrast projector theme (Settings).
+- Legacy experiments on the stage: the shell loads `legacy/experiments/<page>.html?embed=1&lang=…&theme=…`
+  in an iframe. In embed mode `public/legacy/assets/lab.js` hides the page's own top bar and cycle,
+  and later language or theme changes arrive as `{type: 'lab:prefs'}` messages, so the experiment
+  is never reloaded. Opened on its own, a legacy page behaves exactly as before. The shell side is
+  `src/shell/embed.ts` and `LegacyFrame.tsx`.
 - All datasets are synthetic, seeded and labelled as such. `data/Bengali hate speech .csv` is not used
   by any lesson and is kept out of the app build.
 
@@ -65,7 +71,7 @@ src/i18n/       en.json, bn.json, useT()
 src/store/      useLab: language, theme, progress, cycle step
 src/ui/         design tokens, global styles, icons
 src/pages/      Home, Settings, placeholders for the AI map, glossary and session runner
-public/legacy/  the previous plain-HTML lab, unchanged
+public/legacy/  the previous plain-HTML lab; only lab.js/lab.css gained an embed mode
 ```
 
 ## Docs

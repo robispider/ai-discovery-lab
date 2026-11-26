@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
@@ -46,10 +46,28 @@ describe('lab shell', () => {
     expect(screen.getByText('আপাতত শুধু ইংরেজি')).toBeInTheDocument();
   });
 
+  it('runs the legacy experiment on the stage and keeps it in step with the shell', async () => {
+    const user = userEvent.setup();
+    renderAt('/lesson/1');
+    const frame = screen.getByTitle<HTMLIFrameElement>('Garbage truck route finding');
+    expect(frame.getAttribute('src')).toBe('/legacy/experiments/route.html?embed=1&lang=en&theme=system');
+    expect(screen.getByText(/controls are inside the experiment/)).toBeInTheDocument();
+
+    const post = vi.spyOn(frame.contentWindow!, 'postMessage');
+    await user.click(screen.getByRole('button', { name: 'বাংলা' }));
+    expect(post).toHaveBeenLastCalledWith(
+      { type: 'lab:prefs', lang: 'bn', theme: 'system' },
+      expect.any(String),
+    );
+    // The frame is not reloaded, so the experiment keeps its state.
+    expect(frame.getAttribute('src')).toContain('lang=en');
+  });
+
   it('offers the online tool for online lessons', () => {
     renderAt('/lesson/6');
     const links = screen.getAllByRole('link', { name: /Open TensorFlow Playground/ });
     expect(links[0]).toHaveAttribute('href', 'https://playground.tensorflow.org/');
+    expect(document.querySelector('iframe')).toBeNull();
   });
 
   it('explains when a lesson number does not exist', () => {
