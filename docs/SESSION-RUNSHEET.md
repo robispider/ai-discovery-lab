@@ -15,8 +15,9 @@ A click-by-click guide for the facilitator. Timings follow the agenda on the lab
    - **For phones too:** in a terminal in this folder, run `node serve.js`. It prints a `http://192.168.x.x:8000/`
      address; participants on the **same Wi-Fi** open that on their phones. No internet is needed.
    - **Online alternative:** the GitHub Pages address (if published).
-3. **Click through each experiment once with Wi-Fi off.** Experiments 6, 7 and 10 are the online ones:
-   preload them in tabs while you have internet.
+3. **Click through each built-in experiment once with Wi-Fi off.** Open TensorFlow Playground
+   (optional practice for Experiment 6), Teachable Machine (7), and Transformer Explainer (10)
+   while you have internet.
 4. **Teachable Machine:** allow webcam access once in the browser. Have real objects ready: a banana peel or
    vegetable scraps, a plastic bottle, newspaper. Also bring an "unfamiliar" object, such as a phone or a cup.
 5. **Projector:** press **A+** (top right) for larger text. ◐ switches light/dark (light is usually better on projectors).
@@ -31,7 +32,7 @@ A click-by-click guide for the facilitator. Timings follow the agenda on the lab
 | 0:00–0:15 | What is AI? | Home page, the **families of AI** map |
 | 0:15–0:35 | Classical AI | Exp 1 Route, Exp 2 Expert system |
 | 0:35–1:10 | Machine learning | Exp 3 Tree (main one), Exp 4 Regression, Exp 5 Clusters |
-| 1:10–1:35 | Neural networks | Exp 6 TensorFlow Playground (online) |
+| 1:10–1:35 | Neural networks | Exp 6 guided lesson (offline), then TensorFlow Playground |
 | 1:35–1:55 | Image recognition | Exp 7 Teachable Machine (online, webcam) |
 | 1:55–2:05 | Break | |
 | 2:05–2:20 | Reinforcement learning | Exp 8 Traffic |
@@ -94,13 +95,18 @@ A click-by-click guide for the facilitator. Timings follow the agenda on the lab
 3. **Break it:** turn off scaling and the groups get worse. Try k = 2 and k = 8, and a new random start.
 - **Message:** the machine finds groups; humans give them meaning.
 
-### 6. TensorFlow Playground (online)
-Follow the **Facilitator steps** under Experiment 6 on the home page:
-1. Single neuron on simple data.
-2. Circle data, which a single neuron fails on.
-3. Add a hidden layer.
-4. Spiral data.
-5. Noise at 50% with 10% training data.
+### 6. Neural networks with basic arithmetic (offline)
+
+1. **Understand.** Click **Run signal** to compare the two neuron diagrams. Click an artificial neuron's
+   connection or circle to pause on its arithmetic. Ask for the result of `2 × 3 + 1 × 4 + 1`, then move a weight and repeat.
+2. **Explore data.** Select two rounds and compare the initial guess of four sacks with the six in the example.
+3. **Train.** Click **Train one step** and open the nearby weight trials. Start at weight 2 and step four times
+   to reach 3. Ask why the model kept each new weight.
+4. **Evaluate.** Ask for a prediction for four rounds, then reveal the record.
+5. **Break it.** Toggle both street reports and watch the signals move. Click each hidden neuron and the
+   output circle to see its calculation.
+6. **Apply.** Move and turn the divider. Switch on **Two hidden units** and watch all four cases match.
+   Open **TensorFlow Playground** (online) to experiment with learning a similar pattern.
 
 ### 7. Teachable Machine (online, webcam)
 Follow the steps under Experiment 7 on the home page.
@@ -138,6 +144,18 @@ Follow the steps under Experiment 10 on the home page.
 4. Discuss the LLM row: no training needed, but there are cost, hardware, privacy (cloud) and explainability trade-offs.
 5. **Optional local LLM:** only if Ollama is installed with a model pulled the night before. Run the lab via
    `node serve.js` and open `http://localhost:8000`.
+
+### 13. Smart drain sensors: noisy streams & early flood warning (offline)
+1. **Understand:** scrub through *Test 1: Kalbaishakhi downpour*. Show how upstream khal surge + rising slope starts the stormwater pump 30 minutes before street spillover (85 cm).
+2. **Explore:** switch to *Test 2: Short shower + debris spike* and turn off the median spike filter — watch a single floating-plastic echo trigger a false alarm.
+3. **Evaluate:** compare Raw threshold, Cleaned threshold, and the 30-min AI forecaster on all 4 unseen storms.
+4. **Break it:** inject *Mud / plastic stuck* (flatline) and *Main avenues only* placement. Ask: "If sensors are only on VIP avenues, did IoT fix Lesson 3's bias or automate it?"
+
+### 14. Stormwater pump health: vibration sensing & Edge AI (offline + optional live mic)
+1. **Understand:** toggle between *Healthy hum* (~0.47 g RMS) and *Early bearing wear* (~0.51 g RMS). Point out that overall loudness barely moves, while the 61–95 Hz rattle band jumps 6×.
+2. **Optional live room demo:** click **Try live mic sensor**, hum softly (lights up low band) and tap the desk (lights up high band). Zero internet needed.
+3. **Train & Evaluate:** show the 80-byte microcontroller model (20 numbers vs 8 billion in Lesson 12) and compare battery life: 3 days streaming raw waves to the Cloud vs 700+ days running Edge AI on the chip.
+4. **Break it:** send a heavy truck past the pump house and bake the sensor at 45 °C, then turn on multi-window persistence and spectral ratio normalization.
 
 **Closing discussion prompts:**
 - Correlation is not causation.

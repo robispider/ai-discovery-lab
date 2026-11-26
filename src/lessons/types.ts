@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import type { Bi } from '../i18n';
 import type { CycleStep } from '../store/useLab';
 
-export type FamilyId = 'classical' | 'ml' | 'nn' | 'dl' | 'rl' | 'lm' | 'cap';
+export type FamilyId = 'classical' | 'ml' | 'iot' | 'nn' | 'dl' | 'rl' | 'lm' | 'cap';
 export type LessonNumber = number | '8b';
 
 export function lessonLabel(n: LessonNumber): number | string {
@@ -24,7 +24,15 @@ export type ThumbId =
   | 'bars'
   | 'tokens'
   | 'compare'
-  | 'chip';
+  | 'chip'
+  | 'sensor'
+  | 'wave';
+
+export interface LessonReference {
+  title: Bi;
+  description?: Bi;
+  url: string;
+}
 
 export interface Lesson {
   /** Stable lesson number or alternate, used in the URL (for example, #/lesson/8b). */
@@ -45,6 +53,8 @@ export interface Lesson {
   legacyLines?: number;
   /** Lessons that open a well-known external tool instead of running in the lab. */
   online?: { tool: string; url: string };
+  /** External reference sites or hands-on companions linked from the lesson panel. */
+  references?: LessonReference[];
   content: {
     how?: Bi;
     breakIt?: Bi;
@@ -69,6 +79,7 @@ export function defineLesson(lesson: Lesson): Lesson {
 export const FAMILIES: Record<FamilyId, Bi> = {
   classical: { en: 'Classical AI', bn: 'ক্লাসিক্যাল এআই' },
   ml: { en: 'Machine learning', bn: 'মেশিন লার্নিং' },
+  iot: { en: 'IoT & sensing', bn: 'আইওটি ও সেন্সিং' },
   nn: { en: 'Neural networks', bn: 'নিউরাল নেটওয়ার্ক' },
   dl: { en: 'Deep learning', bn: 'ডিপ লার্নিং' },
   rl: { en: 'Reinforcement learning', bn: 'রিইনফোর্সমেন্ট লার্নিং' },
@@ -76,4 +87,4 @@ export const FAMILIES: Record<FamilyId, Bi> = {
   cap: { en: 'Capstone', bn: 'সমাপনী' },
 };
 
-export const FAMILY_ORDER: FamilyId[] = ['classical', 'ml', 'nn', 'dl', 'rl', 'lm', 'cap'];
+export const FAMILY_ORDER: FamilyId[] = ['classical', 'ml', 'iot', 'nn', 'dl', 'rl', 'lm', 'cap'];

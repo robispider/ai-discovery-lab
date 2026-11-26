@@ -1,0 +1,669 @@
+/* Lesson 13: Smart drain sensors — animated street, ESP32 hardware & live AI switcher. */
+
+/* ---------- Persistent 4-AI Brain Selector Bar ---------- */
+.ds-ai-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.ds-ai-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    background 0.15s;
+}
+
+.ds-ai-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.ds-ai-card[aria-pressed='true'] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.ds-ai-ico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 1.15rem;
+}
+
+.ds-ai-card b {
+  display: block;
+  font-size: 0.84rem;
+  line-height: 1.15;
+}
+
+.ds-ai-card small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+  line-height: 1.2;
+}
+
+/* ---------- Hero Stage & Hardware Animations ---------- */
+.ds-stage-box {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1.5px solid var(--line-strong);
+}
+
+.ds-hero-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ds-cloud {
+  animation: ds-drift 28s ease-in-out infinite alternate;
+}
+
+@keyframes ds-drift {
+  from {
+    transform: translateX(-18px);
+  }
+  to {
+    transform: translateX(24px);
+  }
+}
+
+.ds-rain line {
+  animation: ds-fall 0.65s linear infinite;
+}
+
+@keyframes ds-fall {
+  from {
+    transform: translate(0, -16px);
+  }
+  to {
+    transform: translate(-18px, 195px);
+  }
+}
+
+.ds-flash {
+  opacity: 0;
+  animation: ds-lightning 4.8s infinite;
+  pointer-events: none;
+}
+
+@keyframes ds-lightning {
+  0%,
+  86%,
+  92%,
+  100% {
+    opacity: 0;
+  }
+  88% {
+    opacity: 0.45;
+  }
+  90% {
+    opacity: 0.25;
+  }
+}
+
+.ds-pipe-flow {
+  animation: ds-flow 0.55s linear infinite;
+}
+
+@keyframes ds-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.ds-wire-pulse {
+  animation: ds-wire 0.9s linear infinite;
+}
+
+.ds-wire-pulse.fast {
+  animation: ds-wire 0.45s linear infinite;
+}
+
+@keyframes ds-wire {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
+.ds-impeller {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ds-impeller.spin {
+  animation: ds-spin 0.7s linear infinite;
+}
+
+@keyframes ds-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ds-ping {
+  animation: ds-ping-wave 1.3s ease-out infinite;
+}
+.ds-ping.p2 {
+  animation-delay: 0.35s;
+}
+.ds-ping.p3 {
+  animation-delay: 0.7s;
+}
+
+@keyframes ds-ping-wave {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.ds-radio-ring {
+  animation: ds-radio 1.5s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes ds-radio {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.65);
+    opacity: 0;
+  }
+}
+
+.ds-led-blink {
+  animation: ds-blink 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes ds-blink {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ds-bob {
+  animation: ds-bobbing 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes ds-bobbing {
+  from {
+    transform: translate(182px, 276px) rotate(-3deg);
+  }
+  to {
+    transform: translate(182px, 283px) rotate(4deg);
+  }
+}
+
+.ds-cng,
+.ds-water-fill {
+  transition: all 0.35s ease;
+}
+
+/* ---------- Hardware Callout Pins (learn-esp32 style) ---------- */
+.ds-pin {
+  cursor: pointer;
+}
+
+.ds-pin-pill {
+  fill: #ffffff;
+  stroke: #14233a;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 22%));
+  transition: stroke 0.15s;
+}
+
+.ds-pin:hover .ds-pin-pill,
+.ds-pin.active .ds-pin-pill {
+  stroke: #f97316;
+  stroke-width: 2.4;
+}
+
+.ds-pin-txt {
+  fill: #14233a;
+  font: 800 9px var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.ds-pin-pop {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid var(--warn);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 0.82rem;
+  animation: ds-pop 0.22s ease both;
+}
+
+@keyframes ds-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ds-float-card {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border-radius: 11px;
+  border: 2px solid var(--ok);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.ds-float-card.warn {
+  border-color: var(--accent);
+}
+
+.ds-float-card.bad {
+  border-color: var(--yes);
+}
+
+.ds-float-ico {
+  font-size: 1.35rem;
+}
+
+.ds-meter {
+  height: 5px;
+  margin-top: 3px;
+  border-radius: 3px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.ds-meter i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.35s;
+}
+
+.ds-float-card.bad .ds-meter i {
+  background: var(--yes);
+}
+
+/* ---------- Avatar Speech Bubbles (tree.html style) ---------- */
+.ds-bubbles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.ds-talk {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.ds-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.8px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 1.15rem;
+}
+
+.ds-say {
+  flex: 1;
+  padding: 7px 11px;
+  border-radius: 11px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.ds-who {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* ---------- Live Serial Monitor Drawer (learn-esp32 style) ---------- */
+.ds-serial {
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #334155;
+  background: #0b1320;
+  color: #cbd5e1;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.ds-serial-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  background: #162235;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.ds-serial-body {
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  max-height: 108px;
+  overflow-y: auto;
+}
+
+.ds-serial-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-serial-line:last-child {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* ---------- Flashing Progress Bar ---------- */
+.ds-flash-bar {
+  display: grid;
+  gap: 4px;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--warn);
+  background: var(--warn-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.ds-flash-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.ds-flash-track i {
+  display: block;
+  height: 100%;
+  background: var(--warn);
+  transition: width 0.14s linear;
+}
+
+/* ---------- Stamped Storm Cards & Tree Nodes ---------- */
+.ds-recs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.ds-rec {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 30px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.ds-rec:hover,
+.ds-rec.sel {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.ds-stamp {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  padding: 1px 7px;
+  border: 1.5px solid;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  transform: rotate(-4deg);
+}
+
+.ds-stamp.yes {
+  color: var(--yes);
+  border-color: var(--yes);
+  background: var(--yes-soft);
+}
+
+.ds-stamp.no {
+  color: var(--no);
+  border-color: var(--no);
+  background: var(--no-soft);
+}
+
+/* ---------- Animated Score Rings & Outcome Tiles (tree.html style) ---------- */
+.ds-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.ds-ring {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 136px;
+}
+
+.ds-ring svg {
+  width: 118px;
+  height: 118px;
+  transform: rotate(-90deg);
+}
+
+.ds-ring .bg {
+  fill: none;
+  stroke: var(--paper-2);
+  stroke-width: 11;
+}
+
+.ds-ring .fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 11;
+  stroke-linecap: round;
+  stroke-dasharray: 314.16;
+  transition: stroke-dashoffset 0.65s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.ds-ring.warn .fg {
+  stroke: var(--warn);
+}
+
+.ds-ring-v {
+  position: absolute;
+  top: 39px;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
+.ds-ring-k {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.ds-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ds-tile {
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+}
+
+.ds-tile.good {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ds-tile.bad {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.ds-tile-n {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* ---------- Interactive Clickable Ward Map & House Icons (Break it) ---------- */
+.ds-ward-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+@media (max-width: 640px) {
+  .ds-ward-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ds-ward-btn {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  text-align: left;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.15s;
+}
+
+.ds-ward-btn:hover {
+  transform: translateY(-2px);
+}
+
+.ds-ward-btn.has-sensor {
+  border-color: var(--accent);
+}
+
+.ds-ward-btn.blind-flood {
+  border-style: dashed;
+  border-color: var(--yes);
+  background: var(--yes-soft);
+}
+
+.ds-houses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ds-hs {
+  width: 15px;
+  height: 15px;
+  clip-path: polygon(50% 0, 100% 45%, 86% 45%, 86% 100%, 14% 100%, 14% 45%, 0 45%);
+  transition: background 0.3s, transform 0.25s;
+}
+
+.ds-hs.warned {
+  background: var(--ok);
+}
+
+.ds-hs.missed {
+  background: var(--yes);
+  animation: ds-shake 0.45s ease;
+}
+
+@keyframes ds-shake {
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+.ds-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ds-switch input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--warn);
+}
+
+.ds-controls {
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .ds-float-card {
+    position: static;
+    border-radius: 0;
+    border-width: 0 0 1.5px;
+  }
+}

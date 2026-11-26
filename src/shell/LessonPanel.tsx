@@ -76,6 +76,9 @@ export function LessonPanel({ lesson }: { lesson: Lesson }) {
         {tab === 'overview' ? (
           <>
             <p>{pick(lesson.summary)}</p>
+            <p>
+              <Link to={`/glossary?lesson=${lesson.n}`}>{t('glossary.lessonLink')}</Link>
+            </p>
             <dl className="facts">
               <dt>{t('panel.family')}</dt>
               <dd>{pick(FAMILIES[lesson.family])}</dd>
@@ -93,6 +96,22 @@ export function LessonPanel({ lesson }: { lesson: Lesson }) {
                 </>
               )}
             </dl>
+            {lesson.references && lesson.references.length > 0 && (
+              <section className="panel-refs" aria-label={t('panel.references')}>
+                <h2 className="eyebrow">{t('panel.references')}</h2>
+                <ul className="panel-ref-list">
+                  {lesson.references.map((ref) => (
+                    <li key={ref.url}>
+                      <a href={ref.url} target="_blank" rel="noopener noreferrer">
+                        {pick(ref.title)} <span aria-hidden="true">↗</span>
+                        <span className="visually-hidden"> {t('references.newTab')}</span>
+                      </a>
+                      {ref.description && <p className="muted">{pick(ref.description)}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </>
         ) : (
           <TabText

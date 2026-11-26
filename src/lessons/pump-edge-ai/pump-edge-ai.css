@@ -1,0 +1,498 @@
+/* Lesson 14: Stormwater pump health — animated pump rig, ESP32 + breadboard & 4-AI switcher. */
+
+/* ---------- Persistent 4-AI Brain Selector Bar ---------- */
+.pe-ai-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.pe-ai-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    background 0.15s;
+}
+
+.pe-ai-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.pe-ai-card[aria-pressed='true'] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.pe-ai-ico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 1.15rem;
+}
+
+.pe-ai-card b {
+  display: block;
+  font-size: 0.84rem;
+  line-height: 1.15;
+}
+
+.pe-ai-card small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+  line-height: 1.2;
+}
+
+/* ---------- Hero Stage & Pump/ESP32 Animations ---------- */
+.pe-stage-box {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1.5px solid var(--line-strong);
+}
+
+.pe-hero-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pe-rotor {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.pe-rotor.spin {
+  animation: pe-spin 0.45s linear infinite;
+}
+
+@keyframes pe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pe-pump-shake.mild {
+  animation: pe-vib 0.14s linear infinite;
+}
+
+.pe-pump-shake.hard {
+  animation: pe-vib-hard 0.09s linear infinite;
+}
+
+@keyframes pe-vib {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(0.7px, -0.7px);
+  }
+}
+
+@keyframes pe-vib-hard {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1.8px, 1.4px);
+  }
+  75% {
+    transform: translate(1.8px, -1.4px);
+  }
+}
+
+.pe-flow {
+  animation: pe-flow-dash 0.45s linear infinite;
+}
+
+@keyframes pe-flow-dash {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+.pe-wire-pulse {
+  animation: pe-wire 0.75s linear infinite;
+}
+
+@keyframes pe-wire {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+.pe-sparks {
+  animation: pe-spark-flash 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes pe-spark-flash {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pe-bubble {
+  animation: pe-bub 0.8s ease-in-out infinite alternate;
+}
+.pe-bubble.b2 {
+  animation-delay: 0.3s;
+}
+
+@keyframes pe-bub {
+  from {
+    transform: translateY(-4px);
+  }
+  to {
+    transform: translateY(4px);
+  }
+}
+
+.pe-truck-drive {
+  animation: pe-truck 2.4s linear infinite;
+}
+
+@keyframes pe-truck {
+  from {
+    transform: translateX(-95px);
+  }
+  to {
+    transform: translateX(215px);
+  }
+}
+
+.pe-blink {
+  animation: pe-blink-led 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes pe-blink-led {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- Hardware Callout Pins ---------- */
+.pe-pin {
+  cursor: pointer;
+}
+
+.pe-pin-pill {
+  fill: #ffffff;
+  stroke: #14233a;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 22%));
+}
+
+.pe-pin:hover .pe-pin-pill,
+.pe-pin.active .pe-pin-pill {
+  stroke: #f97316;
+  stroke-width: 2.4;
+}
+
+.pe-pin-txt {
+  fill: #14233a;
+  font: 800 9px var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.pe-pin-pop {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid var(--warn);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 0.82rem;
+}
+
+/* ---------- Avatar Speech Bubbles & Serial Monitor ---------- */
+.pe-bubbles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.pe-talk {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.pe-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.8px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 1.15rem;
+}
+
+.pe-say {
+  flex: 1;
+  padding: 7px 11px;
+  border-radius: 11px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.pe-who {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.pe-serial {
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #334155;
+  background: #0b1320;
+  color: #cbd5e1;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.pe-serial-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  background: #162235;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.pe-serial-body {
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  max-height: 104px;
+  overflow-y: auto;
+}
+
+.pe-serial-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pe-serial-line:last-child {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* ---------- Oscilloscope, Scatter & Neural Net SVGs ---------- */
+.pe-svg-box {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+}
+
+.pe-dot {
+  cursor: pointer;
+  transition: r 0.15s;
+}
+
+.pe-dot:hover {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+/* ---------- Flash Bar, Score Rings & Battery Race ---------- */
+.pe-flash-bar {
+  display: grid;
+  gap: 4px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  border: 1.5px solid var(--warn);
+  background: var(--warn-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.pe-flash-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.pe-flash-track i {
+  display: block;
+  height: 100%;
+  background: var(--warn);
+  transition: width 0.13s linear;
+}
+
+.pe-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.pe-ring {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 136px;
+}
+
+.pe-ring svg {
+  width: 118px;
+  height: 118px;
+  transform: rotate(-90deg);
+}
+
+.pe-ring .bg {
+  fill: none;
+  stroke: var(--paper-2);
+  stroke-width: 11;
+}
+
+.pe-ring .fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 11;
+  stroke-linecap: round;
+  stroke-dasharray: 314.16;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.pe-ring.warn .fg {
+  stroke: var(--warn);
+}
+
+.pe-ring-v {
+  position: absolute;
+  top: 39px;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
+.pe-ring-k {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.pe-batt-row {
+  display: grid;
+  gap: 4px;
+}
+
+.pe-batt-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pe-batt-shell {
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+  padding: 2px;
+  overflow: hidden;
+}
+
+.pe-batt-shell i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.12s linear;
+}
+
+.pe-batt-shell.good i {
+  background: var(--ok);
+}
+
+.pe-batt-shell.bad i {
+  background: var(--yes);
+}
+
+/* ---------- Passing Truck Timeline & Switches ---------- */
+.pe-timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+}
+
+.pe-slot {
+  display: grid;
+  gap: 3px;
+  padding: 7px 5px;
+  border-radius: 9px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.pe-slot.alarm {
+  border-color: var(--yes);
+  background: var(--yes-soft);
+}
+
+.pe-slot.caught {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pe-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pe-switch input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--warn);
+}
+
+.pe-controls {
+  display: grid;
+  gap: 10px;
+}

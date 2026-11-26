@@ -1,0 +1,347 @@
+.neuron-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.neuron-figure,
+.neuron-network {
+  --signal-ink: var(--f-nn);
+  --signal-wash: color-mix(in srgb, var(--f-nn) 11%, var(--card));
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--signal-wash);
+}
+
+.neuron-figure.biological {
+  --signal-ink: var(--accent);
+  --signal-wash: color-mix(in srgb, var(--accent) 10%, var(--card));
+}
+
+.neuron-figure h4 {
+  margin: 0;
+  color: var(--signal-ink);
+  font-size: 1rem;
+}
+
+.neuron-figure > p,
+.neuron-calculation {
+  margin: 0;
+  min-height: 2.5em;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 0.86rem;
+}
+
+.neuron-calculation {
+  display: flex;
+  gap: 3px 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.neuron-weight-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.neuron-weight-buttons .btn {
+  min-width: 30px;
+  min-height: 25px;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.neuron-figure .neuron-formula {
+  font-weight: 750;
+  color: var(--ink);
+}
+
+.neuron-interactive-art {
+  position: relative;
+}
+
+.neuron-art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.neuron-parts,
+.neuron-network-head {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding-bottom: 5px;
+  color: var(--ink-2);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.neuron-network {
+  padding: 7px 10px 4px;
+}
+
+.neuron-network .neuron-interactive-art {
+  max-width: 570px;
+  margin: 0 auto;
+}
+
+.neuron-network-head {
+  max-width: 642px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.neuron-wire,
+.neuron-bio-lines > path:not(.neuron-signal) {
+  fill: none;
+  stroke: var(--signal-ink, var(--f-nn));
+  stroke-opacity: 0.55;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.neuron-bio-lines > circle {
+  fill: var(--signal-ink);
+}
+
+.neuron-bio-lines > path.neuron-myelin:not(.neuron-signal) {
+  stroke-width: 9;
+  stroke-opacity: 0.24;
+}
+
+.neuron-bio-lines.active > path:not(.neuron-signal) {
+  stroke-opacity: 0.9;
+}
+
+.neuron-soma {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 2;
+  transform-origin: 148px 90px;
+}
+
+.neuron-soma ellipse {
+  fill: var(--card);
+}
+.neuron-soma circle {
+  fill: var(--accent);
+  stroke: none;
+}
+
+.neuron-soma.active {
+  animation: neuron-glow 850ms ease-out both;
+  stroke-width: 3.5;
+}
+
+.neuron-node circle,
+.neuron-weight rect {
+  fill: var(--card);
+  stroke: var(--signal-ink, var(--f-nn));
+  stroke-width: 2;
+}
+
+.neuron-node .neuron-halo {
+  fill: none;
+  stroke-width: 1.5;
+  opacity: 0;
+}
+
+.neuron-node.active .neuron-halo {
+  opacity: 0.55;
+}
+
+.neuron-node.active circle:not(.neuron-halo),
+.neuron-weight.active rect {
+  fill: var(--signal-wash, var(--accent-soft));
+  stroke-width: 3;
+}
+
+.neuron-node text,
+.neuron-weight text,
+.neuron-product,
+.neuron-network-label,
+.neuron-network-weight {
+  fill: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 750;
+  dominant-baseline: central;
+  text-anchor: middle;
+}
+
+.neuron-ann .neuron-node text {
+  font-size: 19px;
+}
+.neuron-product {
+  fill: var(--signal-ink);
+  font-size: 14px;
+}
+.neuron-network .neuron-node text {
+  font-size: 25px;
+}
+.neuron-network-weight {
+  fill: var(--signal-ink);
+  font-size: 20px;
+}
+.neuron-network-label {
+  font-size: 21px;
+}
+.neuron-bias-wire {
+  stroke-dasharray: 4 4;
+}
+
+.neuron-target {
+  position: absolute;
+  top: var(--target-y);
+  left: var(--target-x);
+  width: max(30px, 13%);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.neuron-target:hover,
+.neuron-target:focus-visible {
+  border-color: var(--signal-ink);
+  background: color-mix(in srgb, var(--signal-ink) 11%, transparent);
+}
+
+.neuron-input-target {
+  width: 32%;
+  height: max(32px, 23%);
+  aspect-ratio: auto;
+  border-radius: var(--radius-sm);
+}
+
+.neuron-signal {
+  fill: none;
+  stroke: var(--signal-ink, var(--f-nn));
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 9 125;
+  stroke-dashoffset: 14;
+  animation: neuron-travel 840ms ease-out both;
+}
+
+.neuron-signal.delayed {
+  animation-delay: 140ms;
+}
+.neuron-network .neuron-signal.delayed {
+  animation-delay: 510ms;
+}
+
+@keyframes neuron-travel {
+  from {
+    stroke-dashoffset: 14;
+  }
+  to {
+    stroke-dashoffset: -103;
+  }
+}
+
+@keyframes neuron-glow {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+}
+
+.neuron-edit {
+  display: grid;
+  grid-template-columns: repeat(2, auto) repeat(3, minmax(0, 1fr));
+  gap: 5px 10px;
+  align-items: center;
+}
+
+.neuron-edit .neural-input {
+  padding: 4px 7px;
+  gap: 1px;
+  font-size: 0.8rem;
+}
+
+.neuron-edit .lab-slider {
+  margin: 0;
+}
+
+.neuron-dispatch-controls,
+.neuron-unit-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.neuron-unit-detail {
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.neuron-unit-detail p + p {
+  margin: 0;
+}
+.neuron-formula {
+  overflow-wrap: anywhere;
+}
+.neuron-unit-detail .neuron-formula {
+  color: var(--f-nn);
+  font-weight: 750;
+}
+.neuron-decision {
+  color: var(--accent);
+}
+.neuron-training-art {
+  max-height: 63px;
+}
+
+@media (max-height: 800px) {
+  .neuron-figure > .neuron-art,
+  .neuron-figure > .neuron-interactive-art {
+    width: min(100%, 285px);
+    margin-inline: auto;
+  }
+}
+
+@container (max-width: 550px) {
+  .neuron-edit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .neuron-edit > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (max-width: 450px) {
+  .neuron-comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .neuron-transport .seg {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neuron-signal {
+    animation: none;
+    stroke-dasharray: 3 7;
+    stroke-dashoffset: 0;
+  }
+  .neuron-soma.active {
+    animation: none;
+  }
+}

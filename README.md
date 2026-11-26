@@ -5,7 +5,7 @@ non-technical professionals (city corporation officers, social science students)
 
 ## Run it
 
-The lab is a React app (see [docs/PLAN.md](docs/PLAN.md)). All ten built-in experiments now run
+The lab is a React app (see [docs/PLAN.md](docs/PLAN.md)). The built-in experiments run
 natively in the new lab: each one follows the six-step learning cycle (understand, explore data,
 train, evaluate, break it, apply) on the stage, with presets and reset in the side panel. The
 previous plain-HTML version stays in `public/legacy/` and ported lessons link to it.
@@ -42,7 +42,7 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
 | 3 | Waterlogging decision tree (overfitting, biased records) | Machine learning | built in |
 | 4 | Ward waste regression (outliers, extrapolation) | Machine learning | built in |
 | 5 | Neighbourhood clustering (k-means, scaling) | Unsupervised learning | built in |
-| 6 | Neural network training | Neural networks | TensorFlow Playground (online) |
+| 6 | Neural networks with basic arithmetic | Neural networks | built in, plus TensorFlow Playground (online) |
 | 7 | Webcam image recognition | Deep learning | Teachable Machine (online) |
 | 8A | Learning traffic signal (Q-learning + safety rules) | Reinforcement learning | built in |
 | 8B | Waste-collection robot (Q-learning + delayed reward) | Reinforcement learning | built in |
@@ -50,6 +50,8 @@ node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm r
 | 10 | Inside GPT-2 | Language models | Transformer Explainer (online) |
 | 11 | Bangla complaint routing: rules vs ML vs local LLM | Capstone | built in |
 | 12 | Visual guide: LLM models, GPU & CUDA cores, self-hosting & civic open source | Language models | built in |
+| 13 | Smart drain sensors: noisy streams & early flood warning | IoT & sensing | built in |
+| 14 | Stormwater pump health: vibration sensing, live mic & Edge AI | IoT & sensing | built in |
 
 - New shell: Vite + React + TypeScript, React Router (hash URLs such as `#/lesson/3`), Zustand for
   language, theme and progress. Fonts (Archivo, Noto Sans Bengali, JetBrains Mono) are bundled, so

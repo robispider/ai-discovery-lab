@@ -23,6 +23,7 @@
   /* One colour per AI family (used on chips, lesson cards and thumbnails). */
   --f-classical: #9a6b00;
   --f-ml: #0b7a6e;
+  --f-iot: #0284c7;
   --f-nn: #6b45b5;
   --f-dl: #b03a73;
   --f-rl: #3b7f2a;
@@ -83,6 +84,7 @@
     --on-strong: #0e1620;
     --f-classical: #e0b23c;
     --f-ml: #3cc2b0;
+    --f-iot: #38bdf8;
     --f-nn: #a88bf0;
     --f-dl: #ec7fb3;
     --f-rl: #7cc66a;
@@ -127,6 +129,7 @@
   --on-strong: #0e1620;
   --f-classical: #e0b23c;
   --f-ml: #3cc2b0;
+  --f-iot: #38bdf8;
   --f-nn: #a88bf0;
   --f-dl: #ec7fb3;
   --f-rl: #7cc66a;
@@ -182,6 +185,7 @@
   --c7: #3d6600;
   --c8: #26303b;
   --shadow: none;
+  --f-iot: #005f8f;
   --text-base: 19px;
   --rail-w: 84px;
   --panel-w: 400px;

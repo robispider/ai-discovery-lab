@@ -20,6 +20,7 @@ export function IconRail() {
   const items: RailItem[] = [
     { id: 'home', label: 'nav.home', to: '/', match: '/' },
     { id: 'lessons', label: 'nav.lessons', to: `/lesson/${lastLesson}`, match: '/lesson' },
+    { id: 'references', label: 'nav.references', to: '/references', match: '/references' },
     { id: 'map', label: 'nav.map', to: '/map', match: '/map' },
     { id: 'glossary', label: 'nav.glossary', to: '/glossary', match: '/glossary' },
     { id: 'session', label: 'nav.session', to: '/session', match: '/session' },
