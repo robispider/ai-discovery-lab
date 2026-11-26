@@ -5,9 +5,31 @@ non-technical professionals (city corporation officers, social science students)
 
 ## Run it
 
-- **Simplest:** double-click `index.html`. Works offline, no installation.
-- **For phones on the same Wi-Fi:** run `node serve.js` and share the printed `http://192.168.x.x:8000/` address.
-- **Online:** publish the repository with GitHub Pages (Settings → Pages → Deploy from branch `main`, root folder).
+The lab is being rebuilt as a React app (see [docs/PLAN.md](docs/PLAN.md)). The new shell is in `src/`;
+the twelve experiments still run from the previous plain-HTML version in `public/legacy/`, which the
+new shell links to until each one is ported.
+
+Requires Node.js 20 or newer.
+
+```sh
+npm install
+npm run dev               # develop at http://localhost:5173
+npm run build             # static site in dist/ (Vercel, GitHub Pages, or serve.js)
+npm run build:classroom   # one self-contained dist-classroom/index.html for offline venues
+node serve.js             # serve dist/ to phones on the same Wi-Fi (after npm run build)
+```
+
+- **Offline venue:** copy `dist-classroom/` to the laptop or a USB stick and double-click `index.html`.
+  No server and no internet are needed.
+- **Phones on the same Wi-Fi:** `npm run build`, then `node serve.js`, and share the printed
+  `http://192.168.x.x:8000/` address.
+- **Previous version only:** `public/legacy/index.html` still opens by double-click, as before.
+
+| Command | What it checks |
+| --- | --- |
+| `npm test` | Vitest: UI strings in both languages, lesson registry, store, shell rendering |
+| `npm run lint` | ESLint (TypeScript, React hooks) |
+| `npm run typecheck` | TypeScript |
 
 ## What's inside
 
@@ -26,8 +48,25 @@ non-technical professionals (city corporation officers, social science students)
 | 11 | Bangla complaint routing: rules vs ML vs local LLM | Capstone | built in |
 | 12 | Visual guide: LLM models, GPU & CUDA cores, self-hosting & civic open source | Language models | built in |
 
-- Plain HTML/CSS/JavaScript with no build step and no external libraries.
-- All datasets are synthetic, seeded and labelled as such.
+- New shell: Vite + React + TypeScript, React Router (hash URLs such as `#/lesson/3`), Zustand for
+  language, theme and progress. Fonts (Archivo, Noto Sans Bengali, JetBrains Mono) are bundled, so
+  Bangla renders the same on every machine, offline.
+- Themes: light, dark, and a high-contrast projector theme (Settings).
+- All datasets are synthetic, seeded and labelled as such. `data/Bengali hate speech .csv` is not used
+  by any lesson and is kept out of the app build.
+
+## Project layout
+
+```
+src/app/        App, routes, language and theme sync
+src/shell/      TopBar, IconRail, Stage + learning cycle, LessonPanel, Filmstrip
+src/lessons/    registry.ts: the 12 lessons (titles, family, content); types.ts: defineLesson
+src/i18n/       en.json, bn.json, useT()
+src/store/      useLab: language, theme, progress, cycle step
+src/ui/         design tokens, global styles, icons
+src/pages/      Home, Settings, placeholders for the AI map, glossary and session runner
+public/legacy/  the previous plain-HTML lab, unchanged
+```
 
 ## Docs
 

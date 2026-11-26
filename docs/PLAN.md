@@ -8,6 +8,10 @@ city corporation officers, social science students, teachers.*
 > See [SESSION-RUNSHEET.md](SESSION-RUNSHEET.md).
 > The architecture below (Vite/React, PWA, TF.js vision, tiny GPT) remains the target for later phases.
 > The plain-JS experiments can be ported module by module.
+>
+> **Update (2026-11-26):** the React shell (Vite + React + TS) now exists in `src/`, with the previous
+> lab moved unchanged to `public/legacy/`. Next: show each legacy experiment inside the shell's stage,
+> then port the experiments one at a time.
 
 This plan turns the lab concept (ten live experiments, six modules,
 "25% presentation, 75% experimentation") into a buildable product. It covers what

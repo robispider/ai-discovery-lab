@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dist-classroom/
+coverage/
+*.tsbuildinfo
+.DS_Store

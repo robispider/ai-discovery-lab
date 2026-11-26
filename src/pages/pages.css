@@ -1,0 +1,136 @@
+.page-pad {
+  padding: 32px clamp(16px, 4vw, 48px) 48px;
+  display: grid;
+  gap: 28px;
+  align-content: start;
+  max-width: 1100px;
+}
+
+/* Home */
+.home-hero {
+  display: grid;
+  gap: 14px;
+  max-width: 62ch;
+}
+
+.home-hero h1 {
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-stretch: 78%;
+  font-weight: 800;
+}
+
+:root[lang='bn'] .home-hero h1 {
+  font-stretch: normal;
+  font-weight: 700;
+}
+
+.home-lead {
+  font-size: 1.08rem;
+  color: var(--ink-2);
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-families {
+  display: grid;
+  gap: 12px;
+}
+
+.family-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+
+.family {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-top: 3px solid var(--fam);
+  border-radius: var(--radius);
+}
+
+.family ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.family-link {
+  display: grid;
+  grid-template-columns: 28px 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.family-link svg {
+  color: var(--fam);
+}
+
+.family-link:hover {
+  background: var(--paper);
+}
+
+.family-n {
+  color: var(--ink-2);
+  font-size: 0.78rem;
+}
+
+.family-done {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* Coming soon */
+.soon {
+  justify-items: start;
+  gap: 14px;
+}
+
+.soon h1 {
+  font-size: 1.8rem;
+  font-stretch: 80%;
+}
+
+/* Settings */
+.settings h1 {
+  font-size: 1.8rem;
+  font-stretch: 80%;
+}
+
+.setting {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  margin: 0;
+  padding: 16px 18px;
+  max-width: 62ch;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.setting legend {
+  padding: 0 6px;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.setting .seg {
+  flex-wrap: wrap;
+}
